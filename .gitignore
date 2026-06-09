@@ -8,7 +8,7 @@ build/
 venv/
 .env
 wandb/
-data/
+/data/
 *.ckpt
 *.pt
 .hydra/
