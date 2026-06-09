@@ -34,7 +34,7 @@ Phase 0 is complete when all items below pass.
 
 ## V-3: Baseline Reference Table
 
-The following numbers are **not to be reproduced** — they are taken directly from the SOTA paper (citation TBD) and serve as the comparison target for GVLS results in later phases. VGNAE is the strongest baseline.
+The following numbers are **not to be reproduced** — they are taken directly from Ahn, S.J. and Kim, M., "Variational Graph Normalized Autoencoders," *Proceedings of the 30th ACM International Conference on Information & Knowledge Management (CIKM)*, pp. 2827–2831, 2021, and serve as the comparison target for GVLS results in later phases. VGNAE is the strongest baseline.
 
 ### Link Prediction — AUC
 

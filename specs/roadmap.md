@@ -8,7 +8,7 @@ The project is organized into four phases. Each phase has a concrete deliverable
 
 **Goal:** Working data and evaluation infrastructure; baselines sourced from literature, not re-implemented.
 
-Baseline numbers are taken directly from a SOTA paper (citation TBD) that reports GAE, LGAE, ARGA, GIC, sGraph, GNAE, and VGNAE on Cora, CiteSeer, and PubMed under 20/40/80% training ratios. VGNAE is the current best. See `specs/phase0/` for the full plan, requirements, and validation criteria.
+Baseline numbers are taken directly from Ahn & Kim, "Variational Graph Normalized Autoencoders," CIKM 2021, which reports GAE, LGAE, ARGA, GIC, sGraph, GNAE, and VGNAE on Cora, CiteSeer, and PubMed under 20/40/80% training ratios. VGNAE is the current best. See `specs/phase0/` for the full plan, requirements, and validation criteria.
 
 ### Tasks
 - [ ] Set up project structure: `src/`, `experiments/`, `data/`, `tests/`

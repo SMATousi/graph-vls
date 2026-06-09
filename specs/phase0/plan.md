@@ -2,7 +2,7 @@
 
 ## Objective
 
-Stand up the data, evaluation, and experiment infrastructure needed for all later phases. **No baseline models are implemented.** Baseline numbers come from a SOTA paper (citation TBD by author) that already benchmarks GAE, LGAE, ARGA, GIC, sGraph, GNAE, and VGNAE on the same datasets and splits we will use.
+Stand up the data, evaluation, and experiment infrastructure needed for all later phases. **No baseline models are implemented.** Baseline numbers come from Ahn & Kim, "Variational Graph Normalized Autoencoders," CIKM 2021, which benchmarks GAE, LGAE, ARGA, GIC, sGraph, GNAE, and VGNAE on the same datasets and splits we will use.
 
 ---
 
