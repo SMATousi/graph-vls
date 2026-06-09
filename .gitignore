@@ -12,8 +12,8 @@ wandb/
 *.ckpt
 *.pt
 .hydra/
-outputs/
-multirun/
+/outputs/
+/multirun/
 
 ### AL ###
 #Template for AL projects for Dynamics 365 Business Central
