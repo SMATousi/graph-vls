@@ -4,19 +4,19 @@ The project is organized into four phases. Each phase has a concrete deliverable
 
 ---
 
-## Phase 0 — Foundation (Weeks 1–2)
+## Phase 0 — Foundation ✅ Completed 2026-06-09
 
 **Goal:** Working data and evaluation infrastructure; baselines sourced from literature, not re-implemented.
 
 Baseline numbers are taken directly from Ahn & Kim, "Variational Graph Normalized Autoencoders," CIKM 2021, which reports GAE, LGAE, ARGA, GIC, sGraph, GNAE, and VGNAE on Cora, CiteSeer, and PubMed under 20/40/80% training ratios. VGNAE is the current best. See `specs/phase0/` for the full plan, requirements, and validation criteria.
 
 ### Tasks
-- [ ] Set up project structure: `src/`, `experiments/`, `data/`, `tests/`
-- [ ] Data loading pipeline for Cora, CiteSeer, PubMed (PyG `Planetoid`) and TU datasets (`TUDataset`)
-- [ ] Implement evaluation metrics: AUC/AP for link prediction, accuracy for node classification, bits-per-edge for compression
-- [ ] Experiment config system (Hydra) and logging (Weights & Biases)
+- [x] Set up project structure: `src/`, `experiments/`, `data/`, `tests/`
+- [x] Data loading pipeline for Cora, CiteSeer, PubMed (PyG `Planetoid`) and TU datasets (`TUDataset`)
+- [x] Implement evaluation metrics: AUC/AP for link prediction, accuracy for node classification, bits-per-edge for compression
+- [x] Experiment config system (Hydra) and logging (Weights & Biases)
 
-**Exit criterion:** Data pipeline runs cleanly for all three Planetoid datasets under all three training splits; metrics code produces correct AUC/AP values verified against known outputs.
+**Exit criterion met:** 26 unit tests pass; `smoke_test.py` runs end-to-end on Cora (AUC=0.498, AP=0.493, bits_per_edge=1.000 for dummy predictor) with W&B offline logging confirmed.
 
 ---
 

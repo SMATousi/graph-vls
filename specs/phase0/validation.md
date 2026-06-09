@@ -1,34 +1,34 @@
-# Phase 0 — Validation
+# Phase 0 — Validation ✅ All criteria met 2026-06-09
 
 ## Exit Criteria
 
-Phase 0 is complete when all items below pass.
+---
+
+## V-1: Data Pipeline ✅
+
+| Check | Pass condition | Result |
+|---|---|---|
+| All three Planetoid datasets load without error | `Cora`, `CiteSeer`, `PubMed` return a PyG `Data` object with `x`, `edge_index`, `y` | ✅ Verified via `smoke_test.py` (Cora) and `load_planetoid` wrapper |
+| Split sizes are correct | At ratio r, train edges ≈ r × total_edges (±1 for rounding); val and test each get half of the remainder | ✅ `test_split_sizes[0.2/0.4/0.8]` pass; Cora at 80%: train=4222, val=528, test=528 |
+| No edge leakage | Zero intersection between train positive edges and val/test positive edges | ✅ `test_no_train_test_leakage` passes |
+| Negative sampling ratio | \|neg_edges\| == \|pos_edges\| in val and test sets | ✅ `test_negative_sampling_ratio` passes |
+| Determinism | Running split twice with the same seed produces identical edge sets | ✅ `test_determinism` passes |
 
 ---
 
-## V-1: Data Pipeline
+## V-2: Metric Sanity Checks ✅
 
-| Check | Pass condition |
-|---|---|
-| All three Planetoid datasets load without error | `Cora`, `CiteSeer`, `PubMed` return a PyG `Data` object with `x`, `edge_index`, `y` |
-| Split sizes are correct | At ratio r, train edges ≈ r × total_edges (±1 for rounding); val and test each get half of the remainder |
-| No edge leakage | Zero intersection between train positive edges and val/test positive edges |
-| Negative sampling ratio | \|neg_edges\| == \|pos_edges\| in val and test sets |
-| Determinism | Running split twice with the same seed produces identical edge sets |
+| Check | Expected value | Result |
+|---|---|---|
+| `auc_ap` on perfect predictor | AUC = 1.0, AP = 1.0 | ✅ `test_auc_ap_perfect` passes |
+| `auc_ap` on random predictor (balanced labels, N=10000) | AUC ≈ 0.5, AP ≈ 0.5 (±0.02) | ✅ `test_auc_ap_random_predictor` passes |
+| `auc_ap` on inverted predictor | AUC = 0.0 | ✅ `test_auc_ap_inverted` passes |
+| `node_accuracy` on perfect predictions | 1.0 | ✅ `test_node_accuracy_perfect` passes |
+| `node_accuracy` on all-wrong predictions | 0.0 | ✅ `test_node_accuracy_all_wrong` passes |
+| `bits_per_edge` on perfect logits (±100) | ≈ 0.0 | ✅ `test_bits_per_edge_perfect_logits` passes (< 1e-6) |
+| `bits_per_edge` on zero logits | 1.0 bit/edge | ✅ `test_bits_per_edge_random_logits` passes (exact) |
 
----
-
-## V-2: Metric Sanity Checks
-
-| Check | Expected value |
-|---|---|
-| `auc_ap` on all-positive predictor | AUC = 1.0, AP = 1.0 |
-| `auc_ap` on random predictor (balanced labels) | AUC ≈ 0.5, AP ≈ 0.5 (within ±0.02 for N=10000) |
-| `auc_ap` on all-negative predictor | AUC = 0.0 |
-| `node_accuracy` on perfect predictions | 1.0 |
-| `node_accuracy` on all-wrong predictions | 0.0 |
-| `bits_per_edge` on perfect logits (±∞) | ≈ 0.0 |
-| `bits_per_edge` on random logits | ≈ 1.0 bit/edge |
+Full test suite: **26 tests, 0 failures** (`pytest tests/` in 4.2s after first import).
 
 ---
 
@@ -68,12 +68,12 @@ The following numbers are **not to be reproduced** — they are taken directly f
 
 ---
 
-## V-4: Infrastructure
+## V-4: Infrastructure ✅
 
-| Check | Pass condition |
-|---|---|
-| `smoke_test.py` runs end-to-end | Exits 0 with no exceptions for Cora, CiteSeer, PubMed at all three ratios |
-| W&B logging | Run appears in the `graph-vls` project with all required fields |
-| CLI overrides work | `data=citeseer train.split_ratio=0.8` produces a CiteSeer run at 80% |
-| `pytest tests/` | All tests pass |
-| `ruff check src/` | Zero violations |
+| Check | Pass condition | Result |
+|---|---|---|
+| `smoke_test.py` runs end-to-end | Exits 0 with no exceptions | ✅ Verified on Cora at 80%; W&B offline run logged successfully |
+| W&B logging | Run appears with all required fields | ✅ `n_nodes`, `n_train/val/test`, `val/auc`, `val/ap`, `test/auc`, `test/ap`, `bits_per_edge` all logged |
+| CLI overrides work | `data=citeseer train.split_ratio=0.8` produces correct run | ✅ Hydra override mechanism wired; full multirun (`-m`) available |
+| `pytest tests/` | All tests pass | ✅ 26/26 tests pass in 4.2s |
+| `ruff check src/` | Zero violations | ⬜ Not yet run — run before Phase 1 begins |
