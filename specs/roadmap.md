@@ -6,16 +6,17 @@ The project is organized into four phases. Each phase has a concrete deliverable
 
 ## Phase 0 — Foundation (Weeks 1–2)
 
-**Goal:** Reproducible baselines and a clean project skeleton.
+**Goal:** Working data and evaluation infrastructure; baselines sourced from literature, not re-implemented.
+
+Baseline numbers are taken directly from a SOTA paper (citation TBD) that reports GAE, LGAE, ARGA, GIC, sGraph, GNAE, and VGNAE on Cora, CiteSeer, and PubMed under 20/40/80% training ratios. VGNAE is the current best. See `specs/phase0/` for the full plan, requirements, and validation criteria.
 
 ### Tasks
 - [ ] Set up project structure: `src/`, `experiments/`, `data/`, `tests/`
 - [ ] Data loading pipeline for Cora, CiteSeer, PubMed (PyG `Planetoid`) and TU datasets (`TUDataset`)
-- [ ] Implement and validate a standard VGAE baseline (encoder: 2-layer GCN → mean/logvar; decoder: inner product)
 - [ ] Implement evaluation metrics: AUC/AP for link prediction, accuracy for node classification, bits-per-edge for compression
 - [ ] Experiment config system (Hydra) and logging (Weights & Biases)
 
-**Exit criterion:** VGAE baseline reproduces published numbers on Cora link prediction (AUC ≥ 0.91).
+**Exit criterion:** Data pipeline runs cleanly for all three Planetoid datasets under all three training splits; metrics code produces correct AUC/AP values verified against known outputs.
 
 ---
 
