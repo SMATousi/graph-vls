@@ -1,3 +1,20 @@
+### Python ###
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.env
+wandb/
+data/
+*.ckpt
+*.pt
+.hydra/
+outputs/
+multirun/
+
 ### AL ###
 #Template for AL projects for Dynamics 365 Business Central
 #launch.json folder
