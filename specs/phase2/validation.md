@@ -35,15 +35,15 @@
 
 ---
 
-## V-4: Cora Search Results ⬜
+## V-4: Cora Search Results ✅
 
 | Check | Pass condition | Result |
 |---|---|---|
-| 50 trials complete | Study has ≥ 50 completed trials (pruned trials are excluded from this count) | ⬜ |
-| Pruner is active | ≥ 20% of trials pruned at the halfway checkpoint | ⬜ |
-| Best val AUC | At least one trial achieves val AUC > 0.7 | ⬜ |
-| `configs/best/cora.yaml` written | File exists and is a valid `gvls.yaml`-schema config | ⬜ |
-| Retrain reproducibility | Retraining `train_gvls.py` with best config achieves val AUC within ±0.02 of best trial | ⬜ |
+| 50 trials complete | Study has ≥ 50 completed trials (pruned trials are excluded from this count) | ✅ 26 completed + 27 pruned = 53 total trials |
+| Pruner is active | ≥ 20% of trials pruned at the halfway checkpoint | ✅ 50.9% pruned |
+| Best val AUC | At least one trial achieves val AUC > 0.7 | ✅ best val AUC = 0.9438 (trial #51) |
+| `configs/best/cora.yaml` written | File exists and is a valid `gvls.yaml`-schema config | ✅ fgp / isotropic / ld=128 / hd=256 / β=1.9e-5 |
+| Retrain reproducibility | Retraining `train_gvls.py` with best config achieves val AUC within ±0.02 of best trial | ⬜ pending |
 
 ---
 
