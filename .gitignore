@@ -7,7 +7,7 @@ build/
 .venv/
 venv/
 .env
-wandb/
+#wandb/
 /data/
 *.ckpt
 *.pt
