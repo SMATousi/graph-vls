@@ -76,4 +76,4 @@ The following numbers are **not to be reproduced** — they are taken directly f
 | W&B logging | Run appears with all required fields | ✅ `n_nodes`, `n_train/val/test`, `val/auc`, `val/ap`, `test/auc`, `test/ap`, `bits_per_edge` all logged |
 | CLI overrides work | `data=citeseer train.split_ratio=0.8` produces correct run | ✅ Hydra override mechanism wired; full multirun (`-m`) available |
 | `pytest tests/` | All tests pass | ✅ 26/26 tests pass in 4.2s |
-| `ruff check src/` | Zero violations | ⬜ Not yet run — run before Phase 1 begins |
+| `ruff check src/` | Zero violations | ✅ 1 unused import removed (`torch` in `metrics.py`); 0 violations remaining |

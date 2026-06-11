@@ -1,0 +1,19 @@
+name: graph-vls
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  # PyTorch with MPS support (Apple Silicon)
+  - pytorch>=2.1
+  - torchvision
+  - pip:
+      - torch_geometric>=2.4
+      - scikit-learn>=1.3
+      - hydra-core>=1.3
+      - wandb>=0.16
+      - pytest>=7.4
+      - ruff>=0.1
+      - mypy>=1.6
