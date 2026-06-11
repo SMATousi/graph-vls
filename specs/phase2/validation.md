@@ -43,7 +43,7 @@
 | Pruner is active | ≥ 20% of trials pruned at the halfway checkpoint | ✅ 50.9% pruned |
 | Best val AUC | At least one trial achieves val AUC > 0.7 | ✅ best val AUC = 0.9438 (trial #51) |
 | `configs/best/cora.yaml` written | File exists and is a valid `gvls.yaml`-schema config | ✅ fgp / isotropic / ld=128 / hd=256 / β=1.9e-5 |
-| Retrain reproducibility | Retraining `train_gvls.py` with best config achieves val AUC within ±0.02 of best trial | ⬜ pending |
+| Retrain reproducibility | Retraining `train_gvls.py` with best config achieves val AUC within ±0.02 of best trial | ✅ retrain val AUC=0.9297 (Δ=0.014 < 0.02), test AUC=0.917 |
 
 ---
 
