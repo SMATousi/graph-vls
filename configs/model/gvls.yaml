@@ -1,0 +1,9 @@
+name: gvls
+latent_dim: 32
+hidden_dim: 64
+mp_rounds: 1
+graph_method: attention   # attention | fgp | nri
+prior: isotropic          # isotropic | graph_mrf
+k: 10                     # top-k neighbours per node in latent graph
+beta: 0.001               # KL weight (low to prevent posterior collapse)
+lambda_: 1.0              # MRF precision weight (graph_mrf prior only)

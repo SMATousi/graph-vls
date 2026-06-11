@@ -156,6 +156,14 @@ Tests (`tests/test_elbo.py`):
 
 ---
 
+## Implementation Notes (deviations from original spec)
+
+- **T1.2 sparsification**: switched from mutual top-k intersection to union symmetrization (`(A + A.T) / 2`). Intersection produces an empty graph for N=2708 (mutual selection probability ≈ 0); union gives mean ≈ 2k non-zeros per row.
+- **T1.3 message passing**: (a) removed ReLU — ReLU forces z̃ ≥ 0 which makes inner-product logits always ≥ 0, disabling the decoder; (b) added residual connection `z̃ = z̃ + D⁻¹ A_z z̃ W` — without it, the gradient has to travel through a noisy random A_z early in training before the latent graph is useful.
+- **T1.4 reconstruction**: added `pos_weight = (N² − E) / E` to BCE (VGAE convention) to counteract the extreme class imbalance (0.12% positive pairs in Cora); default `beta` lowered to 0.001 to prevent KL posterior collapse.
+
+---
+
 ## Deliverable
 
 `experiments/train_gvls.py` runs to completion on Cora (default config, 80% split) with:

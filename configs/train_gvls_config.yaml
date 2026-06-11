@@ -1,0 +1,15 @@
+defaults:
+  - data: cora
+  - train: default
+  - model: gvls
+  - _self_
+
+wandb:
+  project: graph-vls
+  mode: offline   # set to online to push runs to wandb.ai
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: false
