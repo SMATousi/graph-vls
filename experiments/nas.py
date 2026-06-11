@@ -63,7 +63,7 @@ def main(cfg: DictConfig) -> None:
         objective,
         n_trials=cfg.nas.n_trials,
         timeout=cfg.nas.timeout,
-        show_progress_bar=False,
+        show_progress_bar=True,
     )
 
     # ── summary ───────────────────────────────────────────────────────────────
