@@ -1,0 +1,5 @@
+n_trials: 50
+epochs_per_trial: 100
+timeout: 7200        # seconds; safety cap (2 hours)
+include_nri: false   # enable NRI graph method (~2 GB RAM required for Cora)
+study_dir: optuna_studies

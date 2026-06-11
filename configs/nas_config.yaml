@@ -1,0 +1,15 @@
+defaults:
+  - data: cora
+  - train: default
+  - nas: default
+  - _self_
+
+wandb:
+  project: graph-vls
+  mode: offline
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: false
