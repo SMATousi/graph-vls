@@ -57,28 +57,27 @@ Baseline numbers are taken directly from Ahn & Kim, "Variational Graph Normalize
 
 ---
 
-## Phase 3 — Downstream Tasks and Decoders (Weeks 12–16)
+## Phase 3 — Graph Compression (priority) and Node Classification (Weeks 12–16)
 
-**Goal:** Evaluate the best GVLS configurations (from Phase 2) on all three target tasks.
+**Goal:** Quantify how compact (z̃, A_z) is relative to the input graph, and trace a rate-distortion curve across latent dimension `d` and latent-graph sparsity `k`. This is the direct prerequisite for the planned QGNN integration (mission.md, `reports/midterm_report.md` §6), which consumes (z̃, A_z). See `specs/phase3/` for the full plan, requirements, and validation criteria.
 
-### Link Prediction
-- [ ] Inner-product decoder on z̃: σ(z̃_i · z̃_j) for edge probability
-- [ ] Evaluate AUC/AP on standard train/val/test splits across all ratios (20/40/80%)
+**Reprioritized 2026-07-07:** graph compression is now the phase's primary deliverable, ahead of node classification and graph-level tasks. Link prediction across all splits (20/40/80%) is **already complete** — it was run as an extension of Phase 2 using the NAS-best configs; results are in `README.md` and `reports/midterm_report.md`. It is not repeated in Phase 3.
 
-### Node Classification
-- [ ] Linear probe and 2-layer MLP head on z̃
-- [ ] Semi-supervised setting: 20 labels/class
+### Graph Compression (priority)
+- [ ] T3.1 — Compression metrics: `reconstruction_f1`, `dim_compression_ratio` (d/F), `edge_compression_ratio` (\|A_z\|/\|E\|), sampled `bits_per_edge` for large graphs
+- [ ] T3.2 — Full-graph split mode (`train_ratio=1.0`, no held-out edges — fidelity is measured on what was actually encoded, not generalization to unseen edges)
+- [ ] T3.3 — Rate-distortion sweep: `latent_dim ∈ {4,8,16,32,64,128}` × `k ∈ {1,2,3,5,10,20}`, other hyperparameters fixed to each dataset's Phase 2 NAS-best config; compression-optimal configs written to `configs/compression/{dataset}.yaml`
+- [ ] T3.4 — A_z-conditioned decoder, built only if the existing inner-product decoder proves to be the fidelity bottleneck (trigger: F1 < 0.90 at the largest tested capacity)
 
-### Graph Compression
-- [ ] Encoder compresses input graph to (z̃, A_z)
-- [ ] Decoder reconstructs adjacency A from (z̃, A_z)
-- [ ] Metrics: reconstruction F1, bits-per-edge, rate-distortion curve across latent dimensions d
+### Node Classification (secondary)
+- [ ] T3.5 — Linear probe and 2-layer MLP head on frozen z̃ (Phase 2 NAS-best config), semi-supervised setting (20 labels/class); may slip to Phase 4 if compression work runs long
 
-### Graph-Level Tasks
+### Graph-Level Tasks (deferred)
 - [ ] Global pooling (mean/sum/attention) over z̃ → graph embedding
 - [ ] Graph classification head; evaluate on MUTAG, PROTEINS, IMDB-B
+- Deferred out of Phase 3 — not connected to the compression/QGNN priority; picked up in Phase 4 or later if time allows
 
-**Exit criterion:** GVLS matches or exceeds VGAE on link prediction AUC on at least two datasets using the Phase 2 best configs.
+**Exit criterion:** rate-distortion sweep complete on all three datasets; a compression-optimal config identified per dataset with `d/F`, `|A_z|/|E|`, reconstruction F1, and bits-per-edge all reported against the input graph's raw size. See `specs/phase3/validation.md`.
 
 ---
 
