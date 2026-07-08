@@ -1,0 +1,20 @@
+# Rate-distortion grid for the graph-compression sweep (T3.3).
+# latent_dim x k = 6 x 6 = 36 grid points per dataset.
+latent_dim: [4, 8, 16, 32, 64, 128]
+k: [1, 2, 3, 5, 10, 20]
+
+# Smallest (d, k) meeting this reconstruction F1 is the compression-optimal
+# config; below this, T3.4's decoder fallback trigger applies (see
+# specs/phase3/plan.md).
+fidelity_floor: 0.90
+
+# Negatives sampled for reconstruction_f1, as a multiple of the real edge
+# count (1.0 = balanced 1:1 pos:neg, matching the link-prediction convention
+# used elsewhere in this repo).
+f1_negative_ratio: 1.0
+
+# Above this many possible node pairs (N*(N-1)/2), bits_per_edge is estimated
+# from a random sample instead of the exact full upper triangle. Cora
+# (~3.7M) and CiteSeer (~5.5M) stay exact; PubMed (~194M) is sampled.
+dense_pair_limit: 10000000
+bpe_sample_size: 500000

@@ -43,6 +43,11 @@ src/gvls/
     compression.py         # T3.1 — reconstruction_f1, dim/edge compression ratios
   data/
     splits.py               # T3.2 — extend with full_graph_split (train_ratio=1.0)
+  compression/
+    sweep.py                 # T3.3 — train_gvls_full_graph, evaluate_compression,
+                              #        write_results_csv, select_compression_optimal
+                              #        (added; not in the original file map — see
+                              #        T3.3's "Implementation note")
   models/
     decoder.py               # T3.4 (conditional) — A_z-conditioned decoder
 configs/
@@ -54,8 +59,9 @@ configs/
     pubmed.yaml               # T3.3
   experiment/
     compression_sweep.yaml   # T3.3 — grid definition (d values, k values)
+  compression_sweep_config.yaml  # T3.3 — root Hydra config (data/train/experiment defaults)
 experiments/
-  compression_sweep.py       # T3.3 — Hydra entry point, grid sweep, results table
+  compression_sweep.py       # T3.3 — thin Hydra CLI wrapper around gvls.compression.sweep
   node_probe.py               # T3.5 — linear/MLP probe on frozen z̃
 tests/
   test_compression_metrics.py  # T3.1
@@ -122,8 +128,12 @@ Hydra entry point:
 
 **Execution order:** Cora first (fastest, validates the pipeline), then PubMed (largest graph — the clearest demonstration of compression value for the QGNN motivation, per the midterm report), then CiteSeer.
 
+**Compute risk flagged before running the full sweep:** PubMed's Phase 2 NAS-best config uses `prior=graph_mrf`, whose KL term calls `torch.linalg.slogdet` on an N×N matrix (`kl_graph_mrf` in `src/gvls/losses/elbo.py`) — O(N³). Measured on this machine: ~6.2s per call at PubMed's N=19717. At 200 epochs × 36 grid points, that's ~12.4 hours for PubMed alone if run serially on CPU. Cora (N=2708) and CiteSeer (N=3327) are unaffected (`prior=isotropic` for both, and even if graph_mrf were used the O(N³) cost is negligible at that scale). Before launching the full production sweep, decide whether to (a) accept the ~12-hour PubMed run, (b) reduce PubMed's epoch budget per NFR-2's allowance, or (c) run on GPU if available.
+
 Tests (`tests/test_compression_sweep.py`):
 - Smoke test: 2×2 grid (`latent_dim=[8,16]`, `k=[2,5]`) on Cora, 10 epochs, completes without error and writes 4 rows to the results CSV
+
+**Implementation note:** grid-point training/evaluation logic lives in `src/gvls/compression/sweep.py` (not inline in `experiments/compression_sweep.py`), mirroring the `src/gvls/nas/objective.py` split used in Phase 2 — this keeps the core logic unit-testable against a tiny synthetic graph without going through Hydra config resolution or downloading a real dataset. `experiments/compression_sweep.py` is a thin Hydra CLI wrapper around it. This deviates from the file map above, which didn't list a `src/gvls/compression/` module.
 
 ---
 
