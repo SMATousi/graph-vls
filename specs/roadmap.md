@@ -39,19 +39,21 @@ Baseline numbers are taken directly from Ahn & Kim, "Variational Graph Normalize
 
 ---
 
-## Phase 2 — Architecture Search (NAS) (Weeks 9–11)
+## Phase 2 — Architecture Search (NAS) ✅ Completed 2026-06-11
 
 **Goal:** Find the best GVLS configuration for each benchmark dataset using Optuna.
 
 ### Tasks
-- [ ] T2.1 — Search space helpers and NAS Hydra config
-- [ ] T2.2 — Optuna objective function (one trial = train GVLS, return best val AUC)
-- [ ] T2.3 — NAS entry point with TPE sampler, MedianPruner, SQLite storage, W&B summary
-- [ ] T2.4 — Run 50-trial search on Cora; researcher runs CiteSeer and PubMed manually
+- [x] T2.1 — Search space helpers and NAS Hydra config
+- [x] T2.2 — Optuna objective function (one trial = train GVLS, return best val AUC)
+- [x] T2.3 — NAS entry point with TPE sampler, MedianPruner, SQLite storage, W&B summary
+- [x] T2.4 — Run 50-trial search on Cora, CiteSeer, and PubMed; best configs saved for all three
 
 **Search space:** latent_dim ∈ {16,32,64,128}, hidden_dim ∈ {32,64,128,256}, mp_rounds ∈ {0,1,2}, graph_method ∈ {attention, fgp}, k ∈ {5,10,20,50}, prior ∈ {isotropic, graph_mrf}, lr ∈ [1e-4, 5e-2], beta ∈ [1e-5, 0.1].
 
-**Exit criterion:** 50 trials complete on Cora, at least one achieves val AUC > 0.7, `configs/best/cora.yaml` written and retrainable.
+**Exit criterion met:** Cora — 53 trials (26 completed, 27 pruned), best val AUC=0.9438, `configs/best/cora.yaml` retrained within ±0.02 (val AUC=0.9297, test AUC=0.917). CiteSeer — 50 trials (41 completed, 9 pruned), best val AUC=0.9407, `configs/best/citeseer.yaml` written. PubMed — 51 trials (30 completed, 20 pruned, 1 failed), best val AUC=0.9518, `configs/best/pubmed.yaml` written. All three configs retrained across 20/40/80% splits; results in `README.md` and `reports/midterm_report.md`. 84/84 tests pass; `ruff check src/` clean. See `specs/phase2/validation.md` for full detail.
+
+**Key finding:** FGP cosine similarity (k=20) with an isotropic prior is consistently preferred for Cora and CiteSeer; the graph-MRF prior only helps on PubMed, where the graph is larger and richer. PubMed link prediction at low split ratios (20%) still trails baselines (0.835 vs. VGNAE 0.951) — flagged for ablation follow-up in Phase 4, not a Phase 2 blocker.
 
 ---
 

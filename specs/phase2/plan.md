@@ -124,7 +124,7 @@ Hydra entry point using `nas_config.yaml`:
 
 ---
 
-### T2.4 — Run on Cora and store results
+### T2.4 — Run on Cora and store results ✅
 
 Execute:
 ```bash
@@ -136,8 +136,12 @@ Collect `configs/best/cora.yaml`. Verify that retraining `train_gvls.py` with
 
 CiteSeer and PubMed: run manually (`data=citeseer`, `data=pubmed`) when compute is available.
 
+**Completed 2026-06-11:** CiteSeer NAS ran 2026-06-10 (50 trials, best val AUC=0.9407); PubMed NAS ran 2026-06-11 (51 trials, best val AUC=0.9518). Both `configs/best/{citeseer,pubmed}.yaml` written and used for full retraining across all split ratios — see `specs/phase2/validation.md` V-5.
+
 ---
 
-## Deliverable
+## Deliverable ✅
 
 `experiments/nas.py data=cora` completes 50 trials without crashing, at least one trial achieves val AUC > 0.7, `configs/best/cora.yaml` is written, and the Optuna SQLite database is populated.
+
+**Extended beyond original scope:** the same pipeline was also run manually for CiteSeer and PubMed, completing the full three-dataset NAS deliverable ahead of the roadmap's original per-phase split (Cora automated / CiteSeer & PubMed deferred). See `specs/phase2/validation.md` V-5 and V-6.

@@ -1,4 +1,4 @@
-# Phase 2 — Validation
+# Phase 2 — Validation ✅ All criteria met 2026-06-11
 
 ## Exit Criteria
 
@@ -47,23 +47,25 @@
 
 ---
 
-## V-5: CiteSeer and PubMed (manual) ⬜
+## V-5: CiteSeer and PubMed (manual) ✅
 
-These runs are executed manually by the researcher; not gated by CI.
+These runs were executed manually by the researcher (2026-06-10 for CiteSeer, 2026-06-11 for PubMed); not gated by CI.
 
 | Check | Pass condition | Result |
 |---|---|---|
-| CiteSeer: 50 trials complete | `optuna_studies/citeseer.db` populated | ⬜ |
-| CiteSeer: best config saved | `configs/best/citeseer.yaml` written | ⬜ |
-| PubMed: 50 trials complete | `optuna_studies/pubmed.db` populated | ⬜ |
-| PubMed: best config saved | `configs/best/pubmed.yaml` written | ⬜ |
+| CiteSeer: 50 trials complete | `optuna_studies/citeseer.db` populated | ✅ 41 completed + 9 pruned = 50 total; best val AUC = 0.9407 |
+| CiteSeer: best config saved | `configs/best/citeseer.yaml` written | ✅ fgp / isotropic / ld=128 / hd=128 / mp_rounds=0 / k=20 / β=1.03e-5 |
+| PubMed: 50 trials complete | `optuna_studies/pubmed.db` populated | ✅ 30 completed + 20 pruned + 1 failed = 51 total; best val AUC = 0.9518 |
+| PubMed: best config saved | `configs/best/pubmed.yaml` written | ✅ attention / graph_mrf / ld=128 / hd=256 / mp_rounds=0 / k=20 / β=7.47e-4 / λ=0.137 |
+
+Note: unlike Cora (V-4), the strict "retrain within ±0.02 of best trial's val AUC" check was not separately re-verified for CiteSeer/PubMed. Instead, full training with each dataset's NAS-found config was run across all three split ratios (20/40/80%); resulting test AUC/AP are published in `README.md` and `reports/midterm_report.md`. PubMed test AUC trails baselines more at low split ratios (20%: 0.835 vs. VGNAE 0.951) — flagged in the midterm report as follow-up ablation work (graph method / prior / β sensitivity in the low-data regime), not a Phase 2 blocker.
 
 ---
 
-## V-6: Code Quality ⬜
+## V-6: Code Quality ✅
 
 | Check | Pass condition | Result |
 |---|---|---|
-| `pytest tests/` | All tests pass (including `test_nas.py`) | ⬜ |
-| `ruff check src/` | Zero violations | ⬜ |
-| `optuna>=3.0` in `pyproject.toml` | Dependency declared | ⬜ |
+| `pytest tests/` | All tests pass (including `test_nas.py`) | ✅ 84/84 pass |
+| `ruff check src/` | Zero violations | ✅ "All checks passed!" |
+| `optuna>=3.0` in `pyproject.toml` | Dependency declared | ✅ |
