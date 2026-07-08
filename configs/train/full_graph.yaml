@@ -1,0 +1,4 @@
+split_ratio: 1.0
+seed: 42
+lr: 0.01
+epochs: 200

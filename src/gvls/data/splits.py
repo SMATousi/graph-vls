@@ -79,6 +79,51 @@ def split_edges(data: Data, train_ratio: float, seed: int = 42) -> EdgeSplit:
     )
 
 
+def full_graph_split(data: Data, seed: int = 42) -> EdgeSplit:
+    """Full-graph split for compression evaluation: every real edge is kept
+    for training (and is the reconstruction target); none are held out.
+
+    Unlike `split_edges` (used for link-prediction generalization), this
+    split serves a memorization/compression objective -- fidelity is judged
+    by how well the model reconstructs the exact graph it was trained on,
+    not by generalization to unseen edges. Negative sampling for evaluation
+    happens separately, at eval time (see `gvls.eval.compression`), not here.
+
+    Args:
+        data: PyG Data object with edge_index and num_nodes.
+        seed: RNG seed for the (functionally irrelevant, but reproducible)
+              edge ordering, for consistency with `split_edges`'s signature.
+
+    Returns:
+        EdgeSplit with every real edge (both directions) in train_edge_index
+        and empty val/test tensors.
+    """
+    n_nodes: int = int(data.num_nodes)
+    edge_index, _ = remove_self_loops(data.edge_index)
+
+    src, dst = edge_index[0], edge_index[1]
+    mask = src < dst
+    canon = edge_index[:, mask]  # (2, E)
+
+    n_edges = canon.size(1)
+    rng = torch.Generator()
+    rng.manual_seed(seed)
+    perm = torch.randperm(n_edges, generator=rng)
+    canon = canon[:, perm]
+
+    train_edge_index = torch.cat([canon, canon.flip(0)], dim=1)
+    empty = torch.empty((2, 0), dtype=torch.long)
+
+    return EdgeSplit(
+        train_edge_index=train_edge_index,
+        val_pos=empty,
+        val_neg=empty,
+        test_pos=empty,
+        test_neg=empty,
+        n_nodes=n_nodes,
+    )
+
+
 def _sample_negatives(n: int, n_nodes: int, pos_set: set[tuple[int, int]], seed: int) -> Tensor:
     """Sample n non-existing undirected edges (i < j) not in pos_set."""
     rng = torch.Generator()
