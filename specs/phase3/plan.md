@@ -135,11 +135,15 @@ Tests (`tests/test_compression_sweep.py`):
 
 **Implementation note:** grid-point training/evaluation logic lives in `src/gvls/compression/sweep.py` (not inline in `experiments/compression_sweep.py`), mirroring the `src/gvls/nas/objective.py` split used in Phase 2 — this keeps the core logic unit-testable against a tiny synthetic graph without going through Hydra config resolution or downloading a real dataset. `experiments/compression_sweep.py` is a thin Hydra CLI wrapper around it. This deviates from the file map above, which didn't list a `src/gvls/compression/` module.
 
+**Cora run complete (2026-07-07):** all 36 grid points ran successfully. Full results in `results/compression/cora.csv`, summarized in `README.md` and `specs/phase3/validation.md` V-3. Headline: F1 is flat (0.813–0.828) across the *entire* grid regardless of `d` or `k` — the fidelity floor (0.90) is not met anywhere, which fires T3.4's trigger below. `k` (not `d`) is what actually controls edge-count compression: `k=1` yields `|A_z|` at ~37% of the input's edge count, while `k≥2` makes A_z denser than the input graph. PubMed is running on a remote A100 (see the compute-risk note above); CiteSeer has not started yet.
+
 ---
 
 ### T3.4 — A_z-conditioned decoder (conditional / stretch)
 
 **Trigger condition:** build this only if T3.3's results show the inner-product decoder is the bottleneck — concretely, if reconstruction F1 at the **largest** tested capacity (`d=128, k=20`) is **below 0.90**. That signals the ceiling itself is weak (a decoder/architecture limitation), not that we're pushing the compression ratio too far (which would show up as a normal fidelity drop-off at *small* `d`/`k`, not a flat low curve even at large capacity).
+
+**Status: triggered for Cora (2026-07-07).** F1 at `d=128, k=20` was 0.8235, and — more tellingly — F1 never exceeds 0.828 anywhere in the 36-point grid, which is stronger evidence of a decoder-capacity bottleneck than the single-point trigger alone. Not yet implemented; awaiting a decision on whether to build it now or after CiteSeer/PubMed confirm the same flat-F1 pattern.
 
 **File:** `src/gvls/models/decoder.py` (only if triggered)
 

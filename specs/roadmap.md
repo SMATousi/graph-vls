@@ -64,10 +64,10 @@ Baseline numbers are taken directly from Ahn & Kim, "Variational Graph Normalize
 **Reprioritized 2026-07-07:** graph compression is now the phase's primary deliverable, ahead of node classification and graph-level tasks. Link prediction across all splits (20/40/80%) is **already complete** — it was run as an extension of Phase 2 using the NAS-best configs; results are in `README.md` and `reports/midterm_report.md`. It is not repeated in Phase 3.
 
 ### Graph Compression (priority)
-- [ ] T3.1 — Compression metrics: `reconstruction_f1`, `dim_compression_ratio` (d/F), `edge_compression_ratio` (\|A_z\|/\|E\|), sampled `bits_per_edge` for large graphs
-- [ ] T3.2 — Full-graph split mode (`train_ratio=1.0`, no held-out edges — fidelity is measured on what was actually encoded, not generalization to unseen edges)
-- [ ] T3.3 — Rate-distortion sweep: `latent_dim ∈ {4,8,16,32,64,128}` × `k ∈ {1,2,3,5,10,20}`, other hyperparameters fixed to each dataset's Phase 2 NAS-best config; compression-optimal configs written to `configs/compression/{dataset}.yaml`
-- [ ] T3.4 — A_z-conditioned decoder, built only if the existing inner-product decoder proves to be the fidelity bottleneck (trigger: F1 < 0.90 at the largest tested capacity)
+- [x] T3.1 — Compression metrics: `reconstruction_f1`, `dim_compression_ratio` (d/F), `edge_compression_ratio` (\|A_z\|/\|E\|), sampled `bits_per_edge` for large graphs
+- [x] T3.2 — Full-graph split mode (`train_ratio=1.0`, no held-out edges — fidelity is measured on what was actually encoded, not generalization to unseen edges)
+- [ ] T3.3 — Rate-distortion sweep: `latent_dim ∈ {4,8,16,32,64,128}` × `k ∈ {1,2,3,5,10,20}`, other hyperparameters fixed to each dataset's Phase 2 NAS-best config; compression-optimal configs written to `configs/compression/{dataset}.yaml`. **Cora done** (2026-07-07; results in `README.md`, `results/compression/cora.csv`) — F1 flat at 0.81–0.83 across the whole grid, fidelity floor not met. PubMed running on a remote A100; CiteSeer not started.
+- [ ] T3.4 — A_z-conditioned decoder, built only if the existing inner-product decoder proves to be the fidelity bottleneck (trigger: F1 < 0.90 at the largest tested capacity). **Triggered for Cora** — not yet built.
 
 ### Node Classification (secondary)
 - [ ] T3.5 — Linear probe and 2-layer MLP head on frozen z̃ (Phase 2 NAS-best config), semi-supervised setting (20 labels/class); may slip to Phase 4 if compression work runs long

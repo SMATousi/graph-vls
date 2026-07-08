@@ -46,6 +46,31 @@ Baselines from Ahn & Kim, *"Variational Graph Normalized Autoencoders"*, CIKM 20
 
 > GVLS uses per-dataset NAS best configs.
 
+### Graph Compression — Cora
+
+Phase 3 asks a different question than link prediction: how small can (z̃, A_z) be made relative to the input graph (X, A) while still reconstructing it? A dedicated rate-distortion sweep trains a fresh model at every `latent_dim × k` grid point on the **full graph** (all edges, no held-out split — see `specs/phase3/plan.md`), independent of the AUC-optimal `k` that Phase 2's NAS chose. Full results: [`results/compression/cora.csv`](results/compression/cora.csv) (36 points, 200 epochs each).
+
+Cora's input graph: N=2708 nodes, F=1433 features, |E|=5278 edges.
+
+| d | k | d/F | \|A_z\|/\|E\| | F1 | bits/edge |
+|---|---|-----|------------|-----|-----------|
+| 4 | 1 | 0.0028 | 0.368 | 0.815 | 1.088 |
+| 8 | 1 | 0.0056 | 0.377 | 0.825 | 1.077 |
+| 16 | 1 | 0.0112 | 0.372 | 0.822 | 1.091 |
+| 32 | 1 | 0.0223 | 0.367 | 0.813 | 1.146 |
+| 64 | 1 | 0.0447 | 0.368 | 0.815 | 1.224 |
+| 128 | 1 | 0.0893 | 0.368 | 0.820 | 1.412 |
+| 16 | 20 | 0.0112 | 7.369 | **0.828** | 1.094 |
+| 128 | 20 | 0.0893 | 7.490 | 0.823 | 1.381 |
+
+**Findings:**
+- **`k` controls compression, not `d`.** At `k=1`, A_z has ~37% as many edges as the input graph — genuine structural compression — while every `k≥2` makes A_z *denser* than the input (up to 7.5× at `k=20`, the NAS-best value chosen for link-prediction AUC, not compression). This confirms the concern flagged in `specs/phase3/plan.md`: an AUC-optimal `k` and a compression-optimal `k` are different numbers.
+- **Reconstruction F1 is flat across the entire grid** — 0.813 to 0.828 (a 1.5-point spread) across all 36 combinations of `d ∈ {4,…,128}` and `k ∈ {1,…,20}`. More latent capacity buys essentially nothing. This points at the plain inner-product decoder (`σ(z̃_i · z̃_j)`) as the bottleneck, not the compression ratio itself.
+- **No grid point met the 0.90 fidelity floor** — even the largest tested capacity (`d=128, k=20`) only reaches F1=0.823. Per `specs/phase3/plan.md`'s T3.4 trigger condition, this **fires the conditional decoder fallback** (an explicit A_z-conditioned decoder) for Cora.
+- The best trade-off is arguably **d=8, k=1**: F1=0.825 (near the grid's best) at d/F=0.56% and only 37.7% of the input's edge count — matching the best raw-F1 point (d=16, k=20, F1=0.828) almost exactly, at a fraction of the size on both axes.
+
+CiteSeer and PubMed sweeps are in progress (PubMed running on a remote A100, given its NAS-best config's O(N³) graph-MRF KL term).
+
 ## Usage
 
 ```bash
@@ -57,20 +82,28 @@ python experiments/train_gvls.py model=best/cora
 
 # Run hyperparameter search
 python experiments/nas.py data=cora
+
+# Run the graph-compression rate-distortion sweep
+python experiments/compression_sweep.py data=cora
 ```
 
 ## Project structure
 
 ```
 src/gvls/
-  data/        # dataset loaders and edge splitting
+  data/        # dataset loaders, edge splitting, full-graph split
   models/      # encoder, latent graph learner, full GVLS model
   losses/      # ELBO with isotropic and graph-MRF KL
-  eval/        # AUC-ROC and average precision metrics
+  eval/        # link-prediction metrics + compression metrics (F1, ratios)
   nas/         # Optuna search space and objective
+  compression/ # rate-distortion sweep (train/eval/select per grid point)
 experiments/
-  train_gvls.py   # training entry point (Hydra + W&B)
-  nas.py          # NAS entry point
+  train_gvls.py         # training entry point (Hydra + W&B)
+  nas.py                # NAS entry point
+  compression_sweep.py  # graph-compression rate-distortion sweep
 configs/
-  model/best/     # NAS-found best configs per dataset
+  model/best/     # NAS-found best configs per dataset (link prediction)
+  compression/    # NAS-found best configs per dataset (compression)
 ```
+
+Full compression results: `results/compression/{dataset}.csv`.
