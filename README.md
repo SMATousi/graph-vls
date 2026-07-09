@@ -91,7 +91,26 @@ Full results: [`results/compression/pubmed.csv`](results/compression/pubmed.csv)
 - **`k` still controls edge compression the same way as Cora**: `k=1` gives `|A_z|` at ~42–45% of the input's edge count (genuine compression) across all `d`; `k≥2` again makes A_z denser than the input, up to 8.7× at `k=20`.
 - **No grid point met the 0.90 fidelity floor** (max F1 = 0.761 at `d=16, k=2`) — same conclusion as Cora, fires the T3.4 decoder-fallback trigger, and here the case is stronger: F1 at the largest tested capacity (`d=128, k=20`) is 0.673, the *worst* point in the entire grid, not just a plateau.
 
-CiteSeer sweep has not started yet.
+#### CiteSeer
+
+Full results: [`results/compression/citeseer.csv`](results/compression/citeseer.csv) (36 points, 200 epochs each). Input graph: N=3327 nodes, F=3703 features, |E|=4552 edges.
+
+| d | k | d/F | \|A_z\|/\|E\| | F1 | bits/edge |
+|---|---|-----|------------|-----|-----------|
+| 4 | 1 | 0.0011 | 0.504 | 0.8087 | 1.1044 |
+| 8 | 1 | 0.0022 | 0.499 | 0.8161 | 1.0803 |
+| 16 | 1 | 0.0043 | 0.496 | 0.8187 | 1.0632 |
+| 16 | 3 | 0.0043 | 1.489 | **0.8188** | 1.0632 |
+| 32 | 1 | 0.0086 | 0.494 | 0.8160 | 1.0682 |
+| 128 | 20 | 0.0346 | 10.451 | 0.8140 | 1.1422 |
+
+**Findings — a third, distinct pattern:**
+- **`k` has essentially zero effect on F1, for a mechanistic reason, not an empirical one.** CiteSeer's Phase 2 NAS-best config is `mp_rounds=0, prior=isotropic`. With `mp_rounds=0`, `z̃ = z` unconditionally (message passing is skipped, per `GVLS.forward` in `src/gvls/models/gvls.py`), so `A_z` never touches `z̃` or the reconstruction logits. With `prior=isotropic`, the KL term (`kl_isotropic`) only uses `μ, log σ²` — it doesn't touch `A_z` either. So for this config, **`A_z` has no path into the loss or the output at all** — varying `k` only changes a value that's computed and then discarded. Confirmed in the data: F1 is bit-identical across all 6 `k` values at `d=4, 8, 128`; at `d=16, 32, 64` there's a residual difference on the order of 1e-4, too large to be float32 rounding noise but with no plausible causal path from `k` found in the code (no stochastic ops in `LatentGraphLearner` — `topk` is deterministic, `log_tau` inits to a constant) — most likely floating-point non-determinism from parallel execution accumulating over 200 epochs, not a real effect of `k`.
+- **`|A_z|/|E|` still varies with `k` exactly like Cora and PubMed** (`k=1` → ~49–50% of the input's edge count; `k≥2` → denser than input, up to 10.5× at `k=20`) — but for CiteSeer's config this is a purely decorative axis: it changes the size of a tensor that has zero effect on model behavior.
+- **F1 ceiling (0.819) and range (0.809–0.819, a 1-point spread) are close to Cora's** (0.813–0.828) — both datasets plateau well short of the 0.90 floor, unlike PubMed's actively-declining curve.
+- **No grid point met the 0.90 floor.** T3.4's trigger fires for CiteSeer too — the third dataset in a row. `configs/compression/citeseer.yaml` was written via the fallback (highest raw F1: `d=16, k=3`, F1=0.8188).
+
+**Cross-dataset pattern, now that all three are in:** none of Cora, CiteSeer, or PubMed reach the 0.90 fidelity floor anywhere in their 36-point grids. Two of three NAS-best configs (CiteSeer, PubMed) use `mp_rounds=0` — meaning GVLS's core "latent message passing" mechanism is inactive in the configurations actually used for the majority of these compression runs, and for CiteSeer specifically, the entire latent graph `A_z` is provably inert. This is a strong, convergent signal that the plain inner-product decoder (or more precisely, the disconnect between `A_z` and the decoding path for 2 of 3 datasets) is the real bottleneck — see T3.4 in `specs/phase3/plan.md`.
 
 ## Usage
 
