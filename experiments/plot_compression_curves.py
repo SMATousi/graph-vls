@@ -1,10 +1,17 @@
-"""Plot reconstruction F1 vs. k and vs. d for the Phase 3 compression sweep.
+"""Plot reconstruction F1 vs. k, d, and compression ratio for the Phase 3
+compression sweep.
 
 Reads results/compression/{cora,citeseer,pubmed}.csv (written by
-compression_sweep.py) and produces two small-multiple figures -- one line
-per dataset panel, F1 on the y-axis, the 0.90 fidelity floor drawn as a
-reference line so the "none of the three datasets reach it" finding in
-README.md is visible directly, not just asserted in prose.
+compression_sweep.py) and produces three figures:
+  - f1_vs_k.png, f1_vs_d.png: small multiples (one panel per dataset), F1
+    against the swept parameter, colored by the other parameter.
+  - f1_vs_ratio.png: the actual rate-distortion curve -- F1 against
+    dim_compression_ratio and edge_compression_ratio, all three datasets
+    overlaid (colored by dataset, since here the datasets are directly
+    comparable on a common, dimensionless x-axis).
+All three draw the 0.90 fidelity floor as a reference line so the "none of
+the three datasets reach it" finding in README.md is visible directly, not
+just asserted in prose.
 
 Usage:
     python experiments/plot_compression_curves.py
@@ -21,6 +28,10 @@ TITLES = {"cora": "Cora", "citeseer": "CiteSeer", "pubmed": "PubMed"}
 # Sequential blue ramp (specs/phase3 dataviz convention), light->dark,
 # assigned in fixed magnitude order -- see references/palette.md.
 RAMP = ["#86b6ef", "#5598e7", "#2a78d6", "#1c5cab", "#104281", "#0d366b"]
+
+# Categorical palette, first 3 slots in fixed order -- dataset identity, not
+# magnitude, so this uses the categorical rule instead of the sequential ramp.
+DATASET_COLOR = {"cora": "#2a78d6", "citeseer": "#1baf7a", "pubmed": "#eda100"}
 
 SURFACE = "#fcfcfb"
 GRIDLINE = "#e1e0d9"
@@ -40,6 +51,8 @@ def _load(dataset: str) -> list[dict]:
         r["latent_dim"] = int(r["latent_dim"])
         r["k"] = int(r["k"])
         r["reconstruction_f1"] = float(r["reconstruction_f1"])
+        r["dim_compression_ratio"] = float(r["dim_compression_ratio"])
+        r["edge_compression_ratio"] = float(r["edge_compression_ratio"])
     return rows
 
 
@@ -131,6 +144,88 @@ def _plot_grid(
     print(f"wrote {out_path}")
 
 
+def _plot_ratio_scatter(out_path: str) -> None:
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.6))
+    fig.patch.set_facecolor(SURFACE)
+
+    panels = [
+        ("dim_compression_ratio", "d / F  (dimension ratio, log scale)", axes[0], False),
+        ("edge_compression_ratio", "|A_z| / |E|  (edge ratio, log scale)", axes[1], True),
+    ]
+
+    for ratio_key, x_label, ax, show_unity_line in panels:
+        _style_axis(ax)
+        ax.set_xscale("log")
+
+        for dataset in DATASETS:
+            rows = _load(dataset)
+            xs = [r[ratio_key] for r in rows]
+            ys = [r["reconstruction_f1"] for r in rows]
+            ax.scatter(
+                xs,
+                ys,
+                s=42,
+                color=DATASET_COLOR[dataset],
+                alpha=0.75,
+                edgecolors=SURFACE,
+                linewidths=0.5,
+                label=TITLES[dataset],
+                zorder=3,
+            )
+
+        if show_unity_line:
+            ax.axvline(1.0, color=MUTED_INK, linewidth=1.0, linestyle=(0, (1, 2)), zorder=2)
+            ax.text(
+                1.0,
+                0.605,
+                "  same density as input",
+                color=MUTED_INK,
+                fontsize=8,
+                rotation=90,
+                va="bottom",
+                ha="left",
+            )
+
+        ax.axhline(
+            FIDELITY_FLOOR, color=MUTED_INK, linewidth=1.2, linestyle=(0, (4, 3)), zorder=2
+        )
+        ax.set_xlabel(x_label, color=SECONDARY_INK, fontsize=10)
+        ax.set_ylim(0.60, 0.95)
+
+    axes[0].set_ylabel("Reconstruction F1", color=SECONDARY_INK, fontsize=10)
+    axes[1].text(
+        axes[1].get_xlim()[1],
+        FIDELITY_FLOOR + 0.006,
+        "0.90 fidelity floor  ",
+        color=MUTED_INK,
+        fontsize=9,
+        ha="right",
+        va="bottom",
+    )
+    fig.suptitle(
+        "Reconstruction fidelity vs. compression ratio (all 36 (d,k) points per dataset)",
+        color=PRIMARY_INK,
+        fontsize=12,
+        fontweight="bold",
+    )
+
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        loc="lower center",
+        ncol=3,
+        bbox_to_anchor=(0.5, -0.06),
+        frameon=False,
+        labelcolor=SECONDARY_INK,
+    )
+
+    fig.tight_layout(rect=(0, 0.03, 1, 0.94))
+    fig.savefig(out_path, dpi=150, facecolor=SURFACE, bbox_inches="tight")
+    plt.close(fig)
+    print(f"wrote {out_path}")
+
+
 def main() -> None:
     _plot_grid(
         x_key="k",
@@ -148,6 +243,7 @@ def main() -> None:
         out_path=os.path.join(RESULTS_DIR, "f1_vs_d.png"),
         x_label="d (latent dimension)",
     )
+    _plot_ratio_scatter(os.path.join(RESULTS_DIR, "f1_vs_ratio.png"))
 
 
 if __name__ == "__main__":

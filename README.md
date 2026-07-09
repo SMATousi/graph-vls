@@ -116,6 +116,10 @@ Full results: [`results/compression/citeseer.csv`](results/compression/citeseer.
 
 The flat/declining/inert patterns described above, side by side (dashed line = the 0.90 fidelity floor; regenerate with `python experiments/plot_compression_curves.py`):
 
+**F1 vs. compression ratio** — the actual rate-distortion curve, all 36 `(d,k)` points per dataset, colored by dataset since the ratio axes are dimensionless and directly comparable across datasets. Cora and CiteSeer form tight, flat clusters regardless of compression ratio; PubMed visibly spreads and trends *downward* as `d` grows (left panel), and its clusters drift past the "same density as input" line and keep declining as `k` grows (right panel):
+
+![F1 vs compression ratio](results/compression/f1_vs_ratio.png)
+
 **F1 vs. k** (colored by latent dimension `d`) — Cora and CiteSeer barely move with `k`; PubMed declines visibly, especially at larger `d`:
 
 ![F1 vs k](results/compression/f1_vs_k.png)
