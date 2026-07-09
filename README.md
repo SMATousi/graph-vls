@@ -112,6 +112,18 @@ Full results: [`results/compression/citeseer.csv`](results/compression/citeseer.
 
 **Cross-dataset pattern, now that all three are in:** none of Cora, CiteSeer, or PubMed reach the 0.90 fidelity floor anywhere in their 36-point grids. Two of three NAS-best configs (CiteSeer, PubMed) use `mp_rounds=0` — meaning GVLS's core "latent message passing" mechanism is inactive in the configurations actually used for the majority of these compression runs, and for CiteSeer specifically, the entire latent graph `A_z` is provably inert. This is a strong, convergent signal that the plain inner-product decoder (or more precisely, the disconnect between `A_z` and the decoding path for 2 of 3 datasets) is the real bottleneck — see T3.4 in `specs/phase3/plan.md`.
 
+#### Rate-distortion curves
+
+The flat/declining/inert patterns described above, side by side (dashed line = the 0.90 fidelity floor; regenerate with `python experiments/plot_compression_curves.py`):
+
+**F1 vs. k** (colored by latent dimension `d`) — Cora and CiteSeer barely move with `k`; PubMed declines visibly, especially at larger `d`:
+
+![F1 vs k](results/compression/f1_vs_k.png)
+
+**F1 vs. d** (colored by `k`) — CiteSeer collapses to a single visible line since none of the 6 `k` series are distinguishable (the "`A_z` is inert" finding, made visible); PubMed peaks around `d=16` and falls off toward `d=128`:
+
+![F1 vs d](results/compression/f1_vs_d.png)
+
 ## Usage
 
 ```bash
