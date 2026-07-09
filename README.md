@@ -46,11 +46,13 @@ Baselines from Ahn & Kim, *"Variational Graph Normalized Autoencoders"*, CIKM 20
 
 > GVLS uses per-dataset NAS best configs.
 
-### Graph Compression — Cora
+### Graph Compression
 
-Phase 3 asks a different question than link prediction: how small can (z̃, A_z) be made relative to the input graph (X, A) while still reconstructing it? A dedicated rate-distortion sweep trains a fresh model at every `latent_dim × k` grid point on the **full graph** (all edges, no held-out split — see `specs/phase3/plan.md`), independent of the AUC-optimal `k` that Phase 2's NAS chose. Full results: [`results/compression/cora.csv`](results/compression/cora.csv) (36 points, 200 epochs each).
+Phase 3 asks a different question than link prediction: how small can (z̃, A_z) be made relative to the input graph (X, A) while still reconstructing it? A dedicated rate-distortion sweep trains a fresh model at every `latent_dim × k` grid point on the **full graph** (all edges, no held-out split — see `specs/phase3/plan.md`), independent of the AUC-optimal `k` that Phase 2's NAS chose.
 
-Cora's input graph: N=2708 nodes, F=1433 features, |E|=5278 edges.
+#### Cora
+
+Full results: [`results/compression/cora.csv`](results/compression/cora.csv) (36 points, 200 epochs each). Input graph: N=2708 nodes, F=1433 features, |E|=5278 edges.
 
 | d | k | d/F | \|A_z\|/\|E\| | F1 | bits/edge |
 |---|---|-----|------------|-----|-----------|
@@ -69,7 +71,27 @@ Cora's input graph: N=2708 nodes, F=1433 features, |E|=5278 edges.
 - **No grid point met the 0.90 fidelity floor** — even the largest tested capacity (`d=128, k=20`) only reaches F1=0.823. Per `specs/phase3/plan.md`'s T3.4 trigger condition, this **fires the conditional decoder fallback** (an explicit A_z-conditioned decoder) for Cora.
 - The best trade-off is arguably **d=8, k=1**: F1=0.825 (near the grid's best) at d/F=0.56% and only 37.7% of the input's edge count — matching the best raw-F1 point (d=16, k=20, F1=0.828) almost exactly, at a fraction of the size on both axes.
 
-CiteSeer and PubMed sweeps are in progress (PubMed running on a remote A100, given its NAS-best config's O(N³) graph-MRF KL term).
+#### PubMed
+
+Full results: [`results/compression/pubmed.csv`](results/compression/pubmed.csv) (36 points, run on a remote A100 given PubMed's NAS-best `prior=graph_mrf` O(N³) KL term). Input graph: N=19717 nodes, F=500 features, |E|=44324 edges.
+
+| d | k | d/F | \|A_z\|/\|E\| | F1 | bits/edge |
+|---|---|-----|------------|-----|-----------|
+| 4 | 1 | 0.0080 | 0.445 | 0.708 | 1.0000017 |
+| 8 | 1 | 0.0160 | 0.444 | 0.757 | 1.0000017 |
+| 16 | 1 | 0.0320 | 0.441 | 0.760 | 1.0000038 |
+| 16 | 2 | 0.0320 | 0.882 | **0.761** | 1.0000073 |
+| 32 | 1 | 0.0640 | 0.434 | 0.749 | 1.0000164 |
+| 128 | 1 | 0.2560 | 0.422 | 0.739 | 1.0000701 |
+| 128 | 20 | 0.2560 | 8.725 | 0.673 | 1.0015761 |
+
+**Findings — a different, more concerning picture than Cora:**
+- **More capacity makes reconstruction *worse*, not better.** Mean F1 falls monotonically as `k` grows (0.745 at `k=1` → 0.716 at `k=20`), and at fixed `k=20`, F1 falls monotonically as `d` grows too (0.742 at `d=4` → 0.673 at `d=128`). Averaged over `k`, F1 peaks at a modest `d=16` (0.754) and *declines* toward `d=128` (0.705) — the opposite of what you'd want from a capacity/rate-distortion curve. `d=128, k=20` happens to be exactly PubMed's Phase 2 NAS-best architecture, so the config tuned for link-prediction AUC is the **worst** point in this grid for compression fidelity.
+- **`bits_per_edge` is degenerate — essentially exactly 1.0 bit at every single grid point** (1.0000017 to 1.0015761). Per Phase 0's convention, a logit of exactly 0 (maximum uncertainty) gives precisely 1.0 bit. PubMed's pair space is huge (~194M possible pairs vs. 44,324 real edges, a 0.023% positive rate), so `bits_per_edge` is estimated from a large uniform sample dominated by random, mostly-unrelated node pairs (see `dense_pair_limit`/`sample_node_pairs` in `specs/phase3/plan.md`). The near-exact 1.0 suggests the model is essentially uncertain (logit ≈ 0) about the *bulk* of random pairs — it can apparently still separate real edges from negatives well enough for F1 ≈ 0.7–0.76 on the balanced eval set, but isn't confidently negative almost anywhere else. A plausible driver: the extreme `pos_weight` this dataset's scale requires (~4384×, from `(N²−E)/E`) makes the training loss overwhelmingly dominated by getting rare positive edges right, leaving little pressure to push far-apart negative pairs to confidently negative logits. Worth investigating further, not yet root-caused.
+- **`k` still controls edge compression the same way as Cora**: `k=1` gives `|A_z|` at ~42–45% of the input's edge count (genuine compression) across all `d`; `k≥2` again makes A_z denser than the input, up to 8.7× at `k=20`.
+- **No grid point met the 0.90 fidelity floor** (max F1 = 0.761 at `d=16, k=2`) — same conclusion as Cora, fires the T3.4 decoder-fallback trigger, and here the case is stronger: F1 at the largest tested capacity (`d=128, k=20`) is 0.673, the *worst* point in the entire grid, not just a plateau.
+
+CiteSeer sweep has not started yet.
 
 ## Usage
 
