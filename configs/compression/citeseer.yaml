@@ -1,0 +1,10 @@
+name: gvls
+latent_dim: 16
+hidden_dim: 128
+mp_rounds: 0
+graph_method: fgp
+prior: isotropic
+k: 3
+beta: 1.0261765697614628e-05
+lambda_: 1.0
+lr: 0.0012873853035262977
