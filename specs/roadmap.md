@@ -59,15 +59,18 @@ Baseline numbers are taken directly from Ahn & Kim, "Variational Graph Normalize
 
 ## Phase 3 — Graph Compression (priority) and Node Classification (Weeks 12–16)
 
-**Goal:** Quantify how compact (z̃, A_z) is relative to the input graph, and trace a rate-distortion curve across latent dimension `d` and latent-graph sparsity `k`. This is the direct prerequisite for the planned QGNN integration (mission.md, `reports/midterm_report.md` §6), which consumes (z̃, A_z). See `specs/phase3/` for the full plan, requirements, and validation criteria.
+**Goal:** Quantify how compact (z̃, A_z) is relative to the input graph, and trace a rate-distortion curve across latent dimension `d`, latent-graph sparsity `k`, and — as of the 2026-07-09 reframing — latent node count `M`. This is the direct prerequisite for the planned QGNN integration (mission.md, `reports/midterm_report.md` §6), which consumes (z̃, A_z). See `specs/phase3/` for the full plan, requirements, and validation criteria.
 
 **Reprioritized 2026-07-07:** graph compression is now the phase's primary deliverable, ahead of node classification and graph-level tasks. Link prediction across all splits (20/40/80%) is **already complete** — it was run as an extension of Phase 2 using the NAS-best configs; results are in `README.md` and `reports/midterm_report.md`. It is not repeated in Phase 3.
+
+**Reframed 2026-07-09:** the T3.1–T3.3 sweep only ever varied `d` and `k` at a fixed node count (`M=N`) — the latent graph always had as many nodes as the input. That's no longer sufficient: the goal is now a latent graph that is smaller than the input in **both** node count and edge count, not just per-node dimensionality. T3.4 (a decoder tweak at fixed `M=N`) is superseded by T3.6, a learned pooling mechanism that actually reduces `M`. See `mission.md` changelog and `specs/roadmap.md` Phase 3 tasks below.
 
 ### Graph Compression (priority)
 - [x] T3.1 — Compression metrics: `reconstruction_f1`, `dim_compression_ratio` (d/F), `edge_compression_ratio` (\|A_z\|/\|E\|), sampled `bits_per_edge` for large graphs
 - [x] T3.2 — Full-graph split mode (`train_ratio=1.0`, no held-out edges — fidelity is measured on what was actually encoded, not generalization to unseen edges)
-- [x] T3.3 — Rate-distortion sweep: `latent_dim ∈ {4,8,16,32,64,128}` × `k ∈ {1,2,3,5,10,20}`, other hyperparameters fixed to each dataset's Phase 2 NAS-best config; compression-optimal configs written to `configs/compression/{dataset}.yaml`. **All three datasets done** (Cora 2026-07-07; PubMed 2026-07-08, remote A100; CiteSeer 2026-07-09). None meet the 0.90 fidelity floor anywhere in their grids: Cora flat at 0.81–0.83; PubMed *decreases* with capacity (0.742→0.673 as `d`: 4→128 at `k=20`, worst point = PubMed's own NAS-best config); CiteSeer's `A_z` is provably inert for its NAS-best config (`mp_rounds=0, prior=isotropic` gives it no path into the loss). Results in `README.md`, `results/compression/{cora,citeseer,pubmed}.csv`.
-- [ ] T3.4 — A_z-conditioned decoder, built only if the existing inner-product decoder proves to be the fidelity bottleneck (trigger: F1 < 0.90 at the largest tested capacity). **Triggered for all three datasets** — not yet built; next step.
+- [x] T3.3 — Rate-distortion sweep: `latent_dim ∈ {4,8,16,32,64,128}` × `k ∈ {1,2,3,5,10,20}`, other hyperparameters fixed to each dataset's Phase 2 NAS-best config; compression-optimal configs written to `configs/compression/{dataset}.yaml`. **All three datasets done** (Cora 2026-07-07; PubMed 2026-07-08, remote A100; CiteSeer 2026-07-09). None meet the 0.90 fidelity floor anywhere in their grids: Cora flat at 0.81–0.83; PubMed *decreases* with capacity (0.742→0.673 as `d`: 4→128 at `k=20`, worst point = PubMed's own NAS-best config); CiteSeer's `A_z` is provably inert for its NAS-best config (`mp_rounds=0, prior=isotropic` gives it no path into the loss). Results in `README.md`, `results/compression/{cora,citeseer,pubmed}.csv`. This entire sweep was run at `M=N` (no node-count reduction) — see T3.6.
+- [x] ~~T3.4 — A_z-conditioned decoder~~ **Superseded 2026-07-09.** Triggered for all three datasets (F1 < 0.90 at largest tested capacity everywhere), but set aside in favor of T3.6: the low F1 ceiling was measured entirely at `M=N` (no node-count reduction), and the project's compression goal was reframed to prioritize shrinking node count over refining the decoder at a fixed size. Revisit only if T3.6's pooling approach fails to close the fidelity gap on its own.
+- [ ] T3.6 — **Node-count compression via learned pooling (new priority, reframes the compression goal).** A DiffPool-style soft assignment `S ∈ [0,1]^{N×M}` pools the `N` encoder-level Gaussians into `M ≪ N` latent Gaussians; the latent graph `A_z` is learned over these `M` pooled nodes; reconstruction unpools back to the full `N×N` adjacency via the same `S` (`Â = S·σ(z̃_pooled z̃_pooledᵀ)·Sᵀ`). `M` is swept as a ratio of `N` (`{0.5, 0.25, 0.125, 0.0625}`), holding `(d, k)` fixed at each dataset's T3.3 compression-optimal config, to isolate node-count compression's effect on fidelity independent of the dimensionality/edge-sparsity axes already explored. This directly reverses `mission.md`'s prior "not a hierarchical pooling model" stance (see mission.md changelog, 2026-07-09). See `specs/phase3/` for full task detail.
 
 ### Node Classification (secondary)
 - [ ] T3.5 — Linear probe and 2-layer MLP head on frozen z̃ (Phase 2 NAS-best config), semi-supervised setting (20 labels/class); may slip to Phase 4 if compression work runs long
@@ -77,7 +80,7 @@ Baseline numbers are taken directly from Ahn & Kim, "Variational Graph Normalize
 - [ ] Graph classification head; evaluate on MUTAG, PROTEINS, IMDB-B
 - Deferred out of Phase 3 — not connected to the compression/QGNN priority; picked up in Phase 4 or later if time allows
 
-**Exit criterion:** rate-distortion sweep complete on all three datasets; a compression-optimal config identified per dataset with `d/F`, `|A_z|/|E|`, reconstruction F1, and bits-per-edge all reported against the input graph's raw size. See `specs/phase3/validation.md`.
+**Exit criterion:** rate-distortion sweep complete on all three datasets; a compression-optimal config identified per dataset with `d/F`, `|A_z|/|E|`, `M/N`, reconstruction F1, and bits-per-edge all reported against the input graph's raw size. See `specs/phase3/validation.md`.
 
 ---
 
@@ -91,6 +94,8 @@ Baseline numbers are taken directly from Ahn & Kim, "Variational Graph Normalize
 - [ ] Number of latent message-passing rounds (0, 1, 2)
 - [ ] Effect of β (KL weight) on downstream task performance
 - [ ] Input topology vs. learned latent topology (overlap analysis)
+- [ ] Pooled node count `M` vs. fidelity/downstream performance (extends T3.6's compression-focused sweep to link prediction and node classification)
+- [ ] Soft (DiffPool-style) vs. hard (top-k / Gumbel-softmax) node assignment for pooling
 
 ### Baselines to Compare Against
 | Model | What it tests |

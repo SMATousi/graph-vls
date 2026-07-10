@@ -81,15 +81,15 @@ Note: the `|E|` values here (Cora 5278, CiteSeer 4552, PubMed 44324) differ slig
 
 ---
 
-## V-4: Decoder Fallback (conditional) 🔶 Triggered for all three datasets, not yet implemented
+## V-4: Decoder Fallback (conditional) — **Superseded 2026-07-09, not implemented**
 
 Triggered only if `reconstruction_f1` at `(d=128, k=20)` is below 0.90 for a given dataset.
 
 | Check | Pass condition | Result |
 |---|---|---|
 | Trigger evaluated | Recorded per-dataset whether the trigger fired, with the F1 numbers | ✅ Cora: **triggered** (F1=0.8235 at d=128,k=20, < 0.90). ✅ PubMed: **triggered**, more decisively (F1=0.673 at d=128,k=20 — the worst point in PubMed's entire grid, part of a monotonic decline). ✅ CiteSeer: **triggered** (F1=0.8140 at d=128,k=20, < 0.90; also the dataset where `A_z` is provably inert given its NAS-best config — see CiteSeer findings above). **All three datasets trigger.** |
-| If triggered: decoder implemented | `LatentGraphDecoder` shape/gradient tests pass | ⬜ not yet built — three-for-three trigger is a strong signal to implement now |
-| If triggered: F1 comparison reported | Head-to-head F1 at matched `(d, k)`, baseline vs. A_z-conditioned decoder | ⬜ |
+| If triggered: decoder implemented | `LatentGraphDecoder` shape/gradient tests pass | ⬜ **superseded, not built** — the project pivoted to node-count pooling (T3.6, see V-7) instead of a decoder tweak at fixed `M=N`. Revisit only if T3.6 fails to close the fidelity gap on its own. |
+| If triggered: F1 comparison reported | Head-to-head F1 at matched `(d, k)`, baseline vs. A_z-conditioned decoder | ⬜ superseded, not applicable |
 
 ---
 
@@ -103,6 +103,22 @@ Triggered only if `reconstruction_f1` at `(d=128, k=20)` is below 0.90 for a giv
 
 ---
 
+## V-7: Node-Count Pooling (new, T3.6) ⬜
+
+Reframing decision made 2026-07-09 — supersedes V-4's decoder-fallback direction. See `specs/roadmap.md`, `specs/phase3/plan.md`, and `mission.md`'s changelog for the full rationale.
+
+| Check | Pass condition | Result |
+|---|---|---|
+| Pooling module built | `LatentGraphPooling` shape/gradient tests pass (`S` rows sum to 1, pooled `(μ, log_var)` shape `(M, d)`, gradients reach assignment logits and pooled params) | ⬜ |
+| Unpool shape correct | `Â` has shape `(N, N)` regardless of `M` | ⬜ |
+| Pooling sweep complete per dataset | `pool_ratio ∈ {0.5, 0.25, 0.125, 0.0625}` all trained and logged to `results/compression/{dataset}_pooling.csv`, `(d, k)` held fixed at each dataset's T3.3 compression-optimal config | ⬜ |
+| Node-count ratio computed | `node_compression_ratio = M/N` reported per grid point | ⬜ |
+| Assignment storage cost reported | `assignment_storage_bits(N, M)` reported per grid point, so total compressed size is honestly accounted (not treating `S` as free) | ⬜ |
+| Fidelity vs. node-count tradeoff characterized | Reconstruction F1 reported as a function of `M/N`, independent of the `(d, k)` axes T3.3 already covers | ⬜ |
+| W&B logging | `compression-pooling-sweep-{dataset}` group contains one run per `pool_ratio` per dataset | ⬜ |
+
+---
+
 ## V-6: Code Quality ✅
 
 | Check | Pass condition | Result |
@@ -110,3 +126,5 @@ Triggered only if `reconstruction_f1` at `(d=128, k=20)` is below 0.90 for a giv
 | `pytest tests/` | All tests pass (including new Phase 3 tests) | ✅ 115/115 |
 | `ruff check src/` | Zero violations | ✅ |
 | `test_compression_sweep.py` runtime | Completes in under 60 seconds (2×2 grid, 10 epochs) | ✅ full file (7 tests) runs in ~2s |
+
+**Note:** V-6's test count (115/115) predates T3.6. Once `test_pooling.py` is added, this count and the `ruff check` result should be re-verified and updated.

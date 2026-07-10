@@ -8,20 +8,23 @@ This creates a fundamental mismatch: the input is a graph, the task often depend
 
 ## Core Idea
 
-**graph-vls** develops a **Graph Variational Latent Space (GVLS)**: a latent space in which each node maps to a distribution *and* those distributions are connected through a learned latent graph.
+**graph-vls** develops a **Graph Variational Latent Space (GVLS)**: a latent space in which each node maps to a distribution *and* those distributions are connected through a learned latent graph that is **smaller than the input graph in both node count and edge count**.
 
 The key components:
 
 1. **Node-level variational posteriors** — each node is encoded as a Gaussian (mean + variance) using a GNN encoder, retaining the variational formulation.
-2. **Latent graph inference** — a differentiable module learns the adjacency of the latent graph end-to-end, decoupled from the input graph topology.
-3. **Graph-structured latent message passing** — distributions in the latent space communicate through the inferred graph, allowing relational dependencies between latent factors to be captured.
-4. **Graph-aware prior and ELBO** — the KL divergence term accounts for the latent graph structure, using a graph-dependent prior (e.g., a Gaussian Markov Random Field defined over the inferred latent adjacency) rather than an independent isotropic Gaussian.
+2. **Learned node-count compression (pooling)** — a differentiable soft-assignment module maps the `N` input-node distributions onto `M ≪ N` latent distributions (a DiffPool-style assignment matrix `S ∈ [0,1]^{N×M}`), so the latent graph has genuinely fewer nodes than the input, not just a smaller per-node dimensionality.
+3. **Latent graph inference** — a differentiable module learns the adjacency of the `M`-node latent graph end-to-end, decoupled from the input graph topology.
+4. **Graph-structured latent message passing** — distributions in the latent space communicate through the inferred `M`-node graph, allowing relational dependencies between latent factors to be captured.
+5. **Graph-aware prior and ELBO** — the KL divergence term accounts for the latent graph structure, using a graph-dependent prior (e.g., a Gaussian Markov Random Field defined over the inferred latent adjacency) rather than an independent isotropic Gaussian.
+6. **Unpooling decode** — reconstruction of the full `N`-node graph reuses the same assignment matrix `S` learned during pooling: `Â = S · σ(z̃_pooled z̃_pooledᵀ) · Sᵀ`.
 
 ## What This Is Not
 
 - This is not a graph *generation* model (though generation is a natural extension).
-- This is not a hierarchical pooling model — the latent graph is not a coarsened version of the input; it is learned independently.
 - This is not a simple extension of attention mechanisms — the latent graph is an explicit, interpretable adjacency structure with its own inductive bias.
+
+**Changelog (2026-07-09):** earlier drafts of this document stated GVLS was explicitly *not* a hierarchical pooling model and that the latent graph would not be a coarsened version of the input. That decision is reversed: node-count reduction (via learned soft assignment/pooling) is now a core goal, motivated by wanting the latent graph of distributions to be smaller than the input graph in both nodes and edges, not just in per-node dimensionality. See `specs/roadmap.md` Phase 3 and `specs/phase3/` for the resulting task changes.
 
 ## Goals
 
@@ -31,11 +34,12 @@ The project targets three downstream tasks as primary evaluation criteria:
 |---|---|
 | Node classification | Tests whether graph-structured latent factors encode discriminative relational information |
 | Link prediction | Tests whether the latent graph topology reflects meaningful proximity in the input |
-| Graph compression | Tests whether the GVLS provides a compact, lossless-enough encoding of graph structure |
+| Graph compression | Tests whether the GVLS provides a compact, lossless-enough encoding of graph structure — in node count, edge count, *and* per-node dimensionality |
 
 ## Success Criteria
 
 - GVLS outperforms or matches VGAE and its variants on standard benchmarks (Cora, CiteSeer, PubMed, selected TU datasets) on link prediction and node classification.
-- Graph compression quality (reconstruction fidelity vs. latent dimensionality) is measurably better than flat VGAE baselines.
+- Graph compression quality (reconstruction fidelity vs. latent size) is measurably better than flat VGAE baselines, where latent size is reported across three separate axes: node-count ratio (`M/N`), edge-count ratio (`|A_z|/|E|`), and dimensionality ratio (`d/F`).
+- The latent graph has genuinely fewer nodes than the input graph (`M < N`) at the compression-optimal operating point, not merely a smaller per-node embedding.
 - The inferred latent graph is interpretable and differs meaningfully from the input graph (demonstrating that the model learns non-trivial latent structure).
 - Results are reproducible and suitable for a research paper submission.
