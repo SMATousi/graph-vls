@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch import Tensor
 
 from gvls.models.encoder import GVLSEncoder
@@ -52,6 +53,62 @@ class LatentGraphPooling(nn.Module):
         log_var_pooled = var_pooled.log()
 
         return s, mu_pooled, log_var_pooled
+
+
+def assignment_entropy(s: Tensor) -> Tensor:
+    """Mean per-node entropy of the assignment distribution S, in nats.
+
+    Low entropy means each node's assignment is confidently concentrated on
+    one or a few clusters (peaked); high entropy means it is spread thin
+    across many clusters (diffuse, approaching uniform as entropy -> log M).
+    Minimizing this as an auxiliary training loss is the standard DiffPool
+    remedy for soft assignment collapsing to a near-uniform blur: with a
+    diffuse S, unpooling (S @ ... @ S.T) averages away almost all structure,
+    producing a near-constant reconstruction regardless of the underlying
+    M x M latent graph -- observed empirically in the first T3.6 sweep before
+    this regularizer was added (see specs/phase3/validation.md V-7).
+    """
+    return -(s * s.clamp(min=1e-12).log()).sum(dim=1).mean()
+
+
+def assignment_link_loss(
+    s: Tensor, adj_true: Tensor, pos_weight: float | None = None
+) -> Tensor:
+    """Auxiliary link-prediction loss on S (DiffPool, Ying et al. 2018).
+
+    Compares S @ S.T -- an implied "same-cluster" probability for every node
+    pair, already in [0,1] by Cauchy-Schwarz since each row of S is a
+    probability distribution -- against the true input adjacency. This gives
+    S a *direct* gradient signal from the real input graph.
+
+    Without this, S's only gradient signal comes from the reconstruction/KL
+    losses, which must travel through the entire pooled-graph pipeline
+    (pool -> latent graph -> message passing -> unpool) and vanishes when S
+    starts near-uniform: a near-uniform S makes the pooled M x M similarity
+    matrix collapse to an almost-constant value, which makes the unpooled
+    N x N reconstruction *exactly* constant (S's rows sum to 1), which in
+    turn gives S no gradient to escape the collapse -- a self-reinforcing
+    dead end observed empirically in the first T3.6 sweep (every grid point
+    converged to a trivial always-predict-edge classifier, F1 stuck at
+    exactly 2/3; see specs/phase3/validation.md V-7). This auxiliary loss
+    breaks that deadlock by giving S a training signal that doesn't depend
+    on anything downstream of it.
+
+    The diagonal is excluded: S's self-similarity (s_i . s_i) is naturally
+    close to 1 for a confident (peaked) assignment, but adj_true's diagonal
+    is always 0 (no self-loops, matching this codebase's convention
+    elsewhere, e.g. edge_compression_ratio). Including it would directly
+    fight assignment_entropy, which wants high self-similarity.
+    """
+    n = s.size(0)
+    same_cluster_prob = (s @ s.T).clamp(1e-6, 1 - 1e-6)
+    off_diag = ~torch.eye(n, device=s.device, dtype=torch.bool)
+    pred = same_cluster_prob[off_diag]
+    true = adj_true[off_diag]
+    if pos_weight is None:
+        return F.binary_cross_entropy(pred, true)
+    weight = 1.0 + (pos_weight - 1.0) * true
+    return F.binary_cross_entropy(pred, true, weight=weight)
 
 
 class PooledGVLS(nn.Module):

@@ -18,7 +18,12 @@ from gvls.eval.metrics import bits_per_edge
 from gvls.losses.elbo import elbo
 from gvls.models.encoder import GVLSEncoder
 from gvls.models.latent_graph import LatentGraphLearner
-from gvls.models.pooling import LatentGraphPooling, PooledGVLS
+from gvls.models.pooling import (
+    LatentGraphPooling,
+    PooledGVLS,
+    assignment_entropy,
+    assignment_link_loss,
+)
 
 RESULT_FIELDS = [
     "dataset",
@@ -53,6 +58,8 @@ def train_pooled_gvls_full_graph(
     epochs: int,
     seed: int,
     device: torch.device,
+    entropy_weight: float = 0.1,
+    aux_link_weight: float = 5.0,
 ) -> PooledGVLS:
     """Train one PooledGVLS model on the full graph (no held-out split).
 
@@ -61,6 +68,20 @@ def train_pooled_gvls_full_graph(
     graph_method, prior, beta, lambda_, lr, plus latent_dim and k -- all held
     fixed at the dataset's T3.3 compression-optimal config
     (configs/compression/{dataset}.yaml), not re-tuned here.
+
+    Two auxiliary loss terms (both standard DiffPool components, Ying et al.
+    2018) are needed to avoid a cold-start collapse diagnosed in the first
+    T3.6 sweep, where every grid point converged to a trivial
+    always-predict-edge classifier (F1 stuck at exactly 2/3 regardless of
+    pool_ratio) -- see specs/phase3/validation.md V-7:
+      - `entropy_weight * assignment_entropy(S)`: encourages each node's
+        assignment to specialize rather than stay diffuse.
+      - `aux_link_weight * assignment_link_loss(S, adj_true, pos_weight)`:
+        gives S a *direct* gradient signal from the real input graph, since
+        the reconstruction/KL losses' gradient to S has to travel through
+        the entire pooled-graph pipeline and vanishes when S starts
+        near-uniform (entropy regularization alone was not sufficient to
+        escape this -- the aux loss is what breaks the deadlock).
     """
     torch.manual_seed(seed)
     encoder = GVLSEncoder(in_channels, int(base_cfg["hidden_dim"]), latent_dim)
@@ -75,7 +96,7 @@ def train_pooled_gvls_full_graph(
     for _epoch in range(1, epochs + 1):
         model.train()
         optimizer.zero_grad()
-        mu, log_var, _z, a_z, _z_tilde, _s, recon_logits = model(x, train_edge_index)
+        mu, log_var, _z, a_z, _z_tilde, s, recon_logits = model(x, train_edge_index)
         loss = elbo(
             recon_logits,
             adj_true,
@@ -87,6 +108,8 @@ def train_pooled_gvls_full_graph(
             prior=str(base_cfg["prior"]),
             pos_weight=pos_weight,
         )
+        loss = loss + entropy_weight * assignment_entropy(s)
+        loss = loss + aux_link_weight * assignment_link_loss(s, adj_true, pos_weight)
         loss.backward()
         optimizer.step()
 

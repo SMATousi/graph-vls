@@ -14,7 +14,12 @@ from gvls.compression.sweep import write_results_csv
 from gvls.data.splits import full_graph_split
 from gvls.models.encoder import GVLSEncoder
 from gvls.models.latent_graph import LatentGraphLearner
-from gvls.models.pooling import LatentGraphPooling, PooledGVLS
+from gvls.models.pooling import (
+    LatentGraphPooling,
+    PooledGVLS,
+    assignment_entropy,
+    assignment_link_loss,
+)
 
 N = 10
 IN_CHANNELS = 16
@@ -86,6 +91,81 @@ def test_gradient_flows_to_assignment_and_inputs() -> None:
     assert pooling.assign.weight.grad.abs().sum() > 0
     assert mu.grad is not None and mu.grad.abs().sum() > 0
     assert z.grad is not None and z.grad.abs().sum() > 0
+
+
+# ── assignment_entropy (T3.6 cold-start fix) ────────────────────────────────
+
+def test_assignment_entropy_high_for_uniform() -> None:
+    n, m = 20, 5
+    s = torch.full((n, m), 1.0 / m)
+    ent = assignment_entropy(s)
+    assert ent.item() == pytest.approx(torch.log(torch.tensor(float(m))).item(), abs=1e-4)
+
+
+def test_assignment_entropy_low_for_near_one_hot() -> None:
+    n, m = 20, 5
+    s = torch.zeros(n, m)
+    s[:, 0] = 1.0
+    ent = assignment_entropy(s)
+    assert ent.item() == pytest.approx(0.0, abs=1e-4)
+
+
+def test_assignment_entropy_gradient_flows() -> None:
+    s_logits = torch.randn(10, 4, requires_grad=True)
+    s = torch.softmax(s_logits, dim=1)
+    assignment_entropy(s).backward()
+    assert s_logits.grad is not None and s_logits.grad.abs().sum() > 0
+
+
+# ── assignment_link_loss (T3.6 cold-start fix) ──────────────────────────────
+
+def test_assignment_link_loss_low_when_s_matches_adjacency() -> None:
+    # Two perfectly separated clusters {0,1} and {2,3}; S is one-hot per the
+    # true community structure, and adj_true has edges only within each pair.
+    s = torch.tensor(
+        [[1.0, 0.0], [1.0, 0.0], [0.0, 1.0], [0.0, 1.0]]
+    )
+    adj_true = torch.tensor(
+        [[0.0, 1.0, 0.0, 0.0],
+         [1.0, 0.0, 0.0, 0.0],
+         [0.0, 0.0, 0.0, 1.0],
+         [0.0, 0.0, 1.0, 0.0]]
+    )
+    loss = assignment_link_loss(s, adj_true)
+    assert loss.item() < 0.01
+
+
+def test_assignment_link_loss_high_when_s_contradicts_adjacency() -> None:
+    # Same true adjacency, but S groups (0,2) and (1,3) -- the wrong pairing.
+    s = torch.tensor(
+        [[1.0, 0.0], [0.0, 1.0], [1.0, 0.0], [0.0, 1.0]]
+    )
+    adj_true = torch.tensor(
+        [[0.0, 1.0, 0.0, 0.0],
+         [1.0, 0.0, 0.0, 0.0],
+         [0.0, 0.0, 0.0, 1.0],
+         [0.0, 0.0, 1.0, 0.0]]
+    )
+    loss = assignment_link_loss(s, adj_true)
+    assert loss.item() > 1.0
+
+
+def test_assignment_link_loss_gradient_flows() -> None:
+    s_logits = torch.randn(6, 3, requires_grad=True)
+    s = torch.softmax(s_logits, dim=1)
+    adj_true = torch.zeros(6, 6)
+    adj_true[0, 1] = adj_true[1, 0] = 1.0
+    assignment_link_loss(s, adj_true).backward()
+    assert s_logits.grad is not None and s_logits.grad.abs().sum() > 0
+
+
+def test_assignment_link_loss_accepts_pos_weight() -> None:
+    s = torch.full((4, 2), 0.5)
+    adj_true = torch.zeros(4, 4)
+    adj_true[0, 1] = adj_true[1, 0] = 1.0
+    unweighted = assignment_link_loss(s, adj_true, pos_weight=None)
+    weighted = assignment_link_loss(s, adj_true, pos_weight=10.0)
+    assert weighted.item() > unweighted.item()
 
 
 # ── PooledGVLS ───────────────────────────────────────────────────────────────

@@ -95,6 +95,8 @@ def main(cfg: DictConfig) -> None:
         model = train_pooled_gvls_full_graph(
             x, train_ei, adj_true, pos_weight, in_channels,
             latent_dim, k, num_clusters, base_cfg, epochs, seed, device,
+            entropy_weight=float(cfg.experiment.entropy_weight),
+            aux_link_weight=float(cfg.experiment.aux_link_weight),
         )
         metrics = evaluate_pooled_compression(
             model, x, train_ei, adj_true, pos_edge_index, n_nodes, num_clusters,

@@ -3,6 +3,19 @@
 # dataset's T3.3 compression-optimal config (configs/compression/{name}.yaml).
 pool_ratio: [0.5, 0.25, 0.125, 0.0625]
 
+# Auxiliary losses on the assignment S (both standard DiffPool components).
+# Without these, S collapses to a near-uniform blur that washes out all
+# reconstruction signal -- every grid point converges to a trivial
+# always-predict-edge classifier, F1 stuck at exactly 2/3 regardless of
+# pool_ratio (diagnosed in the first T3.6 sweep; see
+# specs/phase3/validation.md V-7). Values below were selected by a small
+# manual sweep on Cora (entropy_weight in {0, 0.05, 0.1}, aux_link_weight in
+# {0.5, 1, 5, 10, 20, 50}); F1 plateaus around 0.78 for aux_link_weight >= 5,
+# so this is not a finely-tuned optimum, just past the point of diminishing
+# returns.
+entropy_weight: 0.1
+aux_link_weight: 5.0
+
 # Negatives sampled for reconstruction_f1, as a multiple of the real edge
 # count (same convention as T3.3's compression_sweep.yaml).
 f1_negative_ratio: 1.0
