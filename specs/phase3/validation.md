@@ -103,19 +103,40 @@ Triggered only if `reconstruction_f1` at `(d=128, k=20)` is below 0.90 for a giv
 
 ---
 
-## V-7: Node-Count Pooling (new, T3.6) ⬜
+## V-7: Node-Count Pooling (new, T3.6) 🔶 Module built and fixed; production sweep not yet rerun with the fix
 
 Reframing decision made 2026-07-09 — supersedes V-4's decoder-fallback direction. See `specs/roadmap.md`, `specs/phase3/plan.md`, and `mission.md`'s changelog for the full rationale.
 
 | Check | Pass condition | Result |
 |---|---|---|
-| Pooling module built | `LatentGraphPooling` shape/gradient tests pass (`S` rows sum to 1, pooled `(μ, log_var)` shape `(M, d)`, gradients reach assignment logits and pooled params) | ⬜ |
-| Unpool shape correct | `Â` has shape `(N, N)` regardless of `M` | ⬜ |
-| Pooling sweep complete per dataset | `pool_ratio ∈ {0.5, 0.25, 0.125, 0.0625}` all trained and logged to `results/compression/{dataset}_pooling.csv`, `(d, k)` held fixed at each dataset's T3.3 compression-optimal config | ⬜ |
-| Node-count ratio computed | `node_compression_ratio = M/N` reported per grid point | ⬜ |
-| Assignment storage cost reported | `assignment_storage_bits(N, M)` reported per grid point, so total compressed size is honestly accounted (not treating `S` as free) | ⬜ |
-| Fidelity vs. node-count tradeoff characterized | Reconstruction F1 reported as a function of `M/N`, independent of the `(d, k)` axes T3.3 already covers | ⬜ |
-| W&B logging | `compression-pooling-sweep-{dataset}` group contains one run per `pool_ratio` per dataset | ⬜ |
+| Pooling module built | `LatentGraphPooling` shape/gradient tests pass (`S` rows sum to 1, pooled `(μ, log_var)` shape `(M, d)`, gradients reach assignment logits and pooled params) | ✅ `tests/test_pooling.py` |
+| Unpool shape correct | `Â` has shape `(N, N)` regardless of `M` | ✅ `test_unpool_shape_independent_of_m` |
+| Pooling sweep complete per dataset | `pool_ratio ∈ {0.5, 0.25, 0.125, 0.0625}` all trained and logged to `results/compression/{dataset}_pooling.csv`, `(d, k)` held fixed at each dataset's T3.3 compression-optimal config | 🔶 all three CSVs exist (committed 2026-07-09) but predate the collapse fix below — **stale, must be regenerated** |
+| Node-count ratio computed | `node_compression_ratio = M/N` reported per grid point | ✅ present in the (stale) CSVs; formula unaffected by the fix |
+| Assignment storage cost reported | `assignment_storage_bits(N, M)` reported per grid point, so total compressed size is honestly accounted (not treating `S` as free) | ✅ present in the (stale) CSVs; formula unaffected by the fix |
+| Fidelity vs. node-count tradeoff characterized | Reconstruction F1 reported as a function of `M/N`, independent of the `(d, k)` axes T3.3 already covers | ❌ not yet — the stale CSVs show no tradeoff at all (see collapse finding below); needs a rerun |
+| W&B logging | `compression-pooling-sweep-{dataset}` group contains one run per `pool_ratio` per dataset | ✅ (for the stale runs; will re-log on rerun) |
+
+### Cold-start collapse: diagnosis and fix (2026-07-09)
+
+The first production sweep (all three datasets, committed as `results/compression/{cora,citeseer,pubmed}_pooling.csv`) converged to a **degenerate always-predict-edge classifier on every single grid point** — `reconstruction_f1` was **exactly 0.6667** (the value produced by a trivial constant-positive predictor on a 1:1 balanced eval set: precision=0.5, recall=1.0) at all four `pool_ratio` values, for all three datasets, with `bits_per_edge ≈ 1.0` (logit ≈ 0, maximum uncertainty) throughout. This was not a real rate-distortion result.
+
+**Root cause**, confirmed by direct inspection of a trained Cora model (`pool_ratio=0.5`): the unpooled reconstruction logits were nearly constant across the *entire* `N×N` matrix (`min=0.00207, max=0.00207`), with 100% of pairs predicted positive. Tracing further: the pooled `M×M` similarity matrix (`z̃_pooled z̃_pooledᵀ`) was itself nearly flat (`min=0.0532, max=0.0585`, i.e. no real structure), because the assignment `S` starts near-uniform at initialization (a plain linear layer over `M=1354` clusters gives near-uniform softmax output before training) — and because `S`'s rows sum to 1, unpooling an (almost) constant `M×M` matrix produces an *exactly* constant `N×N` reconstruction (`S · c𝟙𝟙ᵀ · Sᵀ = c𝟙𝟙ᵀ`). A constant output gives `S` no gradient to escape the collapse — a self-reinforcing dead end. This is a well-documented failure mode of naive soft-assignment pooling (it is why DiffPool, Ying et al. 2018, ships with exactly the two auxiliary losses added below).
+
+**Fix, validated on Cora at `pool_ratio=0.5` (200 epochs each):**
+
+| Config | Reconstruction F1 |
+|---|---|
+| No auxiliary losses (original) | 0.6667 (degenerate) |
+| `entropy_weight=0.1` only | 0.6667 (unchanged — entropy alone insufficient) |
+| `entropy_weight=0.1, aux_link_weight=1.0` | 0.686 |
+| `entropy_weight=0.1, aux_link_weight=5.0` | **0.782** (selected default) |
+| `entropy_weight=0.1, aux_link_weight=10.0` | 0.784 (diminishing returns beyond 5.0) |
+| `entropy_weight=0.1, aux_link_weight=20–50` | 0.77–0.78 (no further improvement) |
+
+`entropy_weight=0.1, aux_link_weight=5.0` are the sweep's defaults (`configs/experiment/pooling_sweep.yaml`). An intermediate bug was also caught and fixed during this validation: the first version of `assignment_link_loss` included the diagonal of `S·Sᵀ` (which is naturally close to 1 for a confident assignment) against `adj_true`'s diagonal (always 0, no self-loops) — directly fighting the entropy term. Fixed by excluding the diagonal, consistent with this codebase's no-self-loop convention elsewhere (e.g. `edge_compression_ratio`).
+
+**Status:** the fix is implemented and unit-tested (`tests/test_pooling.py`, 20 tests covering `assignment_entropy` and `assignment_link_loss` directly). **The production sweep has not yet been rerun with the fix** — the committed `*_pooling.csv` files reflect the pre-fix degenerate collapse and must not be used for figures or conclusions until regenerated.
 
 ---
 

@@ -42,15 +42,20 @@
 - The latent graph learner (`LatentGraphLearner` from Phase 1) is reused unchanged, operating on the `M` pooled embeddings instead of `N` — i.e. `A_z` is now `M×M`
 - Latent message passing (Phase 1's residual form) likewise reuses the existing implementation, now over the `M`-node `A_z`
 - `M` is specified as a ratio of `N` (`M = round(pool_ratio * N)`, `pool_ratio ∈ {0.5, 0.25, 0.125, 0.0625}`), clamped to `M ≥ 2`
+- **Required, not optional (added 2026-07-09 after an empirical cold-start collapse — see plan.md T3.6 and validation.md V-7):** two auxiliary training losses are needed alongside the ELBO, both standard components of DiffPool (Ying et al. 2018), or `S` collapses to a near-uniform blur that produces a degenerate, constant reconstruction regardless of `pool_ratio`:
+  - `assignment_entropy(S) = mean_i[-Σ_m S_{i,m} log S_{i,m}]`: minimized during training to encourage each node's assignment to specialize rather than stay diffuse
+  - `assignment_link_loss(S, A) = BCE(S·Sᵀ, A)`, excluding the diagonal (`S`'s self-similarity is naturally high for a confident assignment, but `A`'s diagonal is always 0 — including it would fight the entropy term): compares the assignment's *implied* clustering directly against the real input adjacency, giving `S` a gradient signal that doesn't have to travel through the entire pool → latent-graph → message-passing → unpool chain
+  - Total training loss: `elbo(...) + entropy_weight · assignment_entropy(S) + aux_link_weight · assignment_link_loss(S, A)`, with `entropy_weight=0.1, aux_link_weight=5.0` as defaults (selected via a manual sweep on Cora past the point of diminishing returns — F1 rose from a degenerate 0.667 to ≈0.78 at `pool_ratio=0.5`)
 
 ### FR-7: Unpooling decode (new, T3.6)
-- Reconstruction reuses the *same* `S` learned during pooling (not re-learned or re-derived at decode time): `Â (N×N) = S · σ(z̃_pooled z̃_pooledᵀ) · Sᵀ`
+- Reconstruction reuses the *same* `S` learned during pooling (not re-learned or re-derived at decode time): `Â (N×N) = S · (z̃_pooled z̃_pooledᵀ) · Sᵀ` — computed at the *logit* level (no sigmoid before unpooling), consistent with this codebase's convention of `elbo()` and `reconstruction_f1()` always operating on pre-sigmoid logits rather than probabilities; the sigmoid is applied once, by the caller, at eval time
 - `reconstruction_f1` (FR-1) is computed on this unpooled `Â` against the true `N×N` adjacency — the metric itself is unchanged; only what feeds into `adj_logits` differs
 - For storage-cost accounting (`assignment_storage_bits`, FR-1), `S` is hardened post-training via row-wise argmax to a single per-node cluster index — the soft weights are only needed during training for differentiable pooling, not for the final compressed artifact
 
 ### FR-8: Node-count sweep (new, T3.6)
 - Must sweep `pool_ratio ∈ {0.5, 0.25, 0.125, 0.0625}` (i.e. `M/N`), holding `(d, k)` fixed at each dataset's T3.3 compression-optimal config (`configs/compression/{dataset}.yaml`) — this isolates node-count compression's effect on fidelity, independent of the dimensionality/edge-sparsity axes T3.3 already swept
 - Must compute and persist, per grid point: everything FR-3 already persists, plus `node_compression_ratio`, `assignment_storage_bits`, and the raw count `M`
+- `entropy_weight` and `aux_link_weight` (FR-6) are held fixed across the whole sweep (not swept per grid point) — they are a training-stability fix, not a compression axis under study
 - Results written to `results/compression/{dataset}_pooling.csv`, one row per grid point
 - Must log each run to W&B under group tag `compression-pooling-sweep-{dataset}`
 
@@ -69,7 +74,7 @@
 ### NFR-3: Test coverage
 - Every new module (`compression.py`, `full_graph_split`, `compression_sweep.py`, `pooling.py`, `node_probe.py`) has at least one shape/correctness test
 - Test budget: `test_compression_sweep.py` uses a 2×2 grid at 10 epochs so it completes in under 60 seconds
-- `test_pooling.py` (T3.6) verifies: `S` rows sum to 1 (valid softmax assignment), pooled Gaussian shapes are `(M, d)`, gradients reach both the assignment logits and the pooled Gaussian parameters, and unpooled `Â` has shape `(N, N)`
+- `test_pooling.py` (T3.6) verifies: `S` rows sum to 1 (valid softmax assignment), pooled Gaussian shapes are `(M, d)`, gradients reach both the assignment logits and the pooled Gaussian parameters, unpooled `Â` has shape `(N, N)`, `assignment_entropy` is high for a uniform `S` and near-zero for a one-hot `S`, and `assignment_link_loss` is low when `S`'s implied clustering matches the true adjacency and high when it contradicts it
 
 ### NFR-4: Code style
 - `ruff check src/` passes with zero warnings after each task
