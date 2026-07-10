@@ -3,9 +3,11 @@ import pytest
 import torch
 
 from gvls.eval.compression import (
+    assignment_storage_bits,
     dim_compression_ratio,
     edge_compression_ratio,
     eval_pairs_with_labels,
+    node_compression_ratio,
     reconstruction_f1,
     sample_node_pairs,
 )
@@ -78,6 +80,38 @@ def test_edge_compression_ratio_accepts_tensors() -> None:
 def test_edge_compression_ratio_rejects_nonpositive_input_edges() -> None:
     with pytest.raises(ValueError):
         edge_compression_ratio(np.zeros((3, 3)), num_input_edges=0)
+
+
+# ── node_compression_ratio (T3.6) ───────────────────────────────────────────
+
+def test_node_compression_ratio_value() -> None:
+    assert node_compression_ratio(64, 2708) == pytest.approx(64 / 2708, rel=1e-6)
+
+
+def test_node_compression_ratio_rejects_nonpositive_n() -> None:
+    with pytest.raises(ValueError):
+        node_compression_ratio(4, 0)
+
+
+# ── assignment_storage_bits (T3.6) ──────────────────────────────────────────
+
+def test_assignment_storage_bits_value() -> None:
+    # N=1000 nodes, M=8 clusters -> ceil(log2(8))=3 bits/node -> 3000 bits
+    assert assignment_storage_bits(1000, 8) == pytest.approx(3000.0)
+
+
+def test_assignment_storage_bits_rounds_up_non_power_of_two() -> None:
+    # M=5 clusters -> ceil(log2(5))=3 bits/node (same as M=8), not fractional
+    assert assignment_storage_bits(1000, 5) == pytest.approx(3000.0)
+
+
+def test_assignment_storage_bits_single_cluster_is_free() -> None:
+    assert assignment_storage_bits(1000, 1) == pytest.approx(0.0)
+
+
+def test_assignment_storage_bits_rejects_nonpositive_clusters() -> None:
+    with pytest.raises(ValueError):
+        assignment_storage_bits(1000, 0)
 
 
 # ── sample_node_pairs ────────────────────────────────────────────────────────

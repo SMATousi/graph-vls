@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import numpy as np
 import torch
 from sklearn.metrics import f1_score
@@ -58,6 +60,37 @@ def edge_compression_ratio(a_z: ArrayLike, num_input_edges: int) -> float:
     iu, ju = np.triu_indices(n, k=1)
     num_latent_edges = int(np.count_nonzero(a[iu, ju]))
     return num_latent_edges / float(num_input_edges)
+
+
+def node_compression_ratio(m_clusters: int, n_nodes: int) -> float:
+    """Ratio of latent (pooled) node count to input node count (M / N).
+
+    Smaller is more compressed (T3.6): the latent graph of distributions has
+    genuinely fewer nodes than the input graph, not just a smaller per-node
+    dimensionality. Reported as a separate ratio alongside dim_compression_ratio
+    and edge_compression_ratio, per specs/phase3/plan.md Design Decision 1.
+    """
+    if n_nodes <= 0:
+        raise ValueError(f"n_nodes must be positive, got {n_nodes}")
+    return float(m_clusters) / float(n_nodes)
+
+
+def assignment_storage_bits(n_nodes: int, m_clusters: int) -> float:
+    """Storage cost of the hardened node-to-cluster assignment (T3.6).
+
+    Reconstructing the full N-node graph from a pooled M-node latent graph
+    requires the assignment matrix S (learned during pooling), which must be
+    counted as part of the compressed representation's size -- otherwise the
+    compression claim is misleading. Post-training, S is hardened via
+    row-wise argmax to a single cluster index per node (the soft weights are
+    only needed for differentiable training), so the cost is one
+    ceil(log2(M))-bit index per input node.
+    """
+    if m_clusters <= 0:
+        raise ValueError(f"m_clusters must be positive, got {m_clusters}")
+    if m_clusters == 1:
+        return 0.0
+    return float(n_nodes) * math.ceil(math.log2(m_clusters))
 
 
 def sample_node_pairs(n_nodes: int, num_samples: int, seed: int = 0) -> tuple[Tensor, Tensor]:

@@ -1,3 +1,7 @@
+from gvls.compression.pooling_sweep import (
+    evaluate_pooled_compression,
+    train_pooled_gvls_full_graph,
+)
 from gvls.compression.sweep import (
     evaluate_compression,
     select_compression_optimal,
@@ -10,4 +14,6 @@ __all__ = [
     "evaluate_compression",
     "write_results_csv",
     "select_compression_optimal",
+    "train_pooled_gvls_full_graph",
+    "evaluate_pooled_compression",
 ]
