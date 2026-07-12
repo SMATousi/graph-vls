@@ -41,6 +41,25 @@ def test_kl_isotropic_nonneg() -> None:
     assert kl_isotropic(mu, log_var).item() >= 0.0
 
 
+def test_kl_isotropic_invariant_to_node_count() -> None:
+    """Normalization bug regression test (specs/phase3/validation.md V-8):
+    per-node KL magnitude must not scale with how many nodes it's computed
+    over -- tiling the same per-node distribution across more nodes should
+    leave the returned value unchanged, not grow linearly with node count.
+    """
+    torch.manual_seed(3)
+    mu_one = torch.randn(1, D)
+    log_var_one = torch.randn(1, D)
+    kl_one = kl_isotropic(mu_one, log_var_one).item()
+
+    reps = 50
+    mu_many = mu_one.repeat(reps, 1)
+    log_var_many = log_var_one.repeat(reps, 1)
+    kl_many = kl_isotropic(mu_many, log_var_many).item()
+
+    assert kl_many == pytest.approx(kl_one, rel=1e-5)
+
+
 # ── kl_graph_mrf ─────────────────────────────────────────────────────────────
 
 
@@ -68,6 +87,28 @@ def test_kl_graph_mrf_gradient_flows() -> None:
     A_z = sym_adj(N)
     kl_graph_mrf(mu, log_var, A_z).backward()
     assert mu.grad is not None and mu.grad.abs().sum() > 0
+
+
+def test_kl_graph_mrf_invariant_to_node_count() -> None:
+    """Normalization bug regression test (specs/phase3/validation.md V-8):
+    replicating the same disconnected component `reps` times (block-diagonal
+    A_z, so each replica is an independent MRF) must leave the per-node KL
+    magnitude unchanged, not scale linearly with total node count.
+    """
+    torch.manual_seed(4)
+    n_one = 3
+    mu_one = torch.randn(n_one, D)
+    log_var_one = torch.zeros(n_one, D)
+    A_one = sym_adj(n_one)
+    kl_one = kl_graph_mrf(mu_one, log_var_one, A_one).item()
+
+    reps = 10
+    mu_many = mu_one.repeat(reps, 1)
+    log_var_many = log_var_one.repeat(reps, 1)
+    A_many = torch.block_diag(*[A_one for _ in range(reps)])
+    kl_many = kl_graph_mrf(mu_many, log_var_many, A_many).item()
+
+    assert kl_many == pytest.approx(kl_one, rel=1e-4)
 
 
 # ── elbo ─────────────────────────────────────────────────────────────────────

@@ -124,3 +124,4 @@ Baseline numbers are taken directly from Ahn & Kim, "Variational Graph Normalize
 - Is a Gaussian MRF prior tractable at scale, or do we need an amortized / sampled approximation?
 - How to handle dynamic-sized graphs (variable N) cleanly with batched training?
 - Does the NAS-found architecture for Cora transfer well to CiteSeer and PubMed, or is per-dataset tuning essential?
+- **(New, 2026-07-11)** Phase 2's NAS selected each dataset's `β` (and PubMed's `prior=graph_mrf`) against a KL term that turned out to be an un-normalized sum over node count, since fixed (`src/gvls/losses/elbo.py`, see `specs/phase3/validation.md` V-8) to be normalized by node count instead — a change that alters the loss landscape `elbo()` presents to any training run, not just Phase 3's pooling sweeps. Should Phase 2's NAS search be re-run under the corrected convention, particularly for PubMed, whose NAS-best `β` was calibrated to the old (much larger) KL scale?

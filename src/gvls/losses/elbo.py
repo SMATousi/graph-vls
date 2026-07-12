@@ -11,8 +11,23 @@ def kl_isotropic(mu: Tensor, log_var: Tensor) -> Tensor:
     """KL(q || N(0,I)) for a diagonal Gaussian q = N(mu, diag(exp(log_var))).
 
     Returns a non-negative scalar equal to 0 when q equals the prior.
+
+    Normalized by node count (mean over the leading dimension of mu/log_var,
+    summed only over the latent dims) so the returned magnitude reflects a
+    per-node KL cost, independent of how many nodes it's computed over. This
+    matters because `elbo()`'s reconstruction term is mean-reduced over all
+    node-pair logits (so its magnitude is independent of N/M), while this KL
+    term used to be a raw, un-normalized sum -- meaning beta*KL's absolute
+    size scaled linearly with the number of nodes/clusters it was computed
+    over. That mismatch was fine for a fixed N, but T3.6's node-count pooling
+    sweep varies M over almost two orders of magnitude (169-9858), which
+    exposed it: PubMed's largest pool sizes drove beta*KL to 12-24x the scale
+    of recon_loss, pulling mu toward the prior and collapsing the pooled
+    reconstruction to a near-constant matrix, on top of the already-known
+    assignment-collapse failure mode. See specs/phase3/validation.md V-8.
     """
-    return -0.5 * (1.0 + log_var - mu.pow(2) - log_var.exp()).sum()
+    n = mu.size(0)
+    return -0.5 * (1.0 + log_var - mu.pow(2) - log_var.exp()).sum() / n
 
 
 def kl_graph_mrf(mu: Tensor, log_var: Tensor, A_z: Tensor, lambda_: float = 1.0) -> Tensor:
@@ -24,6 +39,15 @@ def kl_graph_mrf(mu: Tensor, log_var: Tensor, A_z: Tensor, lambda_: float = 1.0)
 
     The log-det term is computed with A_z detached from the computational graph
     to avoid second-order gradients through the Laplacian determinant.
+
+    Normalized by node count (divides the final scalar by N) for the same
+    reason as `kl_isotropic` -- see its docstring and
+    specs/phase3/validation.md V-8. Without this, the un-normalized joint-KL
+    formula (natural for treating the whole graph as one sample, but O(N) in
+    magnitude) scaled linearly with N/M while `elbo()`'s reconstruction term
+    is mean-reduced and O(1), so beta's effective strength implicitly grew
+    with graph/cluster size -- most visible for PubMed, whose NAS-best config
+    uses graph_mrf with the largest beta of the three benchmark datasets.
     """
     N, d = mu.shape
     device = mu.device
@@ -44,7 +68,7 @@ def kl_graph_mrf(mu: Tensor, log_var: Tensor, A_z: Tensor, lambda_: float = 1.0)
     _, logdet = torch.linalg.slogdet(Omega_d)
     logdet_omega = d * logdet                        # same prior for every dimension
 
-    return 0.5 * (trace_term + mu_quad - N * d + logdet_omega - log_var.sum())
+    return 0.5 * (trace_term + mu_quad - N * d + logdet_omega - log_var.sum()) / N
 
 
 def elbo(
