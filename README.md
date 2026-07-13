@@ -75,6 +75,29 @@ Full results: [`results/compression/cora.csv`](results/compression/cora.csv) (36
 
 Full results: [`results/compression/pubmed.csv`](results/compression/pubmed.csv) (36 points, run on a remote A100 given PubMed's NAS-best `prior=graph_mrf` O(N³) KL term). Input graph: N=19717 nodes, F=500 features, |E|=44324 edges.
 
+**Rerun 2026-07-13 after an ELBO bug fix — numbers below supersede the original run.** The first version of this grid (run 2026-07-08) showed F1 *declining* monotonically with capacity, with PubMed's own Phase 2 NAS-best architecture landing on the worst point in the grid. That turned out to be an artifact of a KL-normalization bug (`kl_isotropic`/`kl_graph_mrf` in `src/gvls/losses/elbo.py` returned an un-normalized sum over node count, so `β·KL`'s magnitude scaled with `N` while the mean-reduced reconstruction loss didn't — see `specs/phase3/validation.md` V-8 for the full diagnosis). The original numbers and findings are kept below the table as a historical record since the bug's symptom is itself an instructive result; the table and bullets reflect the corrected rerun.
+
+| d | k | d/F | \|A_z\|/\|E\| | F1 | bits/edge |
+|---|---|-----|------------|-----|-----------|
+| 4 | 1 | 0.0080 | 0.445 | 0.772 | 1.125 |
+| 8 | 1 | 0.0160 | 0.445 | 0.772 | 1.129 |
+| 16 | 1 | 0.0320 | 0.445 | 0.771 | 1.129 |
+| 16 | 2 | 0.0320 | 0.890 | 0.771 | 1.129 |
+| 32 | 1 | 0.0640 | 0.445 | 0.774 | 1.137 |
+| **128** | **1** | **0.2560** | **0.445** | **0.777** | **1.128** |
+| 128 | 20 | 0.2560 | 8.886 | 0.777 | 1.129 |
+
+**Findings — now much closer to Cora and CiteSeer's flat pattern than the original run suggested:**
+- **Capacity no longer hurts.** F1 by `d`, averaged over `k`: 0.7725 (`d=4`) → 0.7716 → 0.7713 → 0.7736 → 0.7744 → **0.7771** (`d=128`) — a shallow dip then a rise, the opposite of the original run's clean monotonic decline. `d=128, k=20` (PubMed's Phase 2 NAS-best architecture) is now F1=0.7768, essentially tied for the *best* point in the grid instead of the worst.
+- **`k` has (almost) zero effect on F1, for the same mechanistic reason as CiteSeer.** Mean F1 by `k` is now 0.7734 at every single value of `k` (1 through 20), to 4 decimal places. PubMed's compression-optimal config uses `mp_rounds=0`, so `A_z` never reaches the reconstruction logits directly — its only path into training is through the `graph_mrf` KL term. Before the fix, that KL term was artificially amplified (unnormalized sum over `N=19717`), so even A_z's indirect, KL-only influence produced large, real differences in F1 as `k` changed. With the KL correctly scaled, that indirect influence shrinks to negligible — matching CiteSeer's "`k` is decorative" finding, just via a different mechanistic route (CiteSeer's `A_z` has *no* path into the loss at all; PubMed's has a path, but it's now too weak to matter).
+- **`bits_per_edge` is no longer suspiciously exact.** The original run showed `bits_per_edge` within 1.6e-3 of exactly 1.0 at every grid point — flagged at the time as "worth investigating, not yet root-caused." That near-perfect uniformity is best explained by the same bug: the dominant KL term was forcing `μ` into a very similar near-zero configuration regardless of `(d,k)`, so the reconstruction logits (and thus `bits_per_edge`) barely varied either. Post-fix, `bits_per_edge` is a real, still-imperfect ~1.13–1.14 across the grid (versus the 1.0 "random predictor" reference) — calibration remains a separate, unresolved issue (see the T3.6 pooling-sweep analysis for the same pattern), but it's no longer a suspicious artifact.
+- **`k` still controls edge compression the same way as Cora**: `k=1` gives `|A_z|` at ~44–45% of the input's edge count (genuine compression) across all `d`; `k≥2` again makes A_z denser than the input, up to 8.9× at `k=20`.
+- **The best trade-off point is arguably `d=4, k=1`**: F1=0.7725 — only 0.005 below the grid's best (`d=128,k=1`, F1=0.7772) — at `d/F=0.008`, 32× smaller than the new best point's dimensionality ratio, and the same edge ratio (0.445, since edge ratio only depends on `k`).
+- **No grid point met the 0.90 fidelity floor** (max F1 = 0.777 at `d=128, k=1`) — same conclusion as before, T3.4's decoder-fallback trigger still fires, but the *reasoning* has changed: this is now a flat plateau well short of 0.90 (like Cora and CiteSeer), not a declining curve where more capacity actively makes things worse.
+
+<details>
+<summary>Original run (2026-07-08, predates the ELBO fix) — kept as a historical record</summary>
+
 | d | k | d/F | \|A_z\|/\|E\| | F1 | bits/edge |
 |---|---|-----|------------|-----|-----------|
 | 4 | 1 | 0.0080 | 0.445 | 0.708 | 1.0000017 |
@@ -85,11 +108,9 @@ Full results: [`results/compression/pubmed.csv`](results/compression/pubmed.csv)
 | 128 | 1 | 0.2560 | 0.422 | 0.739 | 1.0000701 |
 | 128 | 20 | 0.2560 | 8.725 | 0.673 | 1.0015761 |
 
-**Findings — a different, more concerning picture than Cora:**
-- **More capacity makes reconstruction *worse*, not better.** Mean F1 falls monotonically as `k` grows (0.745 at `k=1` → 0.716 at `k=20`), and at fixed `k=20`, F1 falls monotonically as `d` grows too (0.742 at `d=4` → 0.673 at `d=128`). Averaged over `k`, F1 peaks at a modest `d=16` (0.754) and *declines* toward `d=128` (0.705) — the opposite of what you'd want from a capacity/rate-distortion curve. `d=128, k=20` happens to be exactly PubMed's Phase 2 NAS-best architecture, so the config tuned for link-prediction AUC is the **worst** point in this grid for compression fidelity.
-- **`bits_per_edge` is degenerate — essentially exactly 1.0 bit at every single grid point** (1.0000017 to 1.0015761). Per Phase 0's convention, a logit of exactly 0 (maximum uncertainty) gives precisely 1.0 bit. PubMed's pair space is huge (~194M possible pairs vs. 44,324 real edges, a 0.023% positive rate), so `bits_per_edge` is estimated from a large uniform sample dominated by random, mostly-unrelated node pairs (see `dense_pair_limit`/`sample_node_pairs` in `specs/phase3/plan.md`). The near-exact 1.0 suggests the model is essentially uncertain (logit ≈ 0) about the *bulk* of random pairs — it can apparently still separate real edges from negatives well enough for F1 ≈ 0.7–0.76 on the balanced eval set, but isn't confidently negative almost anywhere else. A plausible driver: the extreme `pos_weight` this dataset's scale requires (~4384×, from `(N²−E)/E`) makes the training loss overwhelmingly dominated by getting rare positive edges right, leaving little pressure to push far-apart negative pairs to confidently negative logits. Worth investigating further, not yet root-caused.
-- **`k` still controls edge compression the same way as Cora**: `k=1` gives `|A_z|` at ~42–45% of the input's edge count (genuine compression) across all `d`; `k≥2` again makes A_z denser than the input, up to 8.7× at `k=20`.
-- **No grid point met the 0.90 fidelity floor** (max F1 = 0.761 at `d=16, k=2`) — same conclusion as Cora, fires the T3.4 decoder-fallback trigger, and here the case is stronger: F1 at the largest tested capacity (`d=128, k=20`) is 0.673, the *worst* point in the entire grid, not just a plateau.
+More capacity made reconstruction *worse*: mean F1 fell monotonically as `k` grew (0.745 at `k=1` → 0.716 at `k=20`), and at fixed `k=20`, F1 fell monotonically as `d` grew too (0.742 at `d=4` → 0.673 at `d=128`). `bits_per_edge` was degenerate — essentially exactly 1.0 bit at every grid point (1.0000017–1.0015761). Both are now understood to be symptoms of the KL-normalization bug fixed in `src/gvls/losses/elbo.py` — see `specs/phase3/validation.md` V-8.
+
+</details>
 
 #### CiteSeer
 
@@ -110,21 +131,21 @@ Full results: [`results/compression/citeseer.csv`](results/compression/citeseer.
 - **F1 ceiling (0.819) and range (0.809–0.819, a 1-point spread) are close to Cora's** (0.813–0.828) — both datasets plateau well short of the 0.90 floor, unlike PubMed's actively-declining curve.
 - **No grid point met the 0.90 floor.** T3.4's trigger fires for CiteSeer too — the third dataset in a row. `configs/compression/citeseer.yaml` was written via the fallback (highest raw F1: `d=16, k=3`, F1=0.8188).
 
-**Cross-dataset pattern, now that all three are in:** none of Cora, CiteSeer, or PubMed reach the 0.90 fidelity floor anywhere in their 36-point grids. Two of three NAS-best configs (CiteSeer, PubMed) use `mp_rounds=0` — meaning GVLS's core "latent message passing" mechanism is inactive in the configurations actually used for the majority of these compression runs, and for CiteSeer specifically, the entire latent graph `A_z` is provably inert. This is a strong, convergent signal that the plain inner-product decoder (or more precisely, the disconnect between `A_z` and the decoding path for 2 of 3 datasets) is the real bottleneck — see T3.4 in `specs/phase3/plan.md`.
+**Cross-dataset pattern, now that all three are in (updated 2026-07-13 after the PubMed rerun):** none of Cora, CiteSeer, or PubMed reach the 0.90 fidelity floor anywhere in their 36-point grids, and **all three now show the same flat-vs-(d,k) pattern** — PubMed's original declining curve is gone. Two of three NAS-best configs (CiteSeer, PubMed) use `mp_rounds=0` — meaning GVLS's core "latent message passing" mechanism is inactive in the configurations actually used for the majority of these compression runs. For CiteSeer, the entire latent graph `A_z` is provably inert (no path into the loss at all). For PubMed, `A_z` has a path only through the `graph_mrf` KL term, and — now that the KL is correctly normalized (`specs/phase3/validation.md` V-8) — that path is too weak to move F1 meaningfully either. So for two of the three datasets, the flatness has a shared root cause: `A_z` barely (or doesn't at all) influence the objective these configs actually train against. This is a strong, convergent signal that the plain inner-product decoder (or more precisely, the disconnect between `A_z` and the decoding path) is the real bottleneck for reaching the 0.90 floor — see T3.4 in `specs/phase3/plan.md`.
 
 #### Rate-distortion curves
 
 The flat/declining/inert patterns described above, side by side (dashed line = the 0.90 fidelity floor; regenerate with `python experiments/plot_compression_curves.py`):
 
-**F1 vs. compression ratio** — the actual rate-distortion curve, all 36 `(d,k)` points per dataset, colored by dataset since the ratio axes are dimensionless and directly comparable across datasets. Cora and CiteSeer form tight, flat clusters regardless of compression ratio; PubMed visibly spreads and trends *downward* as `d` grows (left panel), and its clusters drift past the "same density as input" line and keep declining as `k` grows (right panel):
+**F1 vs. compression ratio** — the actual rate-distortion curve, all 36 `(d,k)` points per dataset, colored by dataset since the ratio axes are dimensionless and directly comparable across datasets. All three datasets now form tight, flat clusters regardless of compression ratio (regenerated 2026-07-13 after the PubMed rerun — PubMed no longer spreads or trends downward):
 
 ![F1 vs compression ratio](results/compression/f1_vs_ratio.png)
 
-**F1 vs. k** (colored by latent dimension `d`) — Cora and CiteSeer barely move with `k`; PubMed declines visibly, especially at larger `d`:
+**F1 vs. k** (colored by latent dimension `d`) — none of the three datasets move meaningfully with `k` anymore:
 
 ![F1 vs k](results/compression/f1_vs_k.png)
 
-**F1 vs. d** (colored by `k`) — CiteSeer collapses to a single visible line since none of the 6 `k` series are distinguishable (the "`A_z` is inert" finding, made visible); PubMed peaks around `d=16` and falls off toward `d=128`:
+**F1 vs. d** (colored by `k`) — CiteSeer collapses to a single visible line since none of the 6 `k` series are distinguishable (the "`A_z` is inert" finding, made visible); PubMed is now flat-to-gently-rising rather than peaking at `d=16` and falling off:
 
 ![F1 vs d](results/compression/f1_vs_d.png)
 

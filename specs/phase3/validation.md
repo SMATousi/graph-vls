@@ -38,7 +38,7 @@
 | PubMed grid complete | 36/36 combinations logged to `results/compression/pubmed.csv` | ✅ 36/36, run on a remote A100 (PubMed's NAS-best `prior=graph_mrf` KL is O(N³)/epoch — too slow on CPU, see `specs/phase3/plan.md`) |
 | CiteSeer grid complete | 36/36 combinations logged to `results/compression/citeseer.csv` | ✅ 36/36, 200 epochs each |
 | Compression-optimal configs written | `configs/compression/{cora,citeseer,pubmed}.yaml` exist and are valid `gvls.yaml`-schema configs | ✅ all three written (all fallback picks, see below) |
-| Fidelity floor met at some grid point | At least one `(d, k)` per dataset achieves `reconstruction_f1 ≥ 0.90` | ❌ **None of the three datasets meet this** — Cora best F1 0.828, CiteSeer best F1 0.819, PubMed best F1 0.761 |
+| Fidelity floor met at some grid point | At least one `(d, k)` per dataset achieves `reconstruction_f1 ≥ 0.90` | ❌ **None of the three datasets meet this** — Cora best F1 0.828, CiteSeer best F1 0.819, PubMed best F1 0.777 (updated 2026-07-13, was 0.761 — see PubMed findings below) |
 | W&B logging | `compression-sweep-{dataset}` group contains 36 runs per dataset with all FR-3 metrics | ✅ all three (36 runs logged each) |
 
 ### Cora findings (full results: `results/compression/cora.csv`)
@@ -49,11 +49,26 @@
 
 ### PubMed findings (full results: `results/compression/pubmed.csv`)
 
+**Rerun 2026-07-13, superseding the findings below — see V-8.** The original run (2026-07-08) showed a clean "capacity hurts" pattern, which turned out to be caused by the same ELBO KL-normalization bug diagnosed in V-8: PubMed's `graph_mrf` KL term was an un-normalized sum over `N=19717`, so `β·KL` dominated the loss and pulled `μ` toward the prior in a way that scaled with capacity. After the fix (`src/gvls/losses/elbo.py`), the grid was rerun and the pattern is gone:
+
+- **Capacity no longer hurts.** Mean F1 by `d`: 0.7725 (`d=4`) → 0.7716 → 0.7713 → 0.7736 → 0.7744 → **0.7771** (`d=128`) — a shallow dip then a rise, essentially flat, the opposite of the original monotonic decline. `d=128, k=20` (PubMed's Phase 2 NAS-best architecture) is now F1=0.7768 — tied for the *best* end of the grid instead of the worst.
+- **`k` now has ~zero effect on F1, for the same mechanistic reason as CiteSeer.** Mean F1 by `k` is 0.7734 at every one of the 6 tested `k` values, to 4 decimal places. PubMed's compression-optimal config has `mp_rounds=0`, so `A_z` only reaches training through the `graph_mrf` KL term (not the reconstruction logits directly). Before the fix, that KL term was artificially amplified, so `A_z`'s indirect influence produced large, real F1 differences as `k` varied; correctly scaled, that influence is now negligible — the same "`A_z`'s only path into the objective is too weak to matter" conclusion as CiteSeer, reached by a different mechanistic route (CiteSeer: no path at all; PubMed: a path that's now properly weak instead of artificially strong).
+- **`bits_per_edge` is no longer suspiciously exact.** It was previously ≈1.0 at every grid point to within 1.6e-3 (flagged as "worth investigating, not yet root-caused") — now understood as a likely symptom of the same bug (KL domination forcing `μ` into a near-identical near-zero configuration regardless of `(d,k)`, so the resulting logits barely varied). Post-fix, `bits_per_edge` is a real, still-imperfect ~1.13–1.14 across the grid — calibration remains unresolved (matches the pattern seen in T3.6's pooling-sweep rerun), but it's no longer an artifact of this specific bug.
+- **`k` still controls edge compression the same way as Cora**: `k=1` gives `|A_z|` at ~44–45% of `|E|` across all `d`; `k≥2` again makes A_z denser than the input (up to 8.9× at `k=20`).
+- New selection (`select_compression_optimal`, floor still not met): highest raw F1 is now `d=128, k=1` (F1=0.7772), written to `configs/compression/pubmed.yaml` — a complete reversal from the old fallback pick's `d=16` (dimensionality ratio `d/F` jumped from 0.032 to 0.256, 8× larger, though edge ratio improved from 0.890 to 0.445). The best fidelity/size trade-off is arguably `d=4, k=1` (F1=0.7725, only 0.005 below the new best, at 1/32 the dimensionality ratio).
+- **T3.4's trigger still fires** (no point reaches 0.90), but the reasoning has changed: this is now a flat plateau (max F1=0.777) like Cora and CiteSeer, not a declining curve where the NAS-best config was the single worst point in the grid.
+- **Consequence for T3.6:** the pooling sweep (`results/compression/pubmed_pooling.csv`, confirmed working in V-8) was run against the *old* `configs/compression/pubmed.yaml` (`d=16, k=2`), which this rerun has superseded (`d=128, k=1`). For full consistency with the new compression-optimal point, T3.6's PubMed pooling sweep should be rerun again — not yet done.
+
+<details>
+<summary>Original findings (2026-07-08, predate the ELBO fix) — kept as a historical record</summary>
+
 - **Capacity hurts, not helps.** Mean F1 falls monotonically as `k` grows (0.745→0.716 from `k=1` to `k=20`) and, at fixed `k=20`, falls monotonically as `d` grows (0.742→0.673 from `d=4` to `d=128`). PubMed's own Phase 2 NAS-best architecture is `d=128, k=20` — i.e. the config tuned for link-prediction AUC lands on the *worst* point in this compression grid (F1=0.673).
 - **`bits_per_edge` is degenerate — ≈1.0 exactly at every grid point** (1.0000017–1.0015761). Per Phase 0's convention this corresponds to logit≈0 (maximum uncertainty). Likely explanation: PubMed's pair space (~194M) forces the sampled-estimate path (`dense_pair_limit`), and the sample is >99.97% negative pairs; combined with the extreme `pos_weight` (~4384×, from `(N²−E)/E`) that PubMed's scale requires during training, the loss may be leaving little pressure to push far-apart negative pairs to confidently-negative logits even though real edges are reasonably well separated (F1≈0.7–0.76 on the balanced eval set). Flagged as worth investigating, not yet root-caused.
 - **`k` still controls edge compression the same way as Cora**: `k=1` gives `|A_z|` at ~42–45% of `|E|` across all `d`; `k≥2` again makes A_z denser than the input (up to 8.7× at `k=20`).
 - Fallback pick (`select_compression_optimal`, floor not met): highest raw F1 is `d=16, k=2` (F1=0.761), written to `configs/compression/pubmed.yaml`. Unlike Cora, this fallback pick is *not* one of the least-compressed points — `k=2` is close to the compression-favorable end of the grid, and mean-F1-by-d also happens to peak near `d=16`, so this particular fallback is a reasonably good pick on both axes by coincidence rather than by the selection logic accounting for it.
 - **T3.4 trigger fires more decisively than Cora**: F1 at `d=128, k=20` is 0.673 — not just below the 0.90 floor, but the single worst point in the entire 36-point grid, and part of a clear monotonic downward trend rather than a flat plateau.
+
+</details>
 
 ### CiteSeer findings (full results: `results/compression/citeseer.csv`)
 
@@ -65,17 +80,17 @@
 
 ### Cross-dataset synthesis
 
-None of the three datasets reach the 0.90 fidelity floor anywhere in their 36-point grids. Two of three NAS-best configs (CiteSeer, PubMed) use `mp_rounds=0`, meaning GVLS's latent message-passing mechanism is inactive for the majority of these runs; for CiteSeer specifically, `A_z` is provably inert end-to-end. This is a convergent signal across all three datasets that a decoder/architecture change (T3.4), not further compression-ratio tuning, is the next lever to pull.
+**Updated 2026-07-13 after the PubMed rerun.** None of the three datasets reach the 0.90 fidelity floor anywhere in their 36-point grids, and **all three now show the same flat-vs-(d,k) pattern** — PubMed's original declining curve was an artifact of the ELBO KL-normalization bug (V-8), not a real capacity/rate-distortion effect. Two of three NAS-best configs (CiteSeer, PubMed) use `mp_rounds=0`, meaning GVLS's latent message-passing mechanism is inactive for the majority of these runs. For CiteSeer, `A_z` is provably inert end-to-end (no path into the loss at all). For PubMed, `A_z`'s only path into training is through the `graph_mrf` KL term — and now that the KL is correctly scaled, that path is too weak to move F1 meaningfully either, which is why PubMed's `k`-sweep is now just as flat as CiteSeer's. So for two of the three datasets, flatness now has a shared underlying cause: `A_z` barely (or doesn't at all) influence the objective these configs actually train against. This remains a convergent signal that a decoder/architecture change (T3.4), not further compression-ratio tuning, is the next lever to pull for reaching the 0.90 floor.
 
 ### Headline comparison
 
-For each dataset, at the compression-optimal `(d, k)` (all three: fallback picks, floor not met):
+For each dataset, at the compression-optimal `(d, k)` (all three: fallback picks, floor not met). **PubMed's row updated 2026-07-13** (was `d=16,k=2`, F1=0.761 — see PubMed findings above for the historical row):
 
 | Dataset | N | F | \|E\| | d | \|A_z\| | d/F | \|A_z\|/\|E\| | F1 | bits/edge |
 |---|---|---|---|---|---|---|---|---|---|
 | Cora | 2708 | 1433 | 5278 | 16 | 38891 | 0.0112 | 7.369 | 0.828 | 1.094 |
 | CiteSeer | 3327 | 3703 | 4552 | 16 | 6780 | 0.0043 | 1.489 | 0.819 | 1.063 |
-| PubMed | 19717 | 500 | 44324 | 16 | 39107 | 0.0320 | 0.882 | 0.761 | 1.0000073 |
+| PubMed | 19717 | 500 | 44324 | 128 | 19715 | 0.2560 | 0.445 | 0.777 | 1.128 |
 
 Note: the `|E|` values here (Cora 5278, CiteSeer 4552, PubMed 44324) differ slightly from Phase 0/1's link-prediction table (5429, 4732, 44338) because `full_graph_split` removes self-loops the same way `split_edges` does, but the two counts were computed independently — both are correct for their respective splits.
 
@@ -90,6 +105,8 @@ Triggered only if `reconstruction_f1` at `(d=128, k=20)` is below 0.90 for a giv
 | Trigger evaluated | Recorded per-dataset whether the trigger fired, with the F1 numbers | ✅ Cora: **triggered** (F1=0.8235 at d=128,k=20, < 0.90). ✅ PubMed: **triggered**, more decisively (F1=0.673 at d=128,k=20 — the worst point in PubMed's entire grid, part of a monotonic decline). ✅ CiteSeer: **triggered** (F1=0.8140 at d=128,k=20, < 0.90; also the dataset where `A_z` is provably inert given its NAS-best config — see CiteSeer findings above). **All three datasets trigger.** |
 | If triggered: decoder implemented | `LatentGraphDecoder` shape/gradient tests pass | ⬜ **superseded, not built** — the project pivoted to node-count pooling (T3.6, see V-7) instead of a decoder tweak at fixed `M=N`. Revisit only if T3.6 fails to close the fidelity gap on its own. |
 | If triggered: F1 comparison reported | Head-to-head F1 at matched `(d, k)`, baseline vs. A_z-conditioned decoder | ⬜ superseded, not applicable |
+
+**Note on PubMed's F1=0.673 above:** that number predates the ELBO KL-normalization fix (V-8) and is now stale — PubMed's rerun (§V-3, 2026-07-13) gives F1=0.7768 at `d=128,k=20`, no longer the worst point in the grid. The trigger still fires either way (both numbers are below 0.90), so this doesn't change T3.4's superseded status; kept here as the historical record of the original trigger evaluation.
 
 ---
 
@@ -140,7 +157,7 @@ The first production sweep (all three datasets, committed as `results/compressio
 
 ---
 
-## V-8: ELBO KL-normalization bug (new, found 2026-07-11 while investigating T3.6's residual PubMed collapse) 🔶 Fixed, unit-tested, and confirmed on T3.6; T3.3 PubMed `(d,k)` baseline rerun still pending
+## V-8: ELBO KL-normalization bug (new, found 2026-07-11 while investigating T3.6's residual PubMed collapse) 🔶 Fixed, unit-tested, and confirmed on both T3.3 and T3.6; T3.6's PubMed pooling sweep needs one more rerun against the new compression-optimal config
 
 **Context.** After V-7's entropy/link-loss fix, the regenerated `results/compression/{dataset}_pooling.csv` files still showed PubMed stuck at the exact pre-fix collapse signature (`reconstruction_f1 = 0.6667`) at its two largest pool sizes (`pool_ratio=0.5` → `M=9858`, `pool_ratio=0.25` → `M=4929`), while `pool_ratio=0.125`/`0.0625` (`M=2465`/`1232`) escaped it (F1=0.719/0.732). Cora and CiteSeer never exhibited this. Investigating why the fix didn't fully transfer to PubMed's larger `M` values surfaced a second, independent bug.
 
@@ -162,7 +179,7 @@ The first production sweep (all three datasets, committed as `results/compressio
 | Regression tests added | Node-count invariance verified directly (tiling a single node's distribution, and a block-diagonal MRF replica, must not change the returned per-node KL) | ✅ `test_kl_isotropic_invariant_to_node_count`, `test_kl_graph_mrf_invariant_to_node_count` in `tests/test_elbo.py` |
 | Existing test suite still passes | No regressions from the normalization change | ✅ 143/143 (was 115 pre-T3.6, +13 in `test_elbo.py`, +remainder from T3.6's own test files) |
 | T3.6 pooling sweep rerun with the fix | All three `*_pooling.csv` regenerated | ✅ 2026-07-12 — see "Confirmed results" below |
-| T3.3 `(d,k)` baseline rerun with the fix | `results/compression/pubmed.csv` regenerated (Cora/CiteSeer's `.csv` files don't need a rerun — their `β` was already negligible, see the analytical check above) | ⬜ **pending** — command: `python experiments/compression_sweep.py data=pubmed`, GPU recommended (PubMed's `graph_mrf` prior costs ~6.2s/`slogdet` call on CPU at `N=19717`, ~12.4hrs for the full 36-point grid serially; the original T3.3 run used a remote A100). This is the sweep that produced the still-unconfirmed "capacity hurts" pattern this bug was retrospectively fit to (§V-3) — rerunning it is the direct test of that hypothesis. Also note: if the rerun shifts which `(d,k)` wins `select_compression_optimal`, `configs/compression/pubmed.yaml` will change, which would mean T3.6's just-confirmed pooling sweep (fixed at the *old* `d=16,k=2`) should technically be rerun again against the new compression-optimal config for full consistency. |
+| T3.3 `(d,k)` baseline rerun with the fix | `results/compression/pubmed.csv` regenerated (Cora/CiteSeer's `.csv` files don't need a rerun — their `β` was already negligible, see the analytical check above) | ✅ 2026-07-13 (commit `eec133b`) — **directly confirms the retrospective "capacity hurts" hypothesis.** The declining-with-capacity pattern is gone: mean F1 by `d` now rises from 0.7725 (`d=4`) to 0.7771 (`d=128`) instead of falling from 0.742 to 0.673, and mean F1 by `k` is flat at 0.7734 for every tested `k` instead of falling from 0.745 to 0.716. `select_compression_optimal` now picks `d=128, k=1` (F1=0.7772) instead of `d=16, k=2` (F1=0.761) — see updated §V-3 for the full before/after and mechanistic explanation. **New follow-up, not yet done:** `configs/compression/pubmed.yaml` changed as a result (`d=16,k=2` → `d=128,k=1`), so T3.6's already-confirmed PubMed pooling sweep (`pubmed_pooling.csv`, fixed at the *old* `d=16,k=2`) is now stale relative to the new compression-optimal point and should be rerun again for full consistency: `python experiments/pooling_sweep.py data=pubmed`. |
 
 ### Confirmed results (T3.6 pooling sweep rerun, 2026-07-12)
 
