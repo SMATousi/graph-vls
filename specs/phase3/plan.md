@@ -164,7 +164,7 @@ Tests (`tests/test_compression_sweep.py`):
 
 ---
 
-### T3.4 — A_z-conditioned decoder — **superseded 2026-07-09, revived 2026-07-13**
+### T3.4 — A_z-conditioned decoder — **superseded 2026-07-09, revived 2026-07-13, result in — not adopted**
 
 **Trigger condition:** build this only if T3.3's results show the inner-product decoder is the bottleneck — concretely, if reconstruction F1 at the **largest** tested capacity (`d=128, k=20`) is **below 0.90**. That signals the ceiling itself is weak (a decoder/architecture limitation), not that we're pushing the compression ratio too far (which would show up as a normal fidelity drop-off at *small* `d`/`k`, not a flat low curve even at large capacity).
 
@@ -178,7 +178,9 @@ Tests (`tests/test_compression_sweep.py`):
 
 **Integration:** `train_gvls_full_graph`/`evaluate_compression` (`src/gvls/compression/sweep.py`) take a new `decoder: "inner_product" | "graph_conditioned"` parameter, default `"inner_product"` (byte-for-byte unchanged behavior and output paths). `experiments/compression_sweep.py` exposes this as `experiment.decoder`; a `graph_conditioned` run writes to `results/compression/{name}_graph_decoder.csv` / `configs/compression/{name}_graph_decoder.yaml` instead of the default paths, so a head-to-head comparison run doesn't overwrite the `inner_product` baseline that T3.6 and other consumers depend on.
 
-**Status: implemented and unit-tested** (`tests/test_decoder.py` — shape, gradient flow to both `z_tilde` and the decoder's own weight, sensitivity to `A_z`, and a zero-`A_z` sanity check that it reduces to the plain inner product; `tests/test_compression_sweep.py` — end-to-end smoke test through the sweep's train/eval path, plus an invalid-`decoder`-string test). Manually smoke-tested end-to-end through the actual `experiments/compression_sweep.py` CLI (3 epochs, Cora, `d=8,k=2`) to confirm the suffixed output paths work and the baseline files are untouched. **The production head-to-head sweep (all three datasets, both decoders, full grid) has not been run** — see `specs/phase3/validation.md` V-4.
+**Status: implemented and unit-tested** (`tests/test_decoder.py` — shape, gradient flow to both `z_tilde` and the decoder's own weight, sensitivity to `A_z`, and a zero-`A_z` sanity check that it reduces to the plain inner product; `tests/test_compression_sweep.py` — end-to-end smoke test through the sweep's train/eval path, plus an invalid-`decoder`-string test). Manually smoke-tested end-to-end through the actual `experiments/compression_sweep.py` CLI (3 epochs, Cora, `d=8,k=2`) to confirm the suffixed output paths work and the baseline files are untouched.
+
+**Production head-to-head sweep complete 2026-07-13 (commit `627f4e7`), all three datasets, full 30-point grid each — result: not adopted.** Full numbers and per-dataset mechanistic discussion in `specs/phase3/validation.md` V-4. Headline: mean ΔF1 vs. the `inner_product` baseline is **Cora −0.0089, CiteSeer +0.0032, PubMed −0.0538 (with 12/30 points collapsing to the exact F1=0.6667 signature — a third, distinct collapse instance, not caused by the already-fixed KL bug)**. Only CiteSeer improves, and only because it was the sole dataset where `A_z` was provably inert *before* this decoder existed (`mp_rounds=0, prior=isotropic`); Cora already had `A_z` connected via `mp_rounds=1` and the decoder just adds redundant noise; PubMed's extreme `pos_weight` (~4384×) combined with a freshly-initialized extra transformation appears to reopen the same collapse basin diagnosed in V-7 and V-8, by a new mechanism. Cora and CiteSeer's near-identical baseline ceilings (~0.82) despite opposite `A_z`-connectivity situations is itself evidence against "decoder connectivity" being the true bottleneck for either. `graph_conditioned` is kept in the codebase as a tested, documented negative result (`experiment.decoder=graph_conditioned`), not adopted as any dataset's default.
 
 ---
 

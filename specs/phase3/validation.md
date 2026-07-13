@@ -96,7 +96,7 @@ Note: the `|E|` values here (Cora 5278, CiteSeer 4552, PubMed 44324) differ slig
 
 ---
 
-## V-4: Decoder Fallback (conditional) — **Superseded 2026-07-09, revived 2026-07-13** 🔶 Implemented and unit-tested; production head-to-head sweep pending
+## V-4: Decoder Fallback (conditional) — **Superseded 2026-07-09, revived 2026-07-13** ✅ Head-to-head sweep complete — **not adopted**, mixed-to-negative result
 
 Triggered only if `reconstruction_f1` at `(d=128, k=20)` is below 0.90 for a given dataset.
 
@@ -104,9 +104,29 @@ Triggered only if `reconstruction_f1` at `(d=128, k=20)` is below 0.90 for a giv
 |---|---|---|
 | Trigger evaluated | Recorded per-dataset whether the trigger fired, with the F1 numbers | ✅ Cora: **triggered** (F1=0.8235 at d=128,k=20, < 0.90). ✅ PubMed: **triggered** (2026-07-09 number, now stale — see note below). ✅ CiteSeer: **triggered** (F1=0.8140 at d=128,k=20, < 0.90; also the dataset where `A_z` is provably inert given its NAS-best config — see CiteSeer findings above). **All three datasets trigger, and still do after the 2026-07-13 PubMed rerun** (0.7768 < 0.90). |
 | If triggered: decoder implemented | `LatentGraphDecoder` shape/gradient tests pass | ✅ **Revived 2026-07-13** (see plan.md Design Decision 8) — `src/gvls/models/decoder.py`, `tests/test_decoder.py` (5 tests: output shape, gradient flow to `z_tilde` and the decoder's own weight, sensitivity to `A_z`, zero-`A_z` reduces to the plain inner product). `train_gvls_full_graph`/`evaluate_compression` (`src/gvls/compression/sweep.py`) take a `decoder: "inner_product" \| "graph_conditioned"` parameter; `experiments/compression_sweep.py` exposes it as `experiment.decoder`. `tests/test_compression_sweep.py` adds an end-to-end smoke test through the sweep path plus an invalid-decoder-string test. Manually smoke-tested through the actual CLI (Cora, `d=8,k=2`, 3 epochs) — writes to `results/compression/cora_graph_decoder.csv` / `configs/compression/cora_graph_decoder.yaml`, baseline files untouched, as designed. |
-| If triggered: F1 comparison reported | Head-to-head F1 at matched `(d, k)`, baseline vs. A_z-conditioned decoder | ⬜ **pending** — command per dataset: `python experiments/compression_sweep.py data={name} experiment.decoder=graph_conditioned` (writes to the `_graph_decoder` suffixed paths, doesn't overwrite the `inner_product` baseline `.csv`/`.yaml`). Not yet run at production scale (full 30-point grid, 200 epochs) for any dataset. |
+| If triggered: F1 comparison reported | Head-to-head F1 at matched `(d, k)`, baseline vs. A_z-conditioned decoder | ✅ 2026-07-13 (commit `627f4e7`), all three datasets, full 30-point grid each — see results below. **Verdict: not adopted.** |
 
 **Note on PubMed's original F1=0.673:** that number predates the ELBO KL-normalization fix (V-8) and is stale — PubMed's rerun (§V-3, 2026-07-13) gives F1=0.7768 at `d=128,k=20`, no longer the worst point in the grid. The trigger still fires either way (both numbers are below 0.90); kept here as the historical record of the original trigger evaluation. This is also, independently, part of why T3.4 was revived: with the bug fixed, the remaining gap to 0.90 is now a flat plateau across all three datasets rather than a declining curve, pointing more squarely at the decoder as the next lever (see plan.md Design Decision 8).
+
+### Head-to-head results (2026-07-13): `inner_product` baseline vs. `graph_conditioned` decoder
+
+Matched `(d,k)` comparison, `results/compression/{name}.csv` vs. `results/compression/{name}_graph_decoder.csv` (both use the post-`k=1`-removal grid, `k ∈ {2,3,5,10,20}` × `d ∈ {4,8,16,32,64,128}`, 30 points):
+
+| Dataset | Mean ΔF1 | Range | Collapsed points (F1≈0.6667) |
+|---|---|---|---|
+| Cora | **−0.0089** | −0.033 to +0.001 | 0/30 |
+| CiteSeer | **+0.0032** | −0.003 to +0.020 | 0/30 |
+| PubMed | **−0.0538** | −0.106 to −0.009 | **12/30** |
+
+**Cora: uniformly worse, and worse with more capacity.** Every point but two is negative; damage grows with `d` (−0.018 to −0.033 at `d=128`). Cora's NAS-best config already has `mp_rounds=1`, so `A_z` already had a real path into the reconstruction before this decoder existed — the extra, freshly-initialized, redundant message-passing round adds noise and competing parameters rather than new information.
+
+**CiteSeer: modest, real improvement — the one case that validates the original hypothesis.** Mean +0.0032, strongest at `d=4` (+0.017 to +0.020), new ceiling 0.829 (up from 0.819). CiteSeer's `mp_rounds=0, prior=isotropic` config left `A_z` provably inert before this decoder — it's the only thing in this experiment that ever gave CiteSeer's `A_z` a path into training, and it measurably helped.
+
+**PubMed: a new, severe collapse — 12/30 points hit the exact F1=0.6667 signature.** Every point at `d=4` and `d=8`, plus `d=16` at `k∈{2,3}`, collapsed to the same always-predict-edge signature seen twice before (V-7's assignment collapse, V-8's KL-normalization bug) — a *third*, distinct instance of the same symptom with a new cause. Non-collapsed PubMed points are also substantially worse than baseline (−0.006 to −0.09). Collapse severity tracks capacity inversely: `d=4` collapses at every `k`; by `d≥32` it mostly clears, though `d=32,k=2` remains badly degraded (0.695 vs. 0.774) without hitting the exact collapse signature. The ELBO KL-normalization bug (V-8) is already fixed and doesn't depend on decoder choice, so it's ruled out as the cause here. Likely mechanism (not directly verified): PubMed's extreme `pos_weight` (~4384×, the most severe class imbalance of the three datasets) combined with a brand-new, randomly-interacting transformation (`LatentGraphDecoder`'s weight starts at identity, `A_z` itself still early in learning) sitting directly in the reconstruction path — small `d` gives the model the least redundancy to absorb that instability without falling into the same collapse basin diagnosed twice already in this phase.
+
+**Broader implication — this undercuts T3.4's original premise rather than confirming it.** Cora (`A_z` connected via `mp_rounds=1`) and CiteSeer (`A_z` provably disconnected) had nearly identical baseline F1 ceilings (~0.82) despite completely different `A_z`-connectivity situations. If `A_z`'s path into the decoder were really what capped fidelity at ~0.82, Cora (already connected) shouldn't have plateaued at the same level as CiteSeer (never connected) — this result points *away* from decoder/`A_z`-connectivity as the bottleneck, not toward it.
+
+**Decision: `graph_conditioned` is not adopted as the default decoder for any dataset.** It's a net loss for Cora, a severe regression (including new collapses) for PubMed, and a small win for CiteSeer specifically because CiteSeer was the one dataset with zero baseline `A_z`-connectivity to begin with — not a generalizable result. The module (`src/gvls/models/decoder.py`) and the `experiment.decoder` sweep option are kept in the codebase (implemented, tested, and usable via `experiment.decoder=graph_conditioned`) as a documented negative result, not removed.
 
 ---
 
