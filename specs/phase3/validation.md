@@ -140,7 +140,7 @@ The first production sweep (all three datasets, committed as `results/compressio
 
 ---
 
-## V-8: ELBO KL-normalization bug (new, found 2026-07-11 while investigating T3.6's residual PubMed collapse) 🔶 Fixed and unit-tested; production reruns pending
+## V-8: ELBO KL-normalization bug (new, found 2026-07-11 while investigating T3.6's residual PubMed collapse) 🔶 Fixed, unit-tested, and confirmed on T3.6; T3.3 PubMed `(d,k)` baseline rerun still pending
 
 **Context.** After V-7's entropy/link-loss fix, the regenerated `results/compression/{dataset}_pooling.csv` files still showed PubMed stuck at the exact pre-fix collapse signature (`reconstruction_f1 = 0.6667`) at its two largest pool sizes (`pool_ratio=0.5` → `M=9858`, `pool_ratio=0.25` → `M=4929`), while `pool_ratio=0.125`/`0.0625` (`M=2465`/`1232`) escaped it (F1=0.719/0.732). Cora and CiteSeer never exhibited this. Investigating why the fix didn't fully transfer to PubMed's larger `M` values surfaced a second, independent bug.
 
@@ -161,7 +161,27 @@ The first production sweep (all three datasets, committed as `results/compressio
 | Fix implemented | `kl_isotropic`/`kl_graph_mrf` normalized by node count | ✅ `src/gvls/losses/elbo.py` |
 | Regression tests added | Node-count invariance verified directly (tiling a single node's distribution, and a block-diagonal MRF replica, must not change the returned per-node KL) | ✅ `test_kl_isotropic_invariant_to_node_count`, `test_kl_graph_mrf_invariant_to_node_count` in `tests/test_elbo.py` |
 | Existing test suite still passes | No regressions from the normalization change | ✅ 143/143 (was 115 pre-T3.6, +13 in `test_elbo.py`, +remainder from T3.6's own test files) |
-| Production sweeps rerun with the fix | `results/compression/pubmed.csv` (T3.3) and all `*_pooling.csv` (T3.6) regenerated | ⬜ **pending** — the fix changes the effective `β` scale for any `graph_mrf` config or any config swept over a wide `M`/`N` range, so every prior result computed under the old un-normalized KL (all of T3.3, all of T3.6, and — more broadly — Phase 2's NAS search itself, which also calls `elbo()`) should be treated as run under the old convention. Reruns are being driven manually, not from this session. |
+| T3.6 pooling sweep rerun with the fix | All three `*_pooling.csv` regenerated | ✅ 2026-07-12 — see "Confirmed results" below |
+| T3.3 `(d,k)` baseline rerun with the fix | `results/compression/pubmed.csv` regenerated (Cora/CiteSeer's `.csv` files don't need a rerun — their `β` was already negligible, see the analytical check above) | ⬜ **pending** — command: `python experiments/compression_sweep.py data=pubmed`, GPU recommended (PubMed's `graph_mrf` prior costs ~6.2s/`slogdet` call on CPU at `N=19717`, ~12.4hrs for the full 36-point grid serially; the original T3.3 run used a remote A100). This is the sweep that produced the still-unconfirmed "capacity hurts" pattern this bug was retrospectively fit to (§V-3) — rerunning it is the direct test of that hypothesis. Also note: if the rerun shifts which `(d,k)` wins `select_compression_optimal`, `configs/compression/pubmed.yaml` will change, which would mean T3.6's just-confirmed pooling sweep (fixed at the *old* `d=16,k=2`) should technically be rerun again against the new compression-optimal config for full consistency. |
+
+### Confirmed results (T3.6 pooling sweep rerun, 2026-07-12)
+
+The rerun (`results/compression/{cora,citeseer,pubmed}_pooling.csv`, commit `0f5bfd0`) confirms the diagnosis precisely:
+
+| Dataset | pool_ratio | M | F1 before fix | F1 after fix | Δ |
+|---|---|---|---|---|---|
+| **PubMed** | 0.5 | 9858 | 0.6667 (collapsed) | **0.7483** | **+0.082** |
+| | 0.25 | 4929 | 0.6667 (collapsed) | **0.7498** | **+0.083** |
+| | 0.125 | 2465 | 0.7195 | 0.7454 | +0.026 |
+| | 0.0625 | 1232 | 0.7322 | 0.7534 | +0.021 |
+| Cora | 0.5 / 0.25 / 0.125 / 0.0625 | 1354–169 | 0.685–0.723 | 0.685–0.726 | ±0.01 (run-to-run noise) |
+| CiteSeer | 0.5 / 0.25 / 0.125 / 0.0625 | 1664–208 | 0.815–0.853 | 0.817–0.850 | ±0.003 (run-to-run noise) |
+
+- **PubMed's two previously-collapsed grid points are fixed** — both moved from the exact degenerate signature (F1=0.6667) to real, non-degenerate results (~0.75), matching the fix's predicted mechanism.
+- **Cora and CiteSeer moved by less than 1%** — consistent with the analytical check, which showed `β·KL` was always negligible for both (tiny `β`, `isotropic` prior). This is a clean negative control: the fix changed exactly the thing it was supposed to change, and nothing else.
+- **New headline for PubMed: node-count compression is now nearly free.** PubMed's `M=N` baseline at this `(d=16,k=2)` config is F1=0.761 (§V-3). The pooling sweep now sits at 0.745–0.753 across the *entire* `pool_ratio` grid, essentially flat with respect to `M` — a gap of only 0.008–0.016 versus the `M=N` baseline, down from a gap of up to 0.094 (and two outright-broken points) before the fix. A 16× node-count reduction (`pool_ratio=0.0625`) now costs almost nothing in fidelity.
+- **Calibration (`bits_per_edge`) is still bad, independent of this fix, and got numerically worse at PubMed's `pool_ratio=0.5`** (1.49 → 5.22): the old value was artificially low because a collapsed, near-zero-logit constant output sits close to the BCE decision boundary; now that the model makes real, confident predictions, F1 is much better but those predictions remain poorly calibrated (`bits_per_edge` 4.1–5.2 across PubMed's whole grid, versus a random-predictor reference of 1.0). This is the same calibration issue flagged when the (still-buggy) pooling results were first analyzed — unrelated to the KL-normalization bug and not addressed by this fix.
+- **Cora's non-monotonic `pool_ratio` curve and its gap versus the manual validation sweep (production ≈0.699 vs. the ≈0.78 reported for the hyperparameter selection at `pool_ratio=0.5`) are both unchanged** — expected, since Cora's `β` was never large enough for this bug to be active.
 
 **Broader impact, flagged not resolved here.** `elbo()` is called from `experiments/train_gvls.py` (Phase 0/1) and `src/gvls/nas/objective.py` (Phase 2 NAS) as well as Phase 3's compression/pooling sweeps. Phase 2's NAS search selected each dataset's `β` (and, for PubMed, `prior=graph_mrf` itself) against the old, un-normalized KL scale — PubMed's NAS-best `β=7.47e-4` was implicitly compensating for (or fighting against) an `O(N)` KL term rather than the `O(1)` term the fix now produces. This doesn't invalidate Phase 0–2's link-prediction results (`configs/best/{dataset}.yaml`, kept fixed at a single `N=N_full` throughout, so no comparison across different node counts was ever made there), but it does mean those `β` values are calibrated to a different loss landscape than they'll now train under if reused. Whether to re-run Phase 2 NAS under the corrected KL convention is an open question — added to `specs/roadmap.md`'s Open Questions.
 
