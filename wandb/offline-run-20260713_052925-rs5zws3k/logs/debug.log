@@ -1,0 +1,20 @@
+2026-07-13 05:29:25,582 INFO    MainThread:9537 [wandb_init.py:setup_run_log_directory():725] Logging user logs to /root/home/graph-vls/wandb/offline-run-20260713_052925-rs5zws3k/logs/debug.log
+2026-07-13 05:29:25,582 INFO    MainThread:9537 [wandb_init.py:setup_run_log_directory():726] Logging internal logs to /root/home/graph-vls/wandb/offline-run-20260713_052925-rs5zws3k/logs/debug-internal.log
+2026-07-13 05:29:25,582 INFO    MainThread:9537 [wandb_init.py:init():768] calling init triggers
+2026-07-13 05:29:25,582 INFO    MainThread:9537 [wandb_init.py:init():773] wandb.init called with sweep_config: {}
+config: {'latent_dim': 128, 'k': 20, 'decoder': 'graph_conditioned', 'name': 'gvls', 'hidden_dim': 256, 'mp_rounds': 1, 'graph_method': 'fgp', 'prior': 'isotropic', 'beta': 1.9088270105863532e-05, 'lambda_': 1.0, 'lr': 0.0016171918346335103, '_wandb': {}}
+2026-07-13 05:29:25,582 INFO    MainThread:9537 [wandb_init.py:init():816] starting backend
+2026-07-13 05:29:25,582 INFO    MainThread:9537 [wandb_init.py:init():831] sending inform_init request
+2026-07-13 05:29:25,715 INFO    MainThread:9537 [wandb_init.py:init():836] backend started and connected
+2026-07-13 05:29:25,717 INFO    MainThread:9537 [wandb_init.py:init():906] updated telemetry
+2026-07-13 05:29:25,721 INFO    MainThread:9537 [wandb_init.py:init():929] communicating run to backend with 90.0 second timeout
+2026-07-13 05:29:25,723 INFO    MainThread:9537 [wandb_init.py:init():974] starting run threads in backend
+2026-07-13 05:29:25,779 INFO    MainThread:9537 [wandb_run.py:_console_start():2523] atexit reg
+2026-07-13 05:29:25,779 INFO    MainThread:9537 [wandb_run.py:_redirect():2373] redirect: wrap_raw
+2026-07-13 05:29:25,779 INFO    MainThread:9537 [wandb_run.py:_redirect():2442] Wrapping output streams.
+2026-07-13 05:29:25,779 INFO    MainThread:9537 [wandb_run.py:_redirect():2465] Redirects installed.
+2026-07-13 05:29:25,779 INFO    MainThread:9537 [wandb_init.py:init():1012] run started, returning control to user process
+2026-07-13 05:29:27,210 INFO    MainThread:9537 [wandb_run.py:_finish():2285] finishing run graph-vls/rs5zws3k
+2026-07-13 05:29:27,211 INFO    MainThread:9537 [wandb_run.py:_atexit_cleanup():2490] got exitcode: 0
+2026-07-13 05:29:27,211 INFO    MainThread:9537 [wandb_run.py:_restore():2472] restore
+2026-07-13 05:29:27,211 INFO    MainThread:9537 [wandb_run.py:_restore():2478] restore done
