@@ -16,9 +16,12 @@ from gvls.eval.compression import (
 )
 from gvls.eval.metrics import bits_per_edge
 from gvls.losses.elbo import elbo
+from gvls.models.decoder import LatentGraphDecoder
 from gvls.models.encoder import GVLSEncoder
 from gvls.models.gvls import GVLS
 from gvls.models.latent_graph import LatentGraphLearner
+
+_DECODERS = {"inner_product", "graph_conditioned"}
 
 RESULT_FIELDS = [
     "dataset",
@@ -48,26 +51,52 @@ def train_gvls_full_graph(
     epochs: int,
     seed: int,
     device: torch.device,
-) -> GVLS:
+    decoder: str = "inner_product",
+) -> tuple[GVLS, LatentGraphDecoder | None]:
     """Train one GVLS model on the full graph (no held-out split).
 
     `base_cfg` supplies every hyperparameter except latent_dim and k (which
     the rate-distortion sweep varies): hidden_dim, mp_rounds, graph_method,
     prior, beta, lambda_, lr. It is a plain dict/DictConfig, not tied to any
     one dataset's Phase 2 NAS-best config.
+
+    `decoder` (T3.4, revived 2026-07-13 -- see specs/phase3/plan.md T3.4 and
+    validation.md V-3/V-4/V-8): `"inner_product"` (default, unchanged
+    behavior) computes `recon_logits = z_tilde @ z_tilde.T`, where A_z only
+    reaches the reconstruction indirectly through `mp_rounds` rounds of
+    `LatentMessagePassing` inside `model` (zero for configs with
+    `mp_rounds=0`, e.g. CiteSeer's and PubMed's Phase 2 NAS-best). `"graph_
+    conditioned"` additionally routes `z_tilde` through a `LatentGraphDecoder`
+    (`src/gvls/models/decoder.py`) -- one more, unconditional round of
+    message passing over A_z -- so A_z has a guaranteed path into the
+    reconstruction regardless of `mp_rounds`. Returns `(model, decoder)`;
+    `decoder` is `None` for `"inner_product"` so callers can tell which path
+    was used without inspecting the string again.
     """
+    if decoder not in _DECODERS:
+        raise ValueError(f"decoder must be one of {_DECODERS}, got '{decoder}'")
+
     torch.manual_seed(seed)
     encoder = GVLSEncoder(in_channels, int(base_cfg["hidden_dim"]), latent_dim)
     lgl = LatentGraphLearner(latent_dim, method=str(base_cfg["graph_method"]), k=k)
     model = GVLS(encoder, lgl, latent_dim=latent_dim, mp_rounds=int(base_cfg["mp_rounds"]))
     model = model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=float(base_cfg["lr"]))
+
+    use_decoder = decoder == "graph_conditioned"
+    decoder_module = LatentGraphDecoder(latent_dim).to(device) if use_decoder else None
+    extra_params = list(decoder_module.parameters()) if decoder_module is not None else []
+    optimizer = torch.optim.Adam(list(model.parameters()) + extra_params, lr=float(base_cfg["lr"]))
 
     for _epoch in range(1, epochs + 1):
         model.train()
+        if decoder_module is not None:
+            decoder_module.train()
         optimizer.zero_grad()
         mu, log_var, _z, a_z, z_tilde = model(x, train_edge_index)
-        recon_logits = z_tilde @ z_tilde.T
+        if decoder_module is not None:
+            recon_logits = decoder_module(z_tilde, a_z)
+        else:
+            recon_logits = z_tilde @ z_tilde.T
         loss = elbo(
             recon_logits,
             adj_true,
@@ -83,7 +112,9 @@ def train_gvls_full_graph(
         optimizer.step()
 
     model.eval()
-    return model
+    if decoder_module is not None:
+        decoder_module.eval()
+    return model, decoder_module
 
 
 def evaluate_compression(
@@ -102,6 +133,7 @@ def evaluate_compression(
     bpe_sample_size: int,
     seed: int,
     device: torch.device,
+    decoder_module: LatentGraphDecoder | None = None,
 ) -> dict[str, Any]:
     """Compute compression metrics for a trained model.
 
@@ -111,12 +143,21 @@ def evaluate_compression(
     graphs small enough to materialize densely, or an unbiased random sample
     (`sample_node_pairs`) above `dense_pair_limit` pairs (e.g. PubMed).
 
+    `decoder_module`: the `LatentGraphDecoder` returned by
+    `train_gvls_full_graph` when `decoder="graph_conditioned"` (T3.4) --
+    must be the same instance used in training, not re-constructed, so its
+    learned weight is applied. `None` (default) reproduces the original
+    plain inner-product decode.
+
     Returns a flat dict with every key in RESULT_FIELDS except 'dataset'
     (added by the caller, which knows the dataset name).
     """
     with torch.no_grad():
         _, _, _, a_z, z_tilde = model(x, train_edge_index)
-        scores = z_tilde @ z_tilde.T  # (N, N)
+        if decoder_module is not None:
+            scores = decoder_module(z_tilde, a_z)  # (N, N)
+        else:
+            scores = z_tilde @ z_tilde.T  # (N, N)
 
         num_negatives = max(1, round(num_input_edges * f1_negative_ratio))
         rows, cols, labels = eval_pairs_with_labels(

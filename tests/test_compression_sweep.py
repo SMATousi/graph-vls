@@ -47,7 +47,9 @@ def _base_cfg() -> dict:
     }
 
 
-def _run_grid_point(data, split, latent_dim: int, k: int, epochs: int = 5) -> dict:
+def _run_grid_point(
+    data, split, latent_dim: int, k: int, epochs: int = 5, decoder: str = "inner_product"
+) -> dict:
     device = torch.device("cpu")
     x = data.x.to(device)
     train_ei = split.train_edge_index.to(device)
@@ -62,15 +64,17 @@ def _run_grid_point(data, split, latent_dim: int, k: int, epochs: int = 5) -> di
     src, dst = train_ei[0], train_ei[1]
     pos_edge_index = train_ei[:, src < dst].cpu()
 
-    model = train_gvls_full_graph(
+    model, decoder_module = train_gvls_full_graph(
         x, train_ei, adj_true, pos_weight, in_channels,
         latent_dim, k, _base_cfg(), epochs, seed=42, device=device,
+        decoder=decoder,
     )
     metrics = evaluate_compression(
         model, x, train_ei, adj_true, pos_edge_index, n_nodes,
         in_channels, num_input_edges, latent_dim, k,
         f1_negative_ratio=1.0, dense_pair_limit=10_000_000, bpe_sample_size=1000,
         seed=42, device=device,
+        decoder_module=decoder_module,
     )
     return {"dataset": "tiny", **metrics}
 
@@ -96,6 +100,22 @@ def test_num_latent_edges_consistent_with_edge_ratio(tiny_graph) -> None:
     row = _run_grid_point(data, split, latent_dim=8, k=2)
     expected_ratio = row["num_latent_edges"] / row["num_input_edges"]
     assert row["edge_compression_ratio"] == pytest.approx(expected_ratio)
+
+
+# ── T3.4 graph_conditioned decoder (revived 2026-07-13) ─────────────────────
+
+def test_graph_conditioned_decoder_completes(tiny_graph) -> None:
+    data, split = tiny_graph
+    row = _run_grid_point(data, split, latent_dim=8, k=2, decoder="graph_conditioned")
+    assert set(RESULT_FIELDS) - {"dataset"} <= set(row.keys())
+    assert 0.0 <= row["reconstruction_f1"] <= 1.0
+    assert row["bits_per_edge"] >= 0.0
+
+
+def test_invalid_decoder_raises(tiny_graph) -> None:
+    data, split = tiny_graph
+    with pytest.raises(ValueError, match="decoder must be one of"):
+        _run_grid_point(data, split, latent_dim=8, k=2, decoder="bogus")
 
 
 # ── smoke test: 2x2 grid, writes 4 rows to CSV (plan.md T3.3) ──────────────

@@ -1,7 +1,26 @@
 # Rate-distortion grid for the graph-compression sweep (T3.3).
-# latent_dim x k = 6 x 6 = 36 grid points per dataset.
+# latent_dim x k = 6 x 5 = 30 grid points per dataset.
 latent_dim: [4, 8, 16, 32, 64, 128]
-k: [1, 2, 3, 5, 10, 20]
+# k=1 removed 2026-07-13: at k=1, LatentGraphLearner keeps only each node's
+# single highest-scoring neighbour, which after symmetrization produces a
+# near-spanning-tree A_z (edge count ~= M-1, average degree ~2.0 -- confirmed
+# empirically on PubMed's post-fix pooling rerun, see specs/phase3/validation.md
+# V-8). That's about as minimal/degenerate a "graph" as the sweep can select,
+# and with F1 now flat across the whole k range (post the ELBO fix, V-3),
+# select_compression_optimal's F1-argmax fallback has no reason to prefer a
+# more meaningfully-connected k over this one -- so it kept winning by
+# floating-point noise, not because k=1 is a better latent graph.
+k: [2, 3, 5, 10, 20]
+
+# T3.4 (revived 2026-07-13, see specs/phase3/plan.md T3.4 and
+# validation.md V-3/V-4): "inner_product" (default) is the original plain
+# decoder z_tilde @ z_tilde.T; "graph_conditioned" routes z_tilde through
+# gvls.models.decoder.LatentGraphDecoder first, giving A_z a guaranteed path
+# into the reconstruction even when mp_rounds=0. Not swept by default --
+# override with experiment.decoder=graph_conditioned for a head-to-head run
+# (writes to *_graph_decoder.csv / *_graph_decoder.yaml, doesn't clobber the
+# baseline).
+decoder: inner_product
 
 # Smallest (d, k) meeting this reconstruction F1 is the compression-optimal
 # config; below this, T3.4's decoder fallback trigger applies (see

@@ -10,12 +10,19 @@ held fixed to the dataset's Phase 2 NAS-best config (configs/best/{name}.yaml)
 (see specs/phase3/plan.md, Design Decisions #2).
 
 Usage:
-    # full sweep on Cora (36 grid points, 200 epochs each):
+    # full sweep on Cora (30 grid points, 200 epochs each):
     python experiments/compression_sweep.py data=cora
 
     # quick check with a smaller grid / epoch budget:
     python experiments/compression_sweep.py \
         experiment.latent_dim=[8,16] experiment.k=[2,5] train.epochs=10
+
+    # T3.4's A_z-conditioned decoder (see gvls.models.decoder), instead of
+    # the default plain inner-product decode -- writes to
+    # results/compression/{name}_graph_decoder.csv and
+    # configs/compression/{name}_graph_decoder.yaml so it doesn't clobber
+    # the baseline artifacts, for a head-to-head comparison:
+    python experiments/compression_sweep.py data=pubmed experiment.decoder=graph_conditioned
 """
 
 import os
@@ -72,10 +79,19 @@ def main(cfg: DictConfig) -> None:
     ks = list(cfg.experiment.k)
     epochs = int(cfg.train.epochs)
     seed = int(cfg.train.seed)
+    decoder = str(cfg.experiment.get("decoder", "inner_product"))
+    # T3.4 (revived 2026-07-13): keep the default decoder's output paths
+    # unchanged for backward compatibility with everything downstream that
+    # reads results/compression/{name}.csv and configs/compression/{name}.yaml
+    # unconditionally (e.g. T3.6's pooling sweep); the graph-conditioned
+    # decoder writes to suffixed paths instead, so a head-to-head comparison
+    # run doesn't clobber the baseline artifacts.
+    suffix = "" if decoder == "inner_product" else "_graph_decoder"
 
     print(
         f"\nRate-distortion sweep: {len(latent_dims)}x{len(ks)} = "
-        f"{len(latent_dims) * len(ks)} grid points, {epochs} epochs each\n"
+        f"{len(latent_dims) * len(ks)} grid points, {epochs} epochs each, "
+        f"decoder={decoder}\n"
     )
 
     # ── grid sweep ────────────────────────────────────────────────────────────
@@ -83,23 +99,25 @@ def main(cfg: DictConfig) -> None:
     for latent_dim in latent_dims:
         for k in ks:
             latent_dim, k = int(latent_dim), int(k)
-            run_name = f"{dataset_name}-d{latent_dim}-k{k}"
+            run_name = f"{dataset_name}-d{latent_dim}-k{k}{suffix}"
             wandb.init(
                 project=cfg.wandb.project,
                 mode=cfg.wandb.mode,
                 name=run_name,
-                group=f"compression-sweep-{dataset_name}",
+                group=f"compression-sweep-{dataset_name}{suffix}",
                 config={
                     "latent_dim": latent_dim,
                     "k": k,
+                    "decoder": decoder,
                     **OmegaConf.to_container(base_cfg, resolve=True),
                 },
                 reinit=True,
             )
 
-            model = train_gvls_full_graph(
+            model, decoder_module = train_gvls_full_graph(
                 x, train_ei, adj_true, pos_weight, in_channels,
                 latent_dim, k, base_cfg, epochs, seed, device,
+                decoder=decoder,
             )
             metrics = evaluate_compression(
                 model, x, train_ei, adj_true, pos_edge_index, n_nodes,
@@ -108,6 +126,7 @@ def main(cfg: DictConfig) -> None:
                 dense_pair_limit=int(cfg.experiment.dense_pair_limit),
                 bpe_sample_size=int(cfg.experiment.bpe_sample_size),
                 seed=seed, device=device,
+                decoder_module=decoder_module,
             )
             rows.append({"dataset": dataset_name, **metrics})
 
@@ -123,7 +142,7 @@ def main(cfg: DictConfig) -> None:
             )
 
     # ── results ──────────────────────────────────────────────────────────────
-    csv_path = f"results/compression/{dataset_name}.csv"
+    csv_path = f"results/compression/{dataset_name}{suffix}.csv"
     write_results_csv(rows, csv_path)
     print(f"\nResults written to {csv_path}")
 
@@ -147,8 +166,13 @@ def main(cfg: DictConfig) -> None:
         "lambda_": float(base_cfg.lambda_),
         "lr": float(base_cfg.lr),
     }
+    if decoder != "inner_product":
+        # Only added for non-default decoders, so the default path's output
+        # keeps the exact configs/model/gvls.yaml schema (FR-3) that other
+        # code (e.g. T3.6's pooling sweep) already depends on unconditionally.
+        compression_cfg["decoder"] = decoder
     os.makedirs("configs/compression", exist_ok=True)
-    out_path = f"configs/compression/{dataset_name}.yaml"
+    out_path = f"configs/compression/{dataset_name}{suffix}.yaml"
     OmegaConf.save(OmegaConf.create(compression_cfg), out_path)
     print(
         f"\nCompression-optimal config: d={best['latent_dim']} k={best['k']} "
