@@ -1,10 +1,10 @@
 name: gvls
-latent_dim: 16
+latent_dim: 128
 hidden_dim: 256
 mp_rounds: 0
 graph_method: attention
 prior: graph_mrf
-k: 2
+k: 1
 beta: 0.0007469524343990117
 lambda_: 0.1369284916186077
 lr: 0.0006510688581703304
