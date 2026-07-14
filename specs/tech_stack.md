@@ -73,6 +73,20 @@ configs/
 
 ---
 
+## Quantum Component (Phase 4, new 2026-07-14)
+
+**Qiskit + Qiskit Machine Learning** — the QGNN that Phases 0–3's compression work was always described as building toward (`mission.md`, `reports/midterm_report.md` §6).
+
+- `EstimatorQNN` wraps the ansatz circuit; `TorchConnector` (Qiskit Machine Learning) embeds it as a standard `torch.nn.Module`, so the existing PyTorch/Hydra/W&B training loop carries over unchanged — only the model gains a quantum sub-module
+- Gradients through the circuit use Qiskit Machine Learning's built-in parameter-shift-rule differentiation, exposed to PyTorch autograd via `TorchConnector`; no custom backward pass is written
+- Ansatz: a Verdon et al.-style **Quantum Graph Neural Network** layer (Verdon, Broughton, McClean et al., "Quantum Graph Neural Networks," arXiv:1909.12264) — one qubit per pooled latent node `M`, entangling `RZZ` gates placed on the learned `A_z`'s actual edges (not a generic hardware-efficient ansatz), giving the circuit's topology a direct, literal correspondence to GVLS's learned latent graph
+- Simulation only, via Qiskit Aer's noiseless statevector simulator — no real hardware or noise-model execution planned for Phase 4 (that's Phase 5+ ablation material if pursued)
+- Chosen over PennyLane (better PyTorch integration, but user preference favored Qiskit) and TensorFlow Quantum (would require a parallel TF training loop) — see `specs/phase4/plan.md` Design Decision 1
+
+**`energyflow`** (assumed, not yet confirmed — `specs/phase4/plan.md` Design Decision 1) — source for the Pythia8 quark/gluon jet dataset (`qg_jets`).
+
+---
+
 ## Datasets
 
 | Dataset | Task | Source |
@@ -81,6 +95,7 @@ configs/
 | MUTAG, PROTEINS, IMDB-B | Graph classification | PyG `TUDataset` |
 | ogbn-arxiv (stretch) | Large-scale node classification | OGB |
 | ogbl-collab (stretch) | Large-scale link prediction | OGB |
+| Pythia8 quark/gluon jets (Phase 4) | Graph classification (QGNN) | `energyflow.qg_jets` (assumed — to confirm) |
 
 ---
 

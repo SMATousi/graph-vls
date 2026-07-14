@@ -1,6 +1,8 @@
 # Roadmap
 
-The project is organized into five phases. Each phase has a concrete deliverable that gates the next.
+The project is organized into six phases. Each phase has a concrete deliverable that gates the next.
+
+**Renumbered 2026-07-14:** the original Phase 4 ("Ablations, Analysis, and Paper") is now Phase 5. The QGNN integration that Phase 3's compression work was always described as a prerequisite for (`mission.md`, `reports/midterm_report.md` §6) is now its own Phase 4, inserted ahead of ablations — see `specs/phase4/` for the full plan, requirements, and validation criteria.
 
 ---
 
@@ -85,7 +87,28 @@ Baseline numbers are taken directly from Ahn & Kim, "Variational Graph Normalize
 
 ---
 
-## Phase 4 — Ablations, Analysis, and Paper (Weeks 17–22)
+## Phase 4 — QGNN Integration: Quark/Gluon Jet Classification
+
+**Goal:** Build the classical→quantum pipeline the project has been building toward since Phase 3 (`mission.md`, `reports/midterm_report.md` §6): train GVLS with fixed-node-count pooling (extending T3.6) to compress individual particle-jet graphs into a small (z̃, A_z), then classify quark- vs. gluon-initiated jets with a Quantum Graph Neural Network whose entangling structure is a direct function of the learned A_z. Benchmark: a Pythia8-generated quark/gluon jet dataset (assumed `energyflow.qg_jets` — to be confirmed). See `specs/phase4/` for the full plan, requirements, and validation criteria.
+
+This is the first phase to run GVLS **inductively** on many small graphs (jets: tens of particles each) rather than transductively on one large graph (Cora/CiteSeer/PubMed), and the first phase with an actual quantum component — Phases 0–3 were entirely classical, with the QGNN consistently described as future work.
+
+**Design decisions confirmed 2026-07-14 (user-directed, see `specs/phase4/plan.md`):** quantum framework is Qiskit + Qiskit Machine Learning (`TorchConnector` embeds the circuit in the existing PyTorch/Hydra/W&B loop); the QGNN ansatz is a Verdon et al.-style graph-topology-equivariant circuit (one qubit per pooled latent node, entangling gates placed on A_z's actual edges) rather than a generic hardware-efficient circuit; pooling targets a **fixed absolute** `M` (not T3.6's ratio-based `M/N`), since every jet needs the same qubit count regardless of its own particle count — this requires no changes to `PooledGVLS`/`LatentGraphPooling`, only a different caller; no classical baseline is planned for this phase, evaluation instead targets a literature-reported QGNN comparison point on this dataset (not yet identified).
+
+### Tasks
+- [ ] T4.1 — Jet dataset loader: Pythia8 quark/gluon jets → per-jet k-NN graph in (η,φ) space, kinematic+PID node features, labeled train/val/test split
+- [ ] T4.2 — Inductive per-jet adaptation of the existing GVLS/pooling stack (per-jet forward loop, gradient-accumulated minibatches — a validation task, not new model code)
+- [ ] T4.3 — Per-jet GVLS pretraining sweep over fixed `M ∈ {4,6,8}`, compression-optimal `M` selected (jet-scale analogue of T3.3's rate-distortion sweep)
+- [ ] T4.4 — QGNN ansatz: Qiskit circuit with A_z-informed `RZZ` entangling gates, wrapped as an `EstimatorQNN`/`TorchConnector` module
+- [ ] T4.5 — Two-stage supervised training: freeze pretrained GVLS, train the QGNN classifier on quark/gluon labels
+- [ ] T4.6 — Evaluation (accuracy/AUC/macro-F1) and literature comparison
+- [ ] T4.7 (stretch) — Joint end-to-end fine-tuning of GVLS + QGNN, compared against the frozen-feature baseline
+
+**Exit criterion:** a trained QGNN classifier evaluated on held-out test jets, with qubit count and circuit depth reported alongside accuracy/AUC/macro-F1, and a literature comparison point identified (or its absence explicitly documented). See `specs/phase4/validation.md`.
+
+---
+
+## Phase 5 — Ablations, Analysis, and Paper (Weeks 17–22)
 
 **Goal:** Produce results suitable for a research submission.
 

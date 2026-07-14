@@ -26,6 +26,8 @@ The key components:
 
 **Changelog (2026-07-09):** earlier drafts of this document stated GVLS was explicitly *not* a hierarchical pooling model and that the latent graph would not be a coarsened version of the input. That decision is reversed: node-count reduction (via learned soft assignment/pooling) is now a core goal, motivated by wanting the latent graph of distributions to be smaller than the input graph in both nodes and edges, not just in per-node dimensionality. See `specs/roadmap.md` Phase 3 and `specs/phase3/` for the resulting task changes.
 
+**Changelog (2026-07-14):** the quantum application this project has always been building toward (see "What This Is Not" and `reports/midterm_report.md` §6) is now a concrete phase, not just a stated future direction: Phase 4 pairs GVLS's fixed-node-count pooling with a Qiskit-based Quantum Graph Neural Network (Verdon et al.-style, entangling gates placed on the learned A_z's edges) to classify Pythia8 quark/gluon jets. This is also the project's first inductive, many-small-graphs task — all prior phases operated on a single large transductive graph. See `specs/roadmap.md` Phase 4 and `specs/phase4/`.
+
 ## Goals
 
 The project targets three downstream tasks as primary evaluation criteria:
@@ -35,6 +37,7 @@ The project targets three downstream tasks as primary evaluation criteria:
 | Node classification | Tests whether graph-structured latent factors encode discriminative relational information |
 | Link prediction | Tests whether the latent graph topology reflects meaningful proximity in the input |
 | Graph compression | Tests whether the GVLS provides a compact, lossless-enough encoding of graph structure — in node count, edge count, *and* per-node dimensionality |
+| Quantum graph classification (new, 2026-07-14) | Tests whether the compressed (z̃, A_z) is small and structured enough to serve as a QGNN's direct input, and whether that hybrid pipeline can perform a real classification task (Pythia8 quark/gluon jet tagging) — the project's original motivating application (see "Quantum Application Pathway" in `reports/midterm_report.md`) |
 
 ## Success Criteria
 
