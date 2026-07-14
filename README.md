@@ -149,6 +149,36 @@ The flat/declining/inert patterns described above, side by side (dashed line = t
 
 ![F1 vs d](results/compression/f1_vs_d.png)
 
+### Node-Count Pooling (T3.6)
+
+The `(d,k)` sweep above only ever varies latent *dimensionality* and edge sparsity at a fixed node count (`M = N` — the latent graph always has as many nodes as the input). T3.6 adds a third axis: a DiffPool-style soft assignment `S ∈ [0,1]^{N×M}` pools the `N` encoder-level Gaussians down to `M ≪ N` before the latent graph is learned, and reconstruction unpools back to the full `N×N` adjacency via the same `S` (`Â = S·σ(z̃_pooled z̃_pooledᵀ)·Sᵀ`). Each dataset's `(d,k)` is held fixed at its T3.3 compression-optimal config; only `pool_ratio = M/N ∈ {0.5, 0.25, 0.125, 0.0625}` varies, isolating node-count compression from the axes already swept above.
+
+Full results: [`results/compression/{cora,citeseer,pubmed}_pooling.csv`](results/compression) (4 points per dataset, 200 epochs each). `M=N` baseline F1 for each dataset's held-fixed `(d,k)` is carried over from the table above.
+
+| Dataset | (d, k) held fixed | pool_ratio | M | F1 | bits/edge | M=N baseline F1 |
+|---|---|---|---|---|---|---|
+| Cora | d=16, k=20 | 0.5 | 1354 | 0.699 | 1.96 | 0.828 |
+| Cora | d=16, k=20 | 0.25 | 677 | 0.680 | 1.57 | 0.828 |
+| Cora | d=16, k=20 | 0.125 | 338 | 0.726 | 1.16 | 0.828 |
+| Cora | d=16, k=20 | 0.0625 | 169 | 0.685 | 1.19 | 0.828 |
+| CiteSeer | d=16, k=3 | 0.5 | 1664 | 0.836 | 3.51 | 0.8188 |
+| CiteSeer | d=16, k=3 | 0.25 | 832 | 0.831 | 3.50 | 0.8188 |
+| CiteSeer | d=16, k=3 | 0.125 | 416 | 0.816 | 3.33 | 0.8188 |
+| CiteSeer | d=16, k=3 | 0.0625 | 208 | **0.850** | 2.99 | 0.8188 |
+| PubMed | d=128, k=1 | 0.5 | 9858 | 0.717 | 4.00 | 0.777 |
+| PubMed | d=128, k=1 | 0.25 | 4929 | 0.724 | 4.62 | 0.777 |
+| PubMed | d=128, k=1 | 0.125 | 2465 | 0.725 | 4.04 | 0.777 |
+| PubMed | d=128, k=1 | 0.0625 | 1232 | 0.667 (collapsed) | 5.62 | 0.777 |
+
+![F1 vs node-count compression ratio](results/compression/f1_vs_pool_ratio.png)
+
+**Findings:**
+- **CiteSeer treats node-count compression as free — or better than free.** Its `pool_ratio=0.0625` point (`M=208`, a 16× node reduction) reaches F1=0.850, actually *above* its own `M=N` baseline (0.8188). The other three pooled points (0.816–0.836) sit within noise of the baseline too. Consistent with the earlier finding that `A_z` is largely inert for CiteSeer's NAS-best config — reducing `M` costs essentially nothing because the mechanism it would degrade wasn't doing much work in the first place.
+- **Cora pays a real, non-monotonic cost.** All four pooled points (0.680–0.726) sit 0.10–0.15 below the 0.828 `M=N` baseline, with no clear trend against `pool_ratio` — pooling clearly hurts Cora's already-flat-but-highest-among-three baseline, but not in proportion to how aggressively nodes are merged.
+- **PubMed is flat and close to baseline at three of four grid points** (0.717–0.725, versus a 0.777 baseline — a gap of 0.05–0.06), **but collapses at its smallest pool size** (`pool_ratio=0.0625`, F1=0.667 — the same degenerate always-predict-edge signature diagnosed in `specs/phase3/validation.md` V-7). This instance is root-caused to `k=1` specifically: at `k=1`, `LatentGraphLearner` produces a near-spanning-tree `A_z` (edge count ≈ `M−1`) rather than a meaningfully connected latent graph, which combines badly with aggressive pooling. `k=1` has since been removed from the `(d,k)` sweep grid (Design Decision 8), so PubMed's compression-optimal config and this pooling sweep both need a further rerun — the collapsed point above is a known, documented, not-yet-resolved result, not a stale artifact.
+- **None of the three datasets close the 0.90 fidelity gap via pooling alone** — pooling changes *how much it costs* to compress, not whether the 0.90 floor is reachable, matching T3.4's conclusion that the plain inner-product decoder (not node count or dimensionality) is the binding constraint.
+- See `specs/phase3/validation.md` V-7 (cold-start assignment collapse and its fix) and V-8 (the ELBO KL-normalization bug, which independently affected PubMed's larger pool sizes before both fixes landed) for the full diagnostic history behind these numbers.
+
 ## Usage
 
 ```bash
@@ -163,6 +193,9 @@ python experiments/nas.py data=cora
 
 # Run the graph-compression rate-distortion sweep
 python experiments/compression_sweep.py data=cora
+
+# Run the node-count pooling sweep (T3.6)
+python experiments/pooling_sweep.py data=cora
 ```
 
 ## Project structure
@@ -179,9 +212,10 @@ experiments/
   train_gvls.py         # training entry point (Hydra + W&B)
   nas.py                # NAS entry point
   compression_sweep.py  # graph-compression rate-distortion sweep
+  pooling_sweep.py       # node-count pooling sweep (T3.6)
 configs/
   model/best/     # NAS-found best configs per dataset (link prediction)
   compression/    # NAS-found best configs per dataset (compression)
 ```
 
-Full compression results: `results/compression/{dataset}.csv`.
+Full compression results: `results/compression/{dataset}.csv`. Full pooling-sweep results: `results/compression/{dataset}_pooling.csv`.

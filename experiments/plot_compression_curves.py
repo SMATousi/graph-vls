@@ -13,6 +13,13 @@ All three draw the 0.90 fidelity floor as a reference line so the "none of
 the three datasets reach it" finding in README.md is visible directly, not
 just asserted in prose.
 
+Also reads results/compression/{cora,citeseer,pubmed}_pooling.csv (written
+by pooling_sweep.py, T3.6) and produces a fourth figure:
+  - f1_vs_pool_ratio.png: reconstruction F1 against node_compression_ratio
+    (M/N), all three datasets overlaid, with each dataset's M=N baseline F1
+    (from the corresponding row of the (d,k) csv) plotted as a hollow marker
+    at ratio=1 for reference.
+
 Usage:
     python experiments/plot_compression_curves.py
 """
@@ -53,6 +60,19 @@ def _load(dataset: str) -> list[dict]:
         r["reconstruction_f1"] = float(r["reconstruction_f1"])
         r["dim_compression_ratio"] = float(r["dim_compression_ratio"])
         r["edge_compression_ratio"] = float(r["edge_compression_ratio"])
+    return rows
+
+
+def _load_pooling(dataset: str) -> list[dict]:
+    path = os.path.join(RESULTS_DIR, f"{dataset}_pooling.csv")
+    with open(path) as f:
+        rows = list(csv.DictReader(f))
+    for r in rows:
+        r["latent_dim"] = int(r["latent_dim"])
+        r["k"] = int(r["k"])
+        r["pool_ratio"] = float(r["pool_ratio"])
+        r["node_compression_ratio"] = float(r["node_compression_ratio"])
+        r["reconstruction_f1"] = float(r["reconstruction_f1"])
     return rows
 
 
@@ -226,6 +246,86 @@ def _plot_ratio_scatter(out_path: str) -> None:
     print(f"wrote {out_path}")
 
 
+def _plot_pooling(out_path: str) -> None:
+    fig, ax = plt.subplots(1, 1, figsize=(6.4, 4.8))
+    fig.patch.set_facecolor(SURFACE)
+    _style_axis(ax)
+    ax.set_xscale("log")
+
+    for dataset in DATASETS:
+        rows = sorted(_load_pooling(dataset), key=lambda r: r["node_compression_ratio"])
+        xs = [r["node_compression_ratio"] for r in rows]
+        ys = [r["reconstruction_f1"] for r in rows]
+        ax.plot(
+            xs,
+            ys,
+            color=DATASET_COLOR[dataset],
+            linewidth=2,
+            marker="o",
+            markersize=6,
+            label=TITLES[dataset],
+            zorder=3,
+        )
+
+        # M=N baseline: the (d,k) row this pooling sweep held fixed, plotted
+        # as a hollow marker at ratio=1 for reference.
+        d, k = rows[0]["latent_dim"], rows[0]["k"]
+        baseline = [
+            r for r in _load(dataset) if r["latent_dim"] == d and r["k"] == k
+        ]
+        if baseline:
+            ax.plot(
+                1.0,
+                baseline[0]["reconstruction_f1"],
+                marker="o",
+                markersize=8,
+                markerfacecolor=SURFACE,
+                markeredgecolor=DATASET_COLOR[dataset],
+                markeredgewidth=1.8,
+                linestyle="none",
+                zorder=4,
+            )
+
+    ax.axhline(
+        FIDELITY_FLOOR, color=MUTED_INK, linewidth=1.2, linestyle=(0, (4, 3)), zorder=2
+    )
+    ax.text(
+        ax.get_xlim()[0],
+        FIDELITY_FLOOR + 0.006,
+        "0.90 fidelity floor",
+        color=MUTED_INK,
+        fontsize=9,
+        ha="left",
+        va="bottom",
+    )
+    ax.set_xlabel(
+        "M / N  (node compression ratio, log scale) — hollow marker = M=N baseline",
+        color=SECONDARY_INK,
+        fontsize=9.5,
+    )
+    ax.set_ylabel("Reconstruction F1", color=SECONDARY_INK, fontsize=10)
+    ax.set_ylim(0.60, 0.95)
+    ax.set_title(
+        "Reconstruction fidelity vs. node-count compression (T3.6)",
+        color=PRIMARY_INK,
+        fontsize=12,
+        fontweight="bold",
+        pad=10,
+    )
+
+    ax.legend(
+        loc="lower right",
+        frameon=False,
+        labelcolor=SECONDARY_INK,
+        fontsize=9,
+    )
+
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150, facecolor=SURFACE, bbox_inches="tight")
+    plt.close(fig)
+    print(f"wrote {out_path}")
+
+
 def main() -> None:
     _plot_grid(
         x_key="k",
@@ -244,6 +344,7 @@ def main() -> None:
         x_label="d (latent dimension)",
     )
     _plot_ratio_scatter(os.path.join(RESULTS_DIR, "f1_vs_ratio.png"))
+    _plot_pooling(os.path.join(RESULTS_DIR, "f1_vs_pool_ratio.png"))
 
 
 if __name__ == "__main__":
