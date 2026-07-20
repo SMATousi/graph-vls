@@ -1,6 +1,6 @@
 # Phase 4 — Validation
 
-**Status: T4.1–T4.3 complete (2026-07-20).** Remaining tasks (T4.4–T4.7) not started.
+**Status: T4.1–T4.4 complete (2026-07-20).** Remaining tasks (T4.5–T4.7) not started.
 
 ## Exit Criteria
 
@@ -8,7 +8,7 @@
 - [x] Jet dataset loads, builds correct k-NN graphs, deterministic split (FR-1)
 - [x] Fixed-`M` pooling confirmed working unmodified from T3.6's `PooledGVLS` (FR-2)
 - [x] Per-jet GVLS pretraining sweep over `M ∈ {4,6,8}` complete, compression-optimal `M` selected (FR-3)
-- [ ] QGNN ansatz built, topology-equivariance to `A_z` verified directly (FR-4)
+- [x] QGNN ansatz built, topology-equivariance to `A_z` verified directly (FR-4)
 - [ ] Two-stage supervised training complete, best-val-accuracy checkpoint saved (FR-5)
 - [ ] Test-set accuracy/AUC/macro-F1 reported, literature comparison identified or explicitly declared absent (FR-6)
 - [ ] `README.md` updated with a new results section
@@ -63,15 +63,25 @@
 
 ---
 
-## V-4: QGNN Ansatz (FR-4) ⬜ Not started
+## V-4: QGNN Ansatz (FR-4) ✅ Complete 2026-07-20
+
+**File:** `src/gvls/models/qgnn.py` (`build_qgnn_circuit`, `QGNNCircuitParams`, `sum_z_observable`, `QGNNClassifier`). Tests: 12 in `tests/test_qgnn.py`. New dependencies installed and added to `pyproject.toml`: `qiskit>=2.0` (2.5.0 installed), `qiskit-machine-learning>=0.9` (0.9.0), `qiskit-aer>=0.17` (0.17.2). (Installing them bumped `numpy` to 2.4.6 in the `graph-vls` conda env — `pip` warned this conflicts with `energyflow`'s `wasserstein` sub-dependency's `numpy<2.0` pin, but `wasserstein` is never imported by `qg_jets.load`; the full test suite, including `test_jets.py`/`test_jet_sweep.py`, still passes.)
 
 | Check | Pass condition | Result |
 |---|---|---|
-| Qubit count correct | Circuit has exactly `M` qubits | ⬜ |
-| Topology equivariance | `RZZ` gates appear exactly on `A_z`'s edges, on a toy graph with a known edge set | ⬜ |
-| Zero-`A_z` reduction | No entangling gates emitted when `A_z` is all-zero | ⬜ |
-| `TorchConnector` integration | Circuit callable as a `torch.nn.Module`, gradients flow to `θ`/`b_i` via `.backward()` | ⬜ |
-| Simulator | Runs on Qiskit Aer noiseless statevector simulation | ⬜ |
+| Qubit count correct | Circuit has exactly `M` qubits | ✅ `test_circuit_has_exactly_m_qubits`, `m ∈ {2,4,6,8}` |
+| Topology equivariance | `RZZ` gates appear exactly on `A_z`'s edges, on a toy graph with a known edge set | ✅ Adapted (see design note below): rather than gate *objects* being absent for non-edges, every possible qubit pair has an always-present `RZZ(theta · A_z[i,j])` gate, and `test_rzz_angle_nonzero_exactly_on_real_edges` verifies the *bound angle* is nonzero exactly on real edges and exactly `0` elsewhere for a toy 4-qubit graph with 2 known edges |
+| Zero-`A_z` reduction | No entangling gates emitted when `A_z` is all-zero | ✅ Adapted: `test_zero_a_z_all_rzz_angles_are_zero` confirms every bound `RZZ` angle is exactly `0`; `test_zero_a_z_reduces_to_no_entangling_reference_circuit` goes further and verifies the *statevector* is exactly equivalent (`atol=1e-10`) to a hand-built reference circuit with no `RZZ` instructions at all — since `RZZ(0)` is exactly the identity, this is a real functional equivalence, not just a structural coincidence |
+| `TorchConnector` integration | Circuit callable as a `torch.nn.Module`, gradients flow to `θ`/`b_i` via `.backward()` | ✅ `test_gradients_flow_to_weight_params`, and `test_gradients_flow_with_multiple_layers` additionally confirms *every* individual weight (both layers' `theta`/`b_i`, plus the readout rotation) gets a nonzero gradient, not just some — the direct check for the readout-rotation fix below |
+| Simulator | Runs on Qiskit Aer noiseless statevector simulation | ✅ `qiskit_aer.primitives.EstimatorV2`, `default_precision=0.0` (see finding below); `test_forward_is_deterministic_given_fixed_weights` confirms repeated calls with identical inputs are bit-identical (no shot noise) |
+
+**Design note (adapts FR-4's literal wording):** `plan.md`/FR-4 describe `build_qgnn_circuit(M, d, num_layers)` and imply a circuit whose `RZZ` gates are structurally absent for non-edges. Implemented instead as **one fixed, maximal-topology circuit** built once per `(M, num_layers)`, with `RZZ` gates on *every* possible qubit pair and `A_z[i,j]` bound as a per-call **input** parameter (0 for non-edges). Reason: `TorchConnector` owns its trainable-weight tensor as a fresh `nn.Parameter` (`torch.tensor(initial_weights)`, which is not autograd-linked to whatever was passed in) every time it's constructed. Since jets have different `A_z` topologies, a "rebuild the circuit structurally per jet" design would force rebuilding `TorchConnector` per jet too — and `theta`/`b_i` could then never be one persistent, Adam-optimized parameter across the training loop without manually relaying gradients between successive throwaway `TorchConnector` instances, which is close to reimplementing part of what `TorchConnector` already does and contradicts `plan.md`'s explicit "no custom backward pass needs to be written" design intent. Since `RZZ(0)` is exactly the identity gate, the fixed-topology design is functionally identical to structural gate omission — verified directly by `test_zero_a_z_reduces_to_no_entangling_reference_circuit`.
+
+**Bug found and fixed: a purely diagonal ansatz is untrainable.** `RZZ` and `RZ` are both diagonal gates in the computational basis, and any `Z`-basis measurement commutes exactly with a diagonal unitary applied beforehand (`U^† Z U = Z` for diagonal `U`). Building the ansatz exactly as `plan.md`/FR-4 literally describe it — `RY` data encoding, then only `RZZ`+`RZ`, then measure `sum(Z_i)` — produced a circuit where `theta`'s and `b_i`'s gradients were `~1e-16` (numerically zero) regardless of their actual values, confirmed both by inspecting `TorchConnector`'s reported gradient and by directly varying `theta` and observing the QNN's output did not change at all. Fixed by appending one final trainable, non-diagonal `RY(gamma_i)` rotation per qubit after all `num_layers`, restoring a genuine, nonzero gradient to *every* layer's `theta`/`b_i` (confirmed on a toy 2-qubit circuit: `theta`'s gradient went from `~1e-16` to `~0.12`, and changing `theta` from `0.5` to `0.9` changed the output from `1.593` to `1.654`). `gamma_i` is included as an additional `m` trainable weights.
+
+**Bug found and fixed: `EstimatorQNN`'s default precision silently introduces shot noise.** Even with `estimator=AerEstimatorV2()` configured for exact evaluation (`Options(default_precision=0.0, ...)`), `EstimatorQNN`'s own `default_precision` argument (0.015625 unless overridden) triggers shot-based sampling — confirmed empirically: repeated identical calls returned slightly different values (e.g. `1.581, 1.605, 1.578, 1.587, 1.612`) until `default_precision=0.0` was passed explicitly to `EstimatorQNN`'s constructor, after which repeated calls were bit-identical. FR-4 requires Aer's noiseless statevector simulator, so this fix is necessary, not cosmetic.
+
+**Observable choice:** sum of single-qubit `Z` operators across all `M` qubits (`sum_z_observable`), over a single designated readout qubit — so every pooled latent node contributes to the classification signal rather than one arbitrarily chosen qubit, consistent with this project's stance that all `M` pooled nodes matter equally. Not empirically compared against the single-qubit alternative yet (only decidable once T4.5 trains a real classifier) — documented as the chosen default per FR-4's explicit permission to pick one and record the choice.
 
 ---
 

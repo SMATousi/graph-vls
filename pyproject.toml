@@ -15,6 +15,9 @@ dependencies = [
     "optuna>=3.0",
     "matplotlib>=3.8",
     "energyflow>=1.4",
+    "qiskit>=2.0",
+    "qiskit-machine-learning>=0.9",
+    "qiskit-aer>=0.17",
 ]
 
 [project.optional-dependencies]
