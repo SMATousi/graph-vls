@@ -18,6 +18,14 @@ import torch
 from torch import Tensor
 
 from gvls.data.jets import JetGraph
+from gvls.eval.compression import (
+    dim_compression_ratio,
+    edge_compression_ratio,
+    eval_pairs_with_labels,
+    node_compression_ratio,
+    reconstruction_f1,
+)
+from gvls.eval.metrics import bits_per_edge
 from gvls.losses.elbo import elbo
 from gvls.models.encoder import GVLSEncoder
 from gvls.models.latent_graph import LatentGraphLearner
@@ -27,6 +35,31 @@ from gvls.models.pooling import (
     assignment_entropy,
     assignment_link_loss,
 )
+
+# Same schema convention as results/compression/{dataset}_pooling.csv (T3.6),
+# adapted for jets: M/k/latent_dim/num_features are fixed per grid point (M is
+# what's swept, the rest come from a jet-scale starting config, not re-tuned
+# via NAS -- plan.md T4.3), everything else is a per-jet quantity averaged
+# over the held-out evaluation jets (jets vary in N, so num_nodes,
+# num_input_edges, and their derived ratios are jet-specific, unlike the
+# citation-network sweeps where N was fixed for the whole dataset).
+JET_RESULT_FIELDS = [
+    "dataset",
+    "num_clusters",
+    "latent_dim",
+    "k",
+    "num_features",
+    "num_eval_jets",
+    "avg_num_nodes",
+    "avg_num_input_edges",
+    "avg_num_latent_edges",
+    "dim_compression_ratio",
+    "avg_edge_compression_ratio",
+    "avg_node_compression_ratio",
+    "avg_reconstruction_f1",
+    "avg_bits_per_edge",
+    "avg_latent_density",
+]
 
 
 def jet_adjacency(jet: JetGraph, device: torch.device) -> Tensor:
@@ -144,3 +177,191 @@ def train_pooled_gvls_on_jets(
 
     model.eval()
     return model
+
+
+def evaluate_pooled_gvls_on_jets(
+    model: PooledGVLS,
+    jets: list[JetGraph],
+    num_clusters: int,
+    latent_dim: int,
+    k: int,
+    num_features: int,
+    f1_negative_ratio: float,
+    seed: int,
+    device: torch.device,
+) -> dict[str, Any]:
+    """Average per-jet compression metrics over a held-out set of jets (T4.3).
+
+    Mirrors `gvls.compression.pooling_sweep.evaluate_pooled_compression`
+    (T3.6), but jets have no single shared N: `A_z`'s topology is itself a
+    function of each jet's own pooled representation (not fixed across
+    jets, unlike a citation-network model's single A_z), so
+    edge_compression_ratio/node_compression_ratio/latent_density are all
+    per-jet quantities here, averaged rather than reported once.
+
+    Every pair in a jet's own dense N x N grid is used directly (jets are
+    small -- at most ~139 particles in `qg_jets` -- so unlike PubMed there is
+    no need for `sample_node_pairs`'s large-graph fallback); only
+    reconstruction_f1's negative side is sampled, for consistency with the
+    citation-network convention, clamped to the number of non-edges actually
+    available. Jets with fewer than 2 particles (no possible pairs), zero
+    edges (F1/edge-ratio undefined), or a *complete* graph (zero non-edges --
+    happens whenever a jet's particle count is small enough that
+    `k_graph_cap >= n - 1`, plan.md Design Decision 5, so every pair is
+    already an edge) are skipped from the relevant running average rather
+    than crashing or, for the complete-graph case, spinning forever in
+    `eval_pairs_with_labels`'s negative-sampling loop, which cannot terminate
+    if asked for negatives that don't exist.
+    """
+    f1s: list[float] = []
+    bpes: list[float] = []
+    densities: list[float] = []
+    edge_ratios: list[float] = []
+    node_ratios: list[float] = []
+    n_nodes_list: list[int] = []
+    n_input_edges_list: list[int] = []
+    n_latent_edges_list: list[int] = []
+
+    model.eval()
+    with torch.no_grad():
+        for i, jet in enumerate(jets):
+            n = int(jet.num_nodes)
+            if n < 2:
+                continue
+
+            x = jet.x.to(device)
+            edge_index = jet.edge_index.to(device)
+            adj_true = jet_adjacency(jet, device)
+            num_input_edges = int(edge_index.size(1) // 2)
+
+            _, _, _, a_z, _z_tilde, _s, recon_logits = model(x, edge_index)
+
+            density = (a_z > 0).float().mean().item()
+            num_latent_edges = int(torch.triu(a_z, diagonal=1).ne(0).sum().item())
+            node_ratio = node_compression_ratio(num_clusters, n)
+
+            n_nodes_list.append(n)
+            n_input_edges_list.append(num_input_edges)
+            n_latent_edges_list.append(num_latent_edges)
+            densities.append(density)
+            node_ratios.append(node_ratio)
+
+            iu, ju = torch.triu_indices(n, n, offset=1, device=device)
+            bpes.append(bits_per_edge(adj_true[iu, ju], recon_logits[iu, ju]))
+
+            if num_input_edges == 0:
+                continue  # no positive edges: F1/edge_compression_ratio undefined
+            edge_ratios.append(edge_compression_ratio(a_z, num_input_edges))
+
+            # A small jet with k_graph_cap >= n-1 (Design Decision 5) is a
+            # *complete* graph -- zero non-edges exist, so eval_pairs_with_
+            # labels' negative-sampling loop would spin forever if asked for
+            # any negatives at all. Clamp to what's actually available and
+            # skip F1 for this jet (undefined with zero negatives) rather
+            # than hanging.
+            max_possible_negatives = n * (n - 1) // 2 - num_input_edges
+            if max_possible_negatives == 0:
+                continue
+            num_negatives = min(
+                max_possible_negatives, max(1, round(num_input_edges * f1_negative_ratio))
+            )
+            pos_edge_index = edge_index[:, edge_index[0] < edge_index[1]].cpu()
+            rows, cols, labels = eval_pairs_with_labels(
+                n_nodes=n, pos_edge_index=pos_edge_index, num_negatives=num_negatives, seed=seed + i
+            )
+            rows, cols, labels = rows.to(device), cols.to(device), labels.to(device)
+            f1s.append(reconstruction_f1(labels, recon_logits[rows, cols]))
+
+    if not n_nodes_list:
+        raise ValueError("no evaluable jets (all had fewer than 2 particles)")
+
+    def _mean(values: list[float]) -> float:
+        return sum(values) / len(values)
+
+    return {
+        "num_clusters": num_clusters,
+        "latent_dim": latent_dim,
+        "k": k,
+        "num_features": num_features,
+        "num_eval_jets": len(n_nodes_list),
+        "avg_num_nodes": _mean(n_nodes_list),
+        "avg_num_input_edges": _mean(n_input_edges_list),
+        "avg_num_latent_edges": _mean(n_latent_edges_list),
+        "dim_compression_ratio": dim_compression_ratio(latent_dim, num_features),
+        "avg_edge_compression_ratio": _mean(edge_ratios) if edge_ratios else float("nan"),
+        "avg_node_compression_ratio": _mean(node_ratios),
+        "avg_reconstruction_f1": _mean(f1s) if f1s else float("nan"),
+        "avg_bits_per_edge": _mean(bpes),
+        "avg_latent_density": _mean(densities),
+    }
+
+
+def select_compression_optimal_m(rows: list[dict[str, Any]], tolerance: float) -> dict[str, Any]:
+    """Pick the smallest M whose avg F1 is within `tolerance` of the best M's F1.
+
+    Unlike T3.3's `select_compression_optimal` (a fixed 0.90 fidelity floor,
+    calibrated from citation-network experience), jets have no such precedent
+    yet (plan.md T4.3), so the criterion here is relative: the smallest `M`
+    that gives up at most `tolerance` average F1 relative to the largest `M`
+    tested, rather than an absolute floor.
+    """
+    if not rows:
+        raise ValueError("rows must be non-empty")
+    best_f1 = max(r["avg_reconstruction_f1"] for r in rows)
+    candidates = [r for r in rows if best_f1 - r["avg_reconstruction_f1"] <= tolerance]
+    return min(candidates, key=lambda r: r["num_clusters"])
+
+
+def run_jet_compression_sweep(
+    train_jets: list[JetGraph],
+    eval_jets: list[JetGraph],
+    m_grid: list[int],
+    in_channels: int,
+    latent_dim: int,
+    k: int,
+    base_cfg: dict[str, Any],
+    epochs: int,
+    seed: int,
+    device: torch.device,
+    batch_size: int = 32,
+    entropy_weight: float = 0.1,
+    aux_link_weight: float = 5.0,
+    f1_negative_ratio: float = 1.0,
+) -> list[dict[str, Any]]:
+    """Train + evaluate one PooledGVLS per M in `m_grid` (T4.3's rate-distortion sweep).
+
+    `k` (the latent-graph learner's sparsification parameter) is clamped to
+    `min(k, m - 1)` at each grid point, since a graph with M nodes can't have
+    a node degree of M or more -- the same clamp `tests/test_pooling.py`'s
+    `make_model` helper already uses for the citation-network sweeps.
+    """
+    rows: list[dict[str, Any]] = []
+    for m in m_grid:
+        k_m = min(k, m - 1)
+        model = train_pooled_gvls_on_jets(
+            train_jets,
+            in_channels=in_channels,
+            latent_dim=latent_dim,
+            k=k_m,
+            num_clusters=m,
+            base_cfg=base_cfg,
+            epochs=epochs,
+            seed=seed,
+            device=device,
+            batch_size=batch_size,
+            entropy_weight=entropy_weight,
+            aux_link_weight=aux_link_weight,
+        )
+        metrics = evaluate_pooled_gvls_on_jets(
+            model,
+            eval_jets,
+            num_clusters=m,
+            latent_dim=latent_dim,
+            k=k_m,
+            num_features=in_channels,
+            f1_negative_ratio=f1_negative_ratio,
+            seed=seed,
+            device=device,
+        )
+        rows.append({"dataset": "qg_jets", **metrics})
+    return rows

@@ -1,0 +1,17 @@
+# Starting hyperparameters for T4.3's per-jet GVLS pretraining sweep, carried
+# over from Phase 2/3's citation-network findings (attention + isotropic prior
+# was the consistent NAS preference for the smaller, sparser datasets, Cora
+# and CiteSeer) rather than re-tuned via NAS for jets (plan.md T4.3). Not a
+# locked-in choice -- revisit if jet compression fidelity is poor.
+hidden_dim: 32
+latent_dim: 8
+k: 3
+graph_method: attention
+prior: isotropic
+mp_rounds: 1
+lr: 0.01
+beta: 0.001
+lambda_: 1.0
+epochs: 30
+batch_size: 32
+seed: 42

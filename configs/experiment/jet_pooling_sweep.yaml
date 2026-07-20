@@ -1,0 +1,20 @@
+# M grid for T4.3's jet-scale rate-distortion sweep (plan.md Design Decision 3:
+# fixed absolute M, not a ratio of each jet's own N -- every jet must produce
+# the same qubit count for the Phase 4 QGNN).
+m_grid: [4, 6, 8]
+
+# Same DiffPool auxiliary losses as T3.6's citation-network pooling sweep
+# (configs/experiment/pooling_sweep.yaml), carried over as a starting point
+# rather than re-tuned for jets.
+entropy_weight: 0.1
+aux_link_weight: 5.0
+
+# Negatives sampled for reconstruction_f1, as a multiple of each jet's own
+# real edge count (same convention as T3.3/T3.6).
+f1_negative_ratio: 1.0
+
+# select_compression_optimal_m's tolerance: the smallest M within this much
+# average F1 of the largest M tested is chosen as compression-optimal. No
+# citation-network precedent for this exact number (T3.3's 0.90 was a fixed
+# floor, not a relative tolerance) -- a starting default, not tuned.
+f1_tolerance: 0.02

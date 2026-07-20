@@ -1,8 +1,12 @@
 from gvls.compression.jet_sweep import (
+    JET_RESULT_FIELDS,
     build_pooled_gvls,
+    evaluate_pooled_gvls_on_jets,
     jet_adjacency,
     jet_loss,
     jet_pos_weight,
+    run_jet_compression_sweep,
+    select_compression_optimal_m,
     train_pooled_gvls_on_jets,
 )
 from gvls.compression.pooling_sweep import (
@@ -28,4 +32,8 @@ __all__ = [
     "jet_loss",
     "jet_pos_weight",
     "train_pooled_gvls_on_jets",
+    "JET_RESULT_FIELDS",
+    "evaluate_pooled_gvls_on_jets",
+    "select_compression_optimal_m",
+    "run_jet_compression_sweep",
 ]

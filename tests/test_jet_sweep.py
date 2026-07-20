@@ -1,12 +1,21 @@
+import tempfile
+from pathlib import Path
+
 import numpy as np
+import pytest
 import torch
 
 from gvls.compression.jet_sweep import (
+    JET_RESULT_FIELDS,
     build_pooled_gvls,
+    evaluate_pooled_gvls_on_jets,
     jet_loss,
     jet_pos_weight,
+    run_jet_compression_sweep,
+    select_compression_optimal_m,
     train_pooled_gvls_on_jets,
 )
+from gvls.compression.sweep import write_results_csv
 from gvls.data.jets import NUM_FEATURES, PDGIDS, build_jet_graph
 
 IN_CHANNELS = NUM_FEATURES
@@ -168,3 +177,96 @@ def test_jet_pos_weight_matches_formula() -> None:
 def test_jet_pos_weight_handles_isolated_single_node() -> None:
     jet = _synthetic_jet(1, seed=6)
     assert jet_pos_weight(jet) == 1.0
+
+
+# ── T4.3: jet-level compression sweep over M ────────────────────────────────
+
+def _jet_set(n_jets: int, seed_offset: int = 0):
+    # n well above k_graph_cap=8 so the k-NN graph isn't complete (a complete
+    # graph has zero non-edges, which evaluate_pooled_gvls_on_jets correctly
+    # skips for F1 -- using only complete graphs here would make every F1
+    # skipped and the test wouldn't exercise that path at all).
+    return [_synthetic_jet(20 + (i % 10), seed=seed_offset + i) for i in range(n_jets)]
+
+
+def test_evaluate_pooled_gvls_on_jets_returns_all_fields() -> None:
+    train_jets = _jet_set(6, seed_offset=0)
+    eval_jets = _jet_set(4, seed_offset=100)
+    model = train_pooled_gvls_on_jets(
+        train_jets, in_channels=IN_CHANNELS, latent_dim=LATENT_DIM, k=K,
+        num_clusters=M, base_cfg=_base_cfg(), epochs=2, seed=42, device=torch.device("cpu"),
+        batch_size=3,
+    )
+    metrics = evaluate_pooled_gvls_on_jets(
+        model, eval_jets, num_clusters=M, latent_dim=LATENT_DIM, k=K,
+        num_features=IN_CHANNELS, f1_negative_ratio=1.0, seed=42, device=torch.device("cpu"),
+    )
+    assert set(JET_RESULT_FIELDS) - {"dataset"} <= set(metrics.keys())
+    assert metrics["num_eval_jets"] == 4
+    assert 0.0 <= metrics["avg_reconstruction_f1"] <= 1.0
+    assert metrics["avg_bits_per_edge"] >= 0.0
+
+
+def test_evaluate_pooled_gvls_on_jets_skips_single_particle_jets() -> None:
+    model = build_pooled_gvls(IN_CHANNELS, LATENT_DIM, K, M, _base_cfg())
+    jets = [_synthetic_jet(1, seed=1), _synthetic_jet(9, seed=2)]
+    metrics = evaluate_pooled_gvls_on_jets(
+        model, jets, num_clusters=M, latent_dim=LATENT_DIM, k=K,
+        num_features=IN_CHANNELS, f1_negative_ratio=1.0, seed=42, device=torch.device("cpu"),
+    )
+    assert metrics["num_eval_jets"] == 1
+
+
+def test_select_compression_optimal_m_picks_smallest_within_tolerance() -> None:
+    rows = [
+        {"num_clusters": 4, "avg_reconstruction_f1": 0.80},
+        {"num_clusters": 6, "avg_reconstruction_f1": 0.85},
+        {"num_clusters": 8, "avg_reconstruction_f1": 0.86},
+    ]
+    best = select_compression_optimal_m(rows, tolerance=0.02)
+    assert best["num_clusters"] == 6  # within 0.02 of best (0.86), M=4 (0.80) is not
+
+
+def test_select_compression_optimal_m_falls_back_to_largest_if_none_close() -> None:
+    rows = [
+        {"num_clusters": 4, "avg_reconstruction_f1": 0.50},
+        {"num_clusters": 8, "avg_reconstruction_f1": 0.90},
+    ]
+    best = select_compression_optimal_m(rows, tolerance=0.01)
+    assert best["num_clusters"] == 8
+
+
+def test_jet_compression_sweep_smoke_writes_rows() -> None:
+    train_jets = _jet_set(6, seed_offset=0)
+    eval_jets = _jet_set(4, seed_offset=200)
+
+    rows = run_jet_compression_sweep(
+        train_jets, eval_jets, m_grid=[4, 6],
+        in_channels=IN_CHANNELS, latent_dim=LATENT_DIM, k=K,
+        base_cfg=_base_cfg(), epochs=2, seed=42, device=torch.device("cpu"), batch_size=3,
+    )
+    assert len(rows) == 2
+    assert [r["num_clusters"] for r in rows] == [4, 6]
+    for row in rows:
+        assert set(JET_RESULT_FIELDS) <= set(row.keys())
+        assert row["dataset"] == "qg_jets"
+
+    with tempfile.TemporaryDirectory() as tmp:
+        csv_path = str(Path(tmp) / "qg_jets_pooling.csv")
+        write_results_csv(rows, csv_path, fieldnames=JET_RESULT_FIELDS)
+        assert Path(csv_path).exists()
+        content = Path(csv_path).read_text().strip().splitlines()
+        assert len(content) == 3  # header + 2 rows
+
+
+def test_jet_compression_sweep_clamps_k_to_m_minus_one() -> None:
+    # k=5 would exceed M-1 at M=4; run_jet_compression_sweep must clamp it
+    # rather than erroring inside LatentGraphLearner.
+    train_jets = _jet_set(4, seed_offset=0)
+    eval_jets = _jet_set(3, seed_offset=300)
+    rows = run_jet_compression_sweep(
+        train_jets, eval_jets, m_grid=[4],
+        in_channels=IN_CHANNELS, latent_dim=LATENT_DIM, k=5,
+        base_cfg=_base_cfg(), epochs=1, seed=42, device=torch.device("cpu"), batch_size=2,
+    )
+    assert rows[0]["k"] == 3

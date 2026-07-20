@@ -179,6 +179,23 @@ Full results: [`results/compression/{cora,citeseer,pubmed}_pooling.csv`](results
 - **None of the three datasets close the 0.90 fidelity gap via pooling alone** — pooling changes *how much it costs* to compress, not whether the 0.90 floor is reachable, matching T3.4's conclusion that the plain inner-product decoder (not node count or dimensionality) is the binding constraint.
 - See `specs/phase3/validation.md` V-7 (cold-start assignment collapse and its fix) and V-8 (the ELBO KL-normalization bug, which independently affected PubMed's larger pool sizes before both fixes landed) for the full diagnostic history behind these numbers.
 
+### Quark/Gluon Jet Compression (T4.3)
+
+Phase 4's first inductive (many-small-graphs) task: Pythia8 quark/gluon jets (`energyflow.qg_jets`) become per-jet k-NN graphs in `(η,φ)` space (`k_graph_cap=8`, `F=18` node features), and `PooledGVLS` is pretrained unsupervised (per-jet forward loop, gradient-accumulated minibatches — T4.2) at a **fixed absolute** `M ∈ {4,6,8}` rather than T3.6's ratio-based `M/N` — every jet must compress to the same qubit count for the QGNN stage (T4.4+), regardless of its own particle count.
+
+Full results: [`results/compression/qg_jets_pooling.csv`](results/compression/qg_jets_pooling.csv). 10,000 jets (7000 train / 1500 eval / 1500 test-held-out), 30 epochs, starting config `(hidden_dim=32, d=8, k=3, attention, isotropic, mp_rounds=1)` — carried over from Phase 2/3, not NAS-tuned for jets.
+
+| M | avg F1 | avg bits/edge | avg node_ratio (M/N) |
+|---|---|---|---|
+| 4 | **0.7447** | 0.9513 | 0.112 |
+| 6 | 0.7348 | 0.9344 | 0.168 |
+| 8 | 0.7367 | 0.9394 | 0.224 |
+
+**Findings:**
+- F1 is flat (0.73–0.74) and non-monotonic across `M` — the same flat-capacity pattern T3.3/T3.6 found on Cora/CiteSeer/PubMed, now also showing up on an entirely different graph domain (particle-jet k-NN graphs vs. citation networks). Comfortably above the known trivial-classifier floor (F1=2/3) but nowhere near a 0.90-style fidelity floor.
+- Compression-optimal `M=4` selected (best F1 among the three, and the smallest `M` — cheapest for the downstream QGNN's qubit count too).
+- Not re-tuned via NAS in this task; worth revisiting only if T4.5's QGNN classification accuracy turns out to be bottlenecked by reconstruction fidelity.
+
 ## Usage
 
 ```bash
@@ -196,6 +213,9 @@ python experiments/compression_sweep.py data=cora
 
 # Run the node-count pooling sweep (T3.6)
 python experiments/pooling_sweep.py data=cora
+
+# Run the jet-level GVLS pretraining sweep over fixed M (T4.3)
+python experiments/pretrain_gvls_jets.py
 ```
 
 ## Project structure
