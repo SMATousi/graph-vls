@@ -1,0 +1,6 @@
+name: qg_jets
+num_jets: 20000
+k_graph_cap: 8
+train_ratio: 0.7
+val_ratio: 0.15
+seed: 42

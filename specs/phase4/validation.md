@@ -1,11 +1,11 @@
 # Phase 4 — Validation
 
-**Status: not started (spec only, written 2026-07-14).** No code for this phase exists yet. This file will be filled in exactly as `specs/phase0/validation.md`–`specs/phase3/validation.md` were: one `V-n` section per task, with a Check/Pass-condition/Result table populated as work happens, plus write-ups for any bugs or surprises found along the way (this project's specs consistently treat those as first-class results, not footnotes — see e.g. `specs/phase3/validation.md` V-7/V-8).
+**Status: T4.1 complete (2026-07-20).** Remaining tasks (T4.2–T4.7) not started.
 
 ## Exit Criteria
 
-- [ ] Dataset source confirmed (`plan.md` Design Decision 1) — not an assumption anymore
-- [ ] Jet dataset loads, builds correct k-NN graphs, deterministic split (FR-1)
+- [x] Dataset source confirmed (`plan.md` Design Decision 1) — not an assumption anymore
+- [x] Jet dataset loads, builds correct k-NN graphs, deterministic split (FR-1)
 - [ ] Fixed-`M` pooling confirmed working unmodified from T3.6's `PooledGVLS` (FR-2)
 - [ ] Per-jet GVLS pretraining sweep over `M ∈ {4,6,8}` complete, compression-optimal `M` selected (FR-3)
 - [ ] QGNN ansatz built, topology-equivariance to `A_z` verified directly (FR-4)
@@ -16,16 +16,18 @@
 
 ---
 
-## V-1: Jet Dataset & Graph Construction (FR-1) ⬜ Not started
+## V-1: Jet Dataset & Graph Construction (FR-1) ✅ Complete 2026-07-20
+
+**File:** `src/gvls/data/jets.py`. Tests: `tests/test_jets.py` (15 tests, all synthetic-jet unit tests — no network call in the suite itself, matching the existing precedent that `load_planetoid`/`load_tu_dataset` aren't exercised in `tests/` either; `load_qg_jets`'s actual `energyflow` download path was verified manually, see below).
 
 | Check | Pass condition | Result |
 |---|---|---|
-| Dataset source confirmed | User has confirmed `energyflow.qg_jets` (or named an alternative) as the actual data source | ⬜ |
-| Jets load without error | A sample of jets returns valid `(x, edge_index, y)` triples | ⬜ |
-| k-NN graph correctness | No self-loops, symmetric, edge count ≤ `k_graph` per node | ⬜ |
-| Feature shape | `x.shape == (N, F)` with `F` matching Design Decision 6 | ⬜ |
-| Split determinism | Same seed → identical train/val/test split | ⬜ |
-| Label balance | Quark/gluon ratio within tolerance on the subset | ⬜ |
+| Dataset source confirmed | User has confirmed `energyflow.qg_jets` (or named an alternative) as the actual data source | ✅ User confirmed `energyflow.qg_jets` via `AskUserQuestion` (2026-07-20) |
+| Jets load without error | A sample of jets returns valid `(x, edge_index, y)` triples | ✅ `load_qg_jets(num_jets=2000)` against real cached data: loads in ~1.3s (single 100k-jet `QG_jets.npz` file, already covers any subset up to 100k without further downloads), particle counts range 9–105, `x`/`edge_index`/`y` all well-formed |
+| k-NN graph correctness | No self-loops, symmetric, edge count ≤ `k_graph` per node | Adjusted: union-symmetrized (not mutual-intersection) k-NN, the same tradeoff Phase 1 made for the latent-graph learner (`specs/phase1/plan.md`) to avoid emptying/disconnecting small graphs — this means per-node degree can slightly *exceed* `k_graph_cap` (a popular neighbor gets picked by more nodes than its own quota) rather than being strictly capped. No self-loops and full symmetry verified directly; degree bounded (tested ≤ `4×k_graph_cap`, empirically far tighter) rather than hard-capped at `k_graph_cap`. Periodic φ handled explicitly (`Δφ` wrapped to `[-π, π]`) and verified with a boundary-crossing test case. |
+| Feature shape | `x.shape == (N, F)` with `F` matching Design Decision 6 | `F = NUM_FEATURES = 18`: `log(pT), y, φ` (3) + one-hot(pdgid) over 14 observed species + 1 "unknown" bucket (15) — higher than the plan's rough estimate of `F ≈ 15` because the dataset actually contains 14 distinct species (charge-separated), not ~11, plus the added unknown-species bucket for robustness at this system boundary |
+| Split determinism | Same seed → identical train/val/test split | ✅ `split_jets` uses a seeded `torch.Generator`, mirroring `split_edges`'s convention; verified identical output across two calls with the same seed, different output across different seeds |
+| Label balance | Quark/gluon ratio within tolerance on the subset | ✅ Exact 50/50 by construction — `load_qg_jets` samples `num_jets/2` from each label's pool rather than approximating a tolerance band (raw dataset is already ~49.9/50.1 so this required no aggressive oversampling; `raw_multiplier=1.3` cushion is ample) |
 
 ---
 
