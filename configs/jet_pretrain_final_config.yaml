@@ -1,0 +1,16 @@
+defaults:
+  - data: qg_jets
+  - train: jet_pretrain_final
+  - _self_
+
+checkpoint_path: checkpoints/gvls_jets_m${train.m}.pt
+
+wandb:
+  project: graph-vls
+  mode: offline
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: false

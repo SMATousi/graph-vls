@@ -1,0 +1,20 @@
+# Production GVLS-on-jets pretraining config (prerequisite for T4.5): trains
+# ONE model at the fixed, already-selected compression-optimal M (T4.3,
+# specs/phase4/validation.md V-3 selected M=4) and persists a checkpoint,
+# rather than sweeping a grid purely for comparison (configs/train/jet_pretrain.yaml).
+# Same starting hyperparameters as the T4.3 sweep; epochs raised for a
+# "production" run since this checkpoint is the one T4.5 actually freezes and
+# reuses, meant to run unattended on a remote machine.
+hidden_dim: 32
+latent_dim: 8
+k: 3
+m: 4
+graph_method: attention
+prior: isotropic
+mp_rounds: 1
+lr: 0.01
+beta: 0.001
+lambda_: 1.0
+epochs: 100
+batch_size: 32
+seed: 42

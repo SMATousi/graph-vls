@@ -5,12 +5,13 @@ from gvls.eval.compression import (
     reconstruction_f1,
     sample_node_pairs,
 )
-from gvls.eval.metrics import auc_ap, bits_per_edge, node_accuracy
+from gvls.eval.metrics import auc_ap, bits_per_edge, classification_metrics, node_accuracy
 
 __all__ = [
     "auc_ap",
     "node_accuracy",
     "bits_per_edge",
+    "classification_metrics",
     "reconstruction_f1",
     "dim_compression_ratio",
     "edge_compression_ratio",

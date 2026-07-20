@@ -1,0 +1,17 @@
+defaults:
+  - data: qg_jets
+  - train: qgnn_classifier
+  - _self_
+
+gvls_checkpoint_path: checkpoints/gvls_jets_m4.pt
+qgnn_checkpoint_path: checkpoints/qgnn_jets_m4.pt
+
+wandb:
+  project: graph-vls
+  mode: offline
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: false

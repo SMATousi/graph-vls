@@ -1,6 +1,6 @@
 # Phase 4 — Validation
 
-**Status: T4.1–T4.4 complete (2026-07-20).** Remaining tasks (T4.5–T4.7) not started.
+**Status: T4.1–T4.4 complete (2026-07-20); T4.5 code-complete and smoke-tested, but not actually run (2026-07-20, user instruction).** T4.6/T4.7 not started.
 
 ## Exit Criteria
 
@@ -9,7 +9,7 @@
 - [x] Fixed-`M` pooling confirmed working unmodified from T3.6's `PooledGVLS` (FR-2)
 - [x] Per-jet GVLS pretraining sweep over `M ∈ {4,6,8}` complete, compression-optimal `M` selected (FR-3)
 - [x] QGNN ansatz built, topology-equivariance to `A_z` verified directly (FR-4)
-- [ ] Two-stage supervised training complete, best-val-accuracy checkpoint saved (FR-5)
+- [x] Two-stage supervised training code complete, smoke-tested; best-val-accuracy checkpointing implemented but **not yet exercised on a real run** (FR-5, see V-5)
 - [ ] Test-set accuracy/AUC/macro-F1 reported, literature comparison identified or explicitly declared absent (FR-6)
 - [ ] `README.md` updated with a new results section
 - [ ] `pytest tests/` passes with all new Phase 4 tests included
@@ -85,14 +85,24 @@
 
 ---
 
-## V-5: Two-Stage Supervised Training (FR-5) ⬜ Not started
+## V-5: Two-Stage Supervised Training (FR-5) 🟡 Code complete, smoke-tested, not run
+
+**Status:** implemented and unit-tested against synthetic jets/tiny models only. **No real training was executed on this machine — the user explicitly asked for bash scripts to run this on a remote machine instead.** Everything below reflects what the code does and what the smoke tests verify, not results from an actual pretraining/training run.
+
+**Files:** `src/gvls/qgnn_training.py` (`extract_latent_features`, `qgnn_jet_loss`, `train_qgnn_classifier`, `evaluate_qgnn_classifier`, `save_qgnn_checkpoint`/`load_qgnn_checkpoint`), `src/gvls/eval/metrics.py` (`classification_metrics`, new), `src/gvls/compression/jet_sweep.py` (`save_gvls_checkpoint`/`load_gvls_checkpoint`, new — T4.3 never persisted a checkpoint, so T4.5 needed this added). New experiment scripts: `experiments/pretrain_gvls_jets_final.py` (trains+saves the one production GVLS checkpoint T4.3's sweep never produced), `experiments/train_qgnn.py` (T4.5 proper), `experiments/evaluate_qgnn.py` (T4.6's metrics half). New bash wrappers: `scripts/run_pretrain_gvls_jets_final.sh`, `scripts/run_train_qgnn.sh`, `scripts/run_evaluate_qgnn.sh`, `scripts/run_full_qgnn_pipeline.sh` (chains all three), `scripts/_activate_env.sh` (shared conda-activation helper, portable — finds conda via `conda info --base` rather than a hardcoded path). Tests: `tests/test_qgnn_training.py` (12 tests), `classification_metrics` tests added to `tests/test_metrics.py` (5 tests).
 
 | Check | Pass condition | Result |
 |---|---|---|
-| GVLS frozen correctly | No gradient updates to GVLS parameters during QGNN training | ⬜ |
-| Training converges | Train/val loss decreases, no NaNs | ⬜ |
-| W&B logging | `qgnn-jet-classification` group tag present | ⬜ |
-| Checkpointing | Best-val-accuracy parameters saved | ⬜ |
+| GVLS frozen correctly | No gradient updates to GVLS parameters during QGNN training | ✅ (by construction, smoke-tested) `extract_latent_features` only ever calls the GVLS model under `torch.no_grad()`; no optimizer is ever constructed over its parameters in `train_qgnn_classifier`. `test_extract_latent_features_does_not_change_model_params` confirms every parameter is bit-identical (and `.grad is None`) after extraction |
+| Training converges | Train/val loss decreases, no NaNs | Not evaluated — this requires a real run (deferred to the user's remote machine). Smoke test (`test_train_qgnn_classifier_smoke`, 2 epochs on 6 synthetic jets) only confirms the loop completes and losses are finite, not that they trend downward over a real training run |
+| W&B logging | `qgnn-jet-classification` group tag present | Implemented in `experiments/train_qgnn.py` (`wandb.init(..., group="qgnn-jet-classification")`); not exercised against a real run |
+| Checkpointing | Best-val-accuracy parameters saved | ✅ mechanism verified: `train_qgnn_classifier` tracks the highest validation accuracy seen across epochs and returns that epoch's state dict; `test_train_qgnn_classifier_best_state_dict_is_loadable` confirms a saved/reloaded checkpoint reproduces the exact same validation accuracy |
+
+**Full classification metrics (beyond FR-5/FR-6's minimum):** `classification_metrics` (`src/gvls/eval/metrics.py`) returns accuracy, AUC, average precision, macro-F1, precision, recall, and the confusion matrix from one call — used both for `train_qgnn_classifier`'s per-epoch validation tracking (not just accuracy) and for `evaluate_qgnn.py`'s test-set report. 5 tests in `tests/test_metrics.py` cover perfect/inverted/random predictions, tensor inputs, and threshold sensitivity.
+
+**tqdm progress bars:** added to every jet-pipeline training loop — `train_pooled_gvls_on_jets` (epoch-level, postfixed with running mean loss), `run_jet_compression_sweep`'s outer `M`-grid loop, and `train_qgnn_classifier` (epoch-level, postfixed with train loss and val accuracy). Not added to the pre-existing Phase 0–3 citation-network training scripts (`train_gvls.py`, etc.) — out of scope for this task, flagged in case broader coverage was intended.
+
+**What still needs to happen before this is genuinely "done":** run `scripts/run_full_qgnn_pipeline.sh` (or the three `run_*.sh` scripts individually) on a real machine; confirm loss actually decreases and accuracy is better than a 50/50 random baseline; fill in the "Result" cells above with real numbers.
 
 ---
 

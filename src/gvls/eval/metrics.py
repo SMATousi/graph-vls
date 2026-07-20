@@ -1,7 +1,16 @@
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
-from sklearn.metrics import average_precision_score, roc_auc_score
+from sklearn.metrics import (
+    average_precision_score,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 from torch import Tensor
 
 ArrayLike = np.ndarray | Tensor
@@ -63,3 +72,43 @@ def bits_per_edge(adj_true: ArrayLike, adj_logits: ArrayLike) -> float:
     # Numerically stable BCE: max(l,0) - y*l + log(1 + exp(-|l|))
     bce_nats = np.maximum(yl, 0.0) - yt * yl + np.log1p(np.exp(-np.abs(yl)))
     return float(bce_nats.mean() / np.log(2.0))
+
+
+def classification_metrics(
+    y_true: ArrayLike, y_logits: ArrayLike, threshold: float = 0.5
+) -> dict[str, Any]:
+    """Full binary-classification metrics from raw (pre-sigmoid) logits (T4.5/T4.6).
+
+    Used for the QGNN's quark/gluon jet classification task -- one scalar
+    logit per jet, exactly what `QGNNClassifier.forward` and `node_accuracy`'s
+    inputs already look like, generalized here beyond just accuracy since a
+    single scalar (accuracy or F1 alone) isn't enough to judge a classifier
+    trained via parameter-shift on a noiseless simulator.
+
+    Args:
+        y_true:    Binary labels (0 or 1), shape (N,).
+        y_logits:  Raw (pre-sigmoid) logits, shape (N,).
+        threshold: Probability strictly above which a jet is predicted positive.
+
+    Returns:
+        Dict with accuracy, auc, ap, macro_f1, precision, recall (all floats,
+        precision/recall/macro_f1 in [0, 1] with zero_division=0), and
+        confusion_matrix as a nested list [[tn, fp], [fn, tp]].
+    """
+    yt = _to_numpy(y_true).ravel().astype(np.int64)
+    yl = _to_numpy(y_logits).ravel().astype(np.float64)
+    probs = 1.0 / (1.0 + np.exp(-yl))
+    y_pred = (probs > threshold).astype(np.int64)
+
+    auc, ap = auc_ap(yt, probs)
+    cm = confusion_matrix(yt, y_pred, labels=[0, 1])
+
+    return {
+        "accuracy": float((yt == y_pred).mean()),
+        "auc": auc,
+        "ap": ap,
+        "macro_f1": float(f1_score(yt, y_pred, average="macro", zero_division=0)),
+        "precision": float(precision_score(yt, y_pred, zero_division=0)),
+        "recall": float(recall_score(yt, y_pred, zero_division=0)),
+        "confusion_matrix": cm.tolist(),
+    }

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from gvls.eval.metrics import auc_ap, bits_per_edge, node_accuracy
+from gvls.eval.metrics import auc_ap, bits_per_edge, classification_metrics, node_accuracy
 
 # ── auc_ap ────────────────────────────────────────────────────────────────────
 
@@ -104,3 +104,57 @@ def test_bits_per_edge_nonnegative() -> None:
     y_true = rng.integers(0, 2, size=100).astype(float)
     logits = rng.standard_normal(100)
     assert bits_per_edge(y_true, logits) >= 0.0
+
+
+# ── classification_metrics ────────────────────────────────────────────────────
+
+def test_classification_metrics_perfect_logits() -> None:
+    y_true = np.array([1, 1, 0, 0])
+    logits = np.array([100.0, 100.0, -100.0, -100.0])
+    m = classification_metrics(y_true, logits)
+    assert m["accuracy"] == pytest.approx(1.0)
+    assert m["auc"] == pytest.approx(1.0)
+    assert m["ap"] == pytest.approx(1.0)
+    assert m["macro_f1"] == pytest.approx(1.0)
+    assert m["precision"] == pytest.approx(1.0)
+    assert m["recall"] == pytest.approx(1.0)
+    assert m["confusion_matrix"] == [[2, 0], [0, 2]]
+
+
+def test_classification_metrics_all_wrong() -> None:
+    y_true = np.array([1, 1, 0, 0])
+    logits = np.array([-100.0, -100.0, 100.0, 100.0])
+    m = classification_metrics(y_true, logits)
+    assert m["accuracy"] == pytest.approx(0.0)
+    assert m["confusion_matrix"] == [[0, 2], [2, 0]]
+
+
+def test_classification_metrics_returns_all_expected_keys() -> None:
+    rng = np.random.default_rng(0)
+    y_true = rng.integers(0, 2, size=20)
+    logits = rng.standard_normal(20)
+    m = classification_metrics(y_true, logits)
+    expected_keys = {
+        "accuracy", "auc", "ap", "macro_f1", "precision", "recall", "confusion_matrix"
+    }
+    assert expected_keys <= set(m.keys())
+    for key in expected_keys - {"confusion_matrix"}:
+        assert 0.0 <= m[key] <= 1.0
+
+
+def test_classification_metrics_accepts_tensors() -> None:
+    y_true = torch.tensor([1, 0, 1, 0])
+    logits = torch.tensor([2.0, -2.0, 1.5, -1.5])
+    m = classification_metrics(y_true, logits)
+    assert m["accuracy"] == pytest.approx(1.0)
+
+
+def test_classification_metrics_threshold_affects_predictions() -> None:
+    # probs ~= [0.574, 0.525, 0.488, 0.426]; threshold=0.5 misclassifies index
+    # 2 (true=1, prob=0.488 < 0.5); threshold=0.45 gets everything right.
+    y_true = np.array([1, 1, 1, 0])
+    logits = np.array([0.3, 0.1, -0.05, -0.3])
+    default_threshold = classification_metrics(y_true, logits, threshold=0.5)
+    lower_threshold = classification_metrics(y_true, logits, threshold=0.45)
+    assert default_threshold["accuracy"] == pytest.approx(0.75)
+    assert lower_threshold["accuracy"] == pytest.approx(1.0)

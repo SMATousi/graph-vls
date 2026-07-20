@@ -1,0 +1,9 @@
+# T4.5: QGNNClassifier supervised training config. num_layers=1 is the
+# starting default (NFR-2: keep circuit depth shallow so parameter-shift
+# gradient estimation doesn't dominate wall-clock time); revisit only if
+# reconstruction/classification fidelity demands more re-uploading layers.
+num_layers: 1
+lr: 0.05
+epochs: 50
+batch_size: 32
+seed: 42

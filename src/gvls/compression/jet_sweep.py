@@ -12,10 +12,12 @@ empirically rare; `tests/test_jet_sweep.py` checks this directly.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import torch
 from torch import Tensor
+from tqdm.auto import tqdm
 
 from gvls.data.jets import JetGraph
 from gvls.eval.compression import (
@@ -145,6 +147,8 @@ def train_pooled_gvls_on_jets(
     batch_size: int = 32,
     entropy_weight: float = 0.1,
     aux_link_weight: float = 5.0,
+    show_progress: bool = True,
+    progress_desc: str = "pretrain GVLS",
 ) -> PooledGVLS:
     """Train one PooledGVLS unsupervised (ELBO only) over many jets (T4.2/T4.3).
 
@@ -156,27 +160,77 @@ def train_pooled_gvls_on_jets(
     gradient accumulation) before a single `optimizer.step()`, mirroring
     `train_pooled_gvls_full_graph`'s (T3.6) hyperparameter conventions and
     auxiliary losses, adapted from one large graph to many small ones.
+
+    `show_progress` reports one tqdm tick per epoch, postfixed with the
+    running mean per-jet loss for that epoch -- real pretraining runs over
+    thousands of jets take minutes, and this is meant to be run unattended on
+    a remote machine (see `scripts/run_pretrain_gvls_jets_final.sh`), so
+    visible progress matters. Set to `False` in tests/tight inner loops
+    (T4.3's sweep already wraps the outer M-loop in its own progress bar).
     """
     torch.manual_seed(seed)
     model = build_pooled_gvls(in_channels, latent_dim, k, num_clusters, base_cfg).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=float(base_cfg["lr"]))
     shuffle_generator = torch.Generator().manual_seed(seed)
 
-    for _epoch in range(epochs):
+    epoch_iter = tqdm(range(epochs), desc=progress_desc, disable=not show_progress)
+    for _epoch in epoch_iter:
         model.train()
         perm = torch.randperm(len(jets), generator=shuffle_generator).tolist()
+        running_loss, n_seen = 0.0, 0
         for start in range(0, len(perm), batch_size):
             batch_idx = perm[start : start + batch_size]
             optimizer.zero_grad()
+            batch_loss = 0.0
             for idx in batch_idx:
                 loss = jet_loss(
                     model, jets[idx], base_cfg, device, entropy_weight, aux_link_weight
                 )
                 (loss / len(batch_idx)).backward()
+                batch_loss += loss.item()
             optimizer.step()
+            running_loss += batch_loss
+            n_seen += len(batch_idx)
+        epoch_iter.set_postfix(loss=running_loss / max(n_seen, 1))
 
     model.eval()
     return model
+
+
+def save_gvls_checkpoint(
+    model: PooledGVLS,
+    config: dict[str, Any],
+    path: str,
+) -> None:
+    """Persist a trained PooledGVLS's weights plus enough config to rebuild
+    its architecture (`build_pooled_gvls`) before loading them back -- unlike
+    the citation-network convention (`checkpoints/best.pt`, a bare
+    `state_dict()` for one fixed, always-identical architecture), jets vary
+    `M`/`latent_dim`/`k` across runs, so the config must travel with the
+    weights (T4.5 needs this to freeze and reuse T4.3's compression-optimal
+    model, which T4.3 itself never persisted).
+    """
+    parent = Path(path).parent
+    if str(parent):
+        parent.mkdir(parents=True, exist_ok=True)
+    torch.save({"state_dict": model.state_dict(), "config": config}, path)
+
+
+def load_gvls_checkpoint(path: str, device: torch.device) -> tuple[PooledGVLS, dict[str, Any]]:
+    """Inverse of `save_gvls_checkpoint`: rebuilds the architecture from the
+    saved config, loads weights, and returns `(model.eval(), config)`."""
+    checkpoint = torch.load(path, map_location=device, weights_only=False)
+    config = checkpoint["config"]
+    model = build_pooled_gvls(
+        in_channels=int(config["in_channels"]),
+        latent_dim=int(config["latent_dim"]),
+        k=int(config["k"]),
+        num_clusters=int(config["num_clusters"]),
+        base_cfg=config["base_cfg"],
+    ).to(device)
+    model.load_state_dict(checkpoint["state_dict"])
+    model.eval()
+    return model, config
 
 
 def evaluate_pooled_gvls_on_jets(
@@ -336,7 +390,7 @@ def run_jet_compression_sweep(
     `make_model` helper already uses for the citation-network sweeps.
     """
     rows: list[dict[str, Any]] = []
-    for m in m_grid:
+    for m in tqdm(m_grid, desc="M grid"):
         k_m = min(k, m - 1)
         model = train_pooled_gvls_on_jets(
             train_jets,
@@ -351,6 +405,7 @@ def run_jet_compression_sweep(
             batch_size=batch_size,
             entropy_weight=entropy_weight,
             aux_link_weight=aux_link_weight,
+            progress_desc=f"pretrain GVLS (M={m})",
         )
         metrics = evaluate_pooled_gvls_on_jets(
             model,

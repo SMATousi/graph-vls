@@ -18,6 +18,7 @@ dependencies = [
     "qiskit>=2.0",
     "qiskit-machine-learning>=0.9",
     "qiskit-aer>=0.17",
+    "tqdm>=4.65",
 ]
 
 [project.optional-dependencies]

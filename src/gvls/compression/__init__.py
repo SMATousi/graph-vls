@@ -5,7 +5,9 @@ from gvls.compression.jet_sweep import (
     jet_adjacency,
     jet_loss,
     jet_pos_weight,
+    load_gvls_checkpoint,
     run_jet_compression_sweep,
+    save_gvls_checkpoint,
     select_compression_optimal_m,
     train_pooled_gvls_on_jets,
 )
@@ -36,4 +38,6 @@ __all__ = [
     "evaluate_pooled_gvls_on_jets",
     "select_compression_optimal_m",
     "run_jet_compression_sweep",
+    "save_gvls_checkpoint",
+    "load_gvls_checkpoint",
 ]
