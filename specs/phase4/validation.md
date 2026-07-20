@@ -1,12 +1,12 @@
 # Phase 4 — Validation
 
-**Status: T4.1 complete (2026-07-20).** Remaining tasks (T4.2–T4.7) not started.
+**Status: T4.1–T4.2 complete (2026-07-20).** Remaining tasks (T4.3–T4.7) not started.
 
 ## Exit Criteria
 
 - [x] Dataset source confirmed (`plan.md` Design Decision 1) — not an assumption anymore
 - [x] Jet dataset loads, builds correct k-NN graphs, deterministic split (FR-1)
-- [ ] Fixed-`M` pooling confirmed working unmodified from T3.6's `PooledGVLS` (FR-2)
+- [x] Fixed-`M` pooling confirmed working unmodified from T3.6's `PooledGVLS` (FR-2)
 - [ ] Per-jet GVLS pretraining sweep over `M ∈ {4,6,8}` complete, compression-optimal `M` selected (FR-3)
 - [ ] QGNN ansatz built, topology-equivariance to `A_z` verified directly (FR-4)
 - [ ] Two-stage supervised training complete, best-val-accuracy checkpoint saved (FR-5)
@@ -31,13 +31,15 @@
 
 ---
 
-## V-2: Fixed-`M` Pooling for Jets (FR-2) ⬜ Not started
+## V-2: Fixed-`M` Pooling for Jets (FR-2) ✅ Complete 2026-07-20
+
+**File:** `src/gvls/compression/jet_sweep.py` (`train_pooled_gvls_on_jets`, `jet_loss`, `build_pooled_gvls`, `jet_adjacency`, `jet_pos_weight`). Tests: `tests/test_jet_sweep.py` (7 tests).
 
 | Check | Pass condition | Result |
 |---|---|---|
-| `PooledGVLS` reused unmodified | No changes needed to `src/gvls/models/pooling.py` to support fixed absolute `M` per jet | ⬜ |
-| No cross-jet leakage | Per-jet assignment `S`/`A_z`/reconstruction independent of other jets in the same minibatch | ⬜ |
-| Gradient flow | Gradients reach encoder, pooling, and latent-graph-learner parameters after a minibatch of jets | ⬜ |
+| `PooledGVLS` reused unmodified | No changes needed to `src/gvls/models/pooling.py` to support fixed absolute `M` per jet | ✅ Zero changes to `pooling.py` — `LatentGraphPooling(latent_dim, num_clusters=M)` already takes an absolute `M`, exactly as Design Decision 3 predicted |
+| No cross-jet leakage | Per-jet assignment `S`/`A_z`/reconstruction independent of other jets in the same minibatch | ✅ Structurally guaranteed (each jet gets its own `model(x, edge_index)` call on its own dense tensors — no batched tensor ever spans two jets) and verified empirically: processing jet A, then a very-different-range jet B, then jet A again gives bit-identical output for jet A both times (`test_same_jet_gives_identical_output_regardless_of_other_jets_processed`, `test_disjoint_feature_ranges_do_not_mix`) |
+| Gradient flow | Gradients reach encoder, pooling, and latent-graph-learner parameters after a minibatch of jets | ✅ Verified directly (`test_gradient_flows_to_all_submodules_from_one_jet`) — note the default `graph_method="attention"` latent-graph-learner has *zero* learnable parameters of its own (confirmed against `fgp`'s `log_tau` and `nri`'s MLP), so that check uses `fgp` instead; encoder/pooling gradient checks use the default config. Also verified the accumulation itself is numerically exact: summing `(loss/B).backward()` per jet across a 3-jet batch produces gradients identical to one `.backward()` on the batched mean loss (`test_gradient_accumulation_matches_batched_mean`) |
 
 ---
 

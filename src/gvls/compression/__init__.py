@@ -1,3 +1,10 @@
+from gvls.compression.jet_sweep import (
+    build_pooled_gvls,
+    jet_adjacency,
+    jet_loss,
+    jet_pos_weight,
+    train_pooled_gvls_on_jets,
+)
 from gvls.compression.pooling_sweep import (
     evaluate_pooled_compression,
     train_pooled_gvls_full_graph,
@@ -16,4 +23,9 @@ __all__ = [
     "select_compression_optimal",
     "train_pooled_gvls_full_graph",
     "evaluate_pooled_compression",
+    "build_pooled_gvls",
+    "jet_adjacency",
+    "jet_loss",
+    "jet_pos_weight",
+    "train_pooled_gvls_on_jets",
 ]
