@@ -15,8 +15,17 @@ dependencies = [
     "optuna>=3.0",
     "matplotlib>=3.8",
     "energyflow>=1.4",
-    "qiskit>=2.0",
-    "qiskit-machine-learning>=0.9",
+    # numpy<2 and qiskit<2 are load-bearing, not just conservative pins:
+    # energyflow's `wasserstein` dependency ships a compiled extension built
+    # against the NumPy 1.x C-API, while qiskit>=2.0 hard-requires numpy>=2.0
+    # -- the two cannot coexist (confirmed on a remote Linux machine: `import
+    # energyflow` crashed with "AttributeError: _ARRAY_API not found" once
+    # numpy was upgraded to 2.x for qiskit). qiskit<2 only requires
+    # numpy>=1.17, so pinning both keeps energyflow and qiskit compatible in
+    # one environment. See specs/phase4/validation.md V-4/V-5.
+    "numpy<2",
+    "qiskit>=1.4,<2.0",
+    "qiskit-machine-learning>=0.8,<0.9",
     "qiskit-aer>=0.17",
     "tqdm>=4.65",
 ]
