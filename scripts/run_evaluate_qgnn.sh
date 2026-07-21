@@ -12,4 +12,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=./_activate_env.sh
 source "${SCRIPT_DIR}/_activate_env.sh"
 
-python experiments/evaluate_qgnn.py "$@"
+# This script doesn't use W&B, so --online (understood by the other two
+# run_*.sh scripts) is silently dropped here rather than passed through to
+# Hydra, letting run_full_qgnn_pipeline.sh forward the same "$@" to all three
+# steps uniformly.
+ARGS=()
+for arg in "$@"; do
+    if [[ "$arg" != "--online" ]]; then
+        ARGS+=("$arg")
+    fi
+done
+
+python experiments/evaluate_qgnn.py "${ARGS[@]}"
