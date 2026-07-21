@@ -166,6 +166,73 @@ def test_train_on_tiny_jet_set_completes_without_nan() -> None:
             assert not torch.isinf(recon_logits).any()
 
 
+# ── Per-epoch callback + val-metric logging ─────────────────────────────────
+
+def test_on_epoch_end_called_once_per_epoch() -> None:
+    jets = [_synthetic_jet(20 + i, seed=i) for i in range(6)]
+    calls: list[tuple[int, dict]] = []
+    train_pooled_gvls_on_jets(
+        jets, in_channels=IN_CHANNELS, latent_dim=LATENT_DIM, k=K, num_clusters=M,
+        base_cfg=_base_cfg(), epochs=3, seed=42, device=torch.device("cpu"), batch_size=3,
+        on_epoch_end=lambda epoch, metrics: calls.append((epoch, metrics)),
+    )
+    assert [c[0] for c in calls] == [0, 1, 2]
+    for _epoch, metrics in calls:
+        assert "epoch" in metrics
+        assert "train_loss" in metrics
+        assert not torch.isnan(torch.tensor(metrics["train_loss"]))
+
+
+def test_on_epoch_end_includes_val_metrics_when_eval_jets_given() -> None:
+    train_jets = [_synthetic_jet(20 + i, seed=i) for i in range(6)]
+    eval_jets = [_synthetic_jet(20 + i, seed=100 + i) for i in range(4)]
+    calls: list[dict] = []
+    train_pooled_gvls_on_jets(
+        train_jets, in_channels=IN_CHANNELS, latent_dim=LATENT_DIM, k=K, num_clusters=M,
+        base_cfg=_base_cfg(), epochs=2, seed=42, device=torch.device("cpu"), batch_size=3,
+        eval_jets=eval_jets, eval_every=1,
+        on_epoch_end=lambda epoch, metrics: calls.append(metrics),
+    )
+    for metrics in calls:
+        assert "val_avg_reconstruction_f1" in metrics
+        assert 0.0 <= metrics["val_avg_reconstruction_f1"] <= 1.0
+        assert "val_avg_bits_per_edge" in metrics
+        # static/config fields shouldn't be re-logged every epoch
+        assert "val_num_clusters" not in metrics
+        assert "val_latent_dim" not in metrics
+
+
+def test_eval_every_skips_non_eval_epochs_but_always_evals_last() -> None:
+    train_jets = [_synthetic_jet(20 + i, seed=i) for i in range(6)]
+    eval_jets = [_synthetic_jet(20 + i, seed=100 + i) for i in range(4)]
+    calls: list[dict] = []
+    train_pooled_gvls_on_jets(
+        train_jets, in_channels=IN_CHANNELS, latent_dim=LATENT_DIM, k=K, num_clusters=M,
+        base_cfg=_base_cfg(), epochs=5, seed=42, device=torch.device("cpu"), batch_size=3,
+        eval_jets=eval_jets, eval_every=3,
+        on_epoch_end=lambda epoch, metrics: calls.append(metrics),
+    )
+    has_val = [i for i, m in enumerate(calls) if "val_avg_reconstruction_f1" in m]
+    # epoch 0 (0 % 3 == 0) and epoch 4 (last epoch) must have eval'd; epoch 3
+    # (3 % 3 == 0) also qualifies. Epochs 1, 2 must not.
+    assert 0 in has_val
+    assert 4 in has_val  # last epoch always evaluated regardless of eval_every
+    assert 1 not in has_val
+    assert 2 not in has_val
+
+
+def test_no_eval_jets_means_no_val_metrics_and_no_crash() -> None:
+    jets = [_synthetic_jet(20 + i, seed=i) for i in range(4)]
+    calls: list[dict] = []
+    train_pooled_gvls_on_jets(
+        jets, in_channels=IN_CHANNELS, latent_dim=LATENT_DIM, k=K, num_clusters=M,
+        base_cfg=_base_cfg(), epochs=2, seed=42, device=torch.device("cpu"), batch_size=2,
+        on_epoch_end=lambda epoch, metrics: calls.append(metrics),
+    )
+    for metrics in calls:
+        assert not any(key.startswith("val_") for key in metrics)
+
+
 def test_jet_pos_weight_matches_formula() -> None:
     jet = _synthetic_jet(10, seed=5)
     n = jet.num_nodes

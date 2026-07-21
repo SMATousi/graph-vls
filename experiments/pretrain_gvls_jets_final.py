@@ -70,6 +70,8 @@ def main(cfg: DictConfig) -> None:
         device=device,
         batch_size=int(base_cfg["batch_size"]),
         progress_desc=f"pretrain GVLS (production, M={m})",
+        eval_jets=split.val,
+        on_epoch_end=lambda epoch, metrics: wandb.log(metrics, step=epoch),
     )
     wandb.finish()
 

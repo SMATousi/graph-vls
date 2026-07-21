@@ -12,6 +12,7 @@ empirically rare; `tests/test_jet_sweep.py` checks this directly.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -134,6 +135,13 @@ def jet_loss(
     return loss
 
 
+# Structural/config fields in evaluate_pooled_gvls_on_jets's return dict that
+# don't change epoch to epoch (already present in the run's W&B config from
+# wandb.init) -- excluded from per-epoch logging so val_* only reports
+# quantities that actually evolve during training.
+_STATIC_EVAL_KEYS = {"num_clusters", "latent_dim", "k", "num_features", "dim_compression_ratio"}
+
+
 def train_pooled_gvls_on_jets(
     jets: list[JetGraph],
     in_channels: int,
@@ -149,6 +157,10 @@ def train_pooled_gvls_on_jets(
     aux_link_weight: float = 5.0,
     show_progress: bool = True,
     progress_desc: str = "pretrain GVLS",
+    eval_jets: list[JetGraph] | None = None,
+    eval_every: int = 1,
+    f1_negative_ratio: float = 1.0,
+    on_epoch_end: Callable[[int, dict[str, Any]], None] | None = None,
 ) -> PooledGVLS:
     """Train one PooledGVLS unsupervised (ELBO only) over many jets (T4.2/T4.3).
 
@@ -162,11 +174,22 @@ def train_pooled_gvls_on_jets(
     auxiliary losses, adapted from one large graph to many small ones.
 
     `show_progress` reports one tqdm tick per epoch, postfixed with the
-    running mean per-jet loss for that epoch -- real pretraining runs over
-    thousands of jets take minutes, and this is meant to be run unattended on
-    a remote machine (see `scripts/run_pretrain_gvls_jets_final.sh`), so
-    visible progress matters. Set to `False` in tests/tight inner loops
-    (T4.3's sweep already wraps the outer M-loop in its own progress bar).
+    running mean per-jet loss for that epoch (and validation F1 once
+    computed) -- real pretraining runs over thousands of jets take minutes,
+    and this is meant to be run unattended on a remote machine (see
+    `scripts/run_pretrain_gvls_jets_final.sh`), so visible progress matters.
+    Set to `False` in tests/tight inner loops.
+
+    `eval_jets`, if given, is passed to `evaluate_pooled_gvls_on_jets` every
+    `eval_every` epochs (and always on the final epoch) to compute held-out
+    compression metrics (F1, bits-per-edge, latent density, etc.) as training
+    progresses -- otherwise the only way to see how compression fidelity
+    evolves is to train fully and evaluate once at the end. `on_epoch_end`,
+    if given, is called once per epoch as `on_epoch_end(epoch, metrics)` with
+    `metrics = {"epoch": ..., "train_loss": ..., **(val_* keys, if
+    eval_jets was given and this was an eval epoch)}` -- the natural hook for
+    live per-epoch logging (e.g. `wandb.log`) without coupling this reusable
+    training function to any specific logging backend.
     """
     torch.manual_seed(seed)
     model = build_pooled_gvls(in_channels, latent_dim, k, num_clusters, base_cfg).to(device)
@@ -174,7 +197,7 @@ def train_pooled_gvls_on_jets(
     shuffle_generator = torch.Generator().manual_seed(seed)
 
     epoch_iter = tqdm(range(epochs), desc=progress_desc, disable=not show_progress)
-    for _epoch in epoch_iter:
+    for epoch in epoch_iter:
         model.train()
         perm = torch.randperm(len(jets), generator=shuffle_generator).tolist()
         running_loss, n_seen = 0.0, 0
@@ -191,7 +214,35 @@ def train_pooled_gvls_on_jets(
             optimizer.step()
             running_loss += batch_loss
             n_seen += len(batch_idx)
-        epoch_iter.set_postfix(loss=running_loss / max(n_seen, 1))
+        train_loss = running_loss / max(n_seen, 1)
+
+        epoch_metrics: dict[str, Any] = {"epoch": epoch, "train_loss": train_loss}
+        postfix: dict[str, Any] = {"loss": train_loss}
+        is_eval_epoch = eval_jets is not None and (epoch % eval_every == 0 or epoch == epochs - 1)
+        if is_eval_epoch:
+            eval_metrics = evaluate_pooled_gvls_on_jets(
+                model,
+                eval_jets,  # type: ignore[arg-type]
+                num_clusters=num_clusters,
+                latent_dim=latent_dim,
+                k=k,
+                num_features=in_channels,
+                f1_negative_ratio=f1_negative_ratio,
+                seed=seed,
+                device=device,
+            )
+            epoch_metrics.update(
+                {
+                    f"val_{key}": value
+                    for key, value in eval_metrics.items()
+                    if key not in _STATIC_EVAL_KEYS
+                }
+            )
+            postfix["val_f1"] = eval_metrics["avg_reconstruction_f1"]
+        epoch_iter.set_postfix(**postfix)
+
+        if on_epoch_end is not None:
+            on_epoch_end(epoch, epoch_metrics)
 
     model.eval()
     return model
