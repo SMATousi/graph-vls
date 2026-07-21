@@ -14,9 +14,17 @@ if ! command -v conda &> /dev/null; then
 fi
 
 CONDA_BASE="$(conda info --base)"
+
+# conda's own activation hooks (e.g. MKL-linked BLAS packages' libblas_mkl_
+# activate.sh) reference variables like MKL_INTERFACE_LAYER without a default,
+# which trips `set -u` ("unbound variable") on some conda installs/remote
+# machines even though the hook itself is harmless. Relax -u just for the
+# conda machinery, then restore it.
+set +u
 # shellcheck source=/dev/null
 source "${CONDA_BASE}/etc/profile.d/conda.sh"
 conda activate "$CONDA_ENV"
+set -u
 
 # Repo root: one level up from this scripts/ directory.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
