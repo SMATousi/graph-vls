@@ -82,10 +82,8 @@ def main(cfg: DictConfig) -> None:
         seed=int(train_cfg["seed"]),
         device=device,
         batch_size=int(train_cfg["batch_size"]),
+        on_epoch_end=lambda epoch, metrics: wandb.log(metrics, step=epoch),
     )
-
-    for row in result.history:
-        wandb.log(row)
 
     best = result.best_val_metrics
     print(

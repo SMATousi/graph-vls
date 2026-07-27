@@ -10,6 +10,7 @@ jets (same per-jet loop pattern T4.2 validated for GVLS's own pretraining).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -57,7 +58,11 @@ def extract_latent_features(
 
 
 def qgnn_jet_loss(model: QGNNClassifier, features: JetFeatures, device: torch.device) -> Tensor:
-    """BCE-with-logits loss for one jet's frozen (z_tilde, A_z) against its label."""
+    """BCE-with-logits loss for one jet's frozen (z_tilde, A_z) against its
+    label. Superseded by `qgnn_batch_loss` in `train_qgnn_classifier`'s main
+    loop (T4.8) -- kept as the known-correct per-jet reference the batched
+    path's gradient-parity test (`tests/test_qgnn_training.py`) checks against.
+    """
     z_tilde = features.z_tilde.to(device)
     a_z = features.a_z.to(device)
     label = torch.tensor([float(features.label)], device=device)
@@ -65,17 +70,51 @@ def qgnn_jet_loss(model: QGNNClassifier, features: JetFeatures, device: torch.de
     return F.binary_cross_entropy_with_logits(logit, label)
 
 
+def collate_jet_features(features: list[JetFeatures]) -> tuple[Tensor, Tensor, Tensor]:
+    """Stack a minibatch of `JetFeatures` into batched `(B,M,d)`/`(B,M,M)`/`(B,)`
+    tensors (T4.8). Valid because every jet is pooled to the same fixed `M`
+    (`plan.md` Design Decision 3) -- every jet's `z_tilde`/`a_z` shape is
+    identical, so stacking needs no padding/masking, unlike the classical
+    encoder/pooling stack's per-jet-`N` constraint (Design Decision 7).
+    """
+    z_tildes = torch.stack([f.z_tilde for f in features])
+    a_zs = torch.stack([f.a_z for f in features])
+    labels = torch.tensor([float(f.label) for f in features])
+    return z_tildes, a_zs, labels
+
+
+def qgnn_batch_loss(
+    model: QGNNClassifier, features: list[JetFeatures], device: torch.device
+) -> Tensor:
+    """BCE-with-logits loss (mean-reduced) for a minibatch of jets, via one
+    batched `QGNNClassifier` call (T4.8) instead of a per-jet loop."""
+    z_tildes, a_zs, labels = collate_jet_features(features)
+    logits = model(z_tildes.to(device), a_zs.to(device))
+    return F.binary_cross_entropy_with_logits(logits, labels.to(device))
+
+
 @torch.no_grad()
 def evaluate_qgnn_classifier(
-    model: QGNNClassifier, features: list[JetFeatures], device: torch.device
+    model: QGNNClassifier,
+    features: list[JetFeatures],
+    device: torch.device,
+    batch_size: int = 256,
 ) -> dict[str, Any]:
     """Full classification metrics (accuracy, AUC, AP, macro-F1, precision,
-    recall, confusion matrix) for a QGNNClassifier over a set of jets."""
+    recall, confusion matrix) for a QGNNClassifier over a set of jets.
+
+    Batched (T4.8): evaluates `batch_size` jets per circuit call instead of
+    one call per jet, bounding a single Estimator job's size (chunked rather
+    than one call for the whole split, per `plan.md` Design Decision 10).
+    """
     model.eval()
+    all_logits: list[Tensor] = []
+    for start in range(0, len(features), batch_size):
+        chunk = features[start : start + batch_size]
+        z_tildes, a_zs, _ = collate_jet_features(chunk)
+        all_logits.append(model(z_tildes.to(device), a_zs.to(device)).cpu())
+    logits = torch.cat(all_logits)
     labels = torch.tensor([f.label for f in features], dtype=torch.float32)
-    logits = torch.cat(
-        [model(f.z_tilde.to(device), f.a_z.to(device)).cpu() for f in features]
-    )
     return classification_metrics(labels, logits)
 
 
@@ -99,15 +138,32 @@ def train_qgnn_classifier(
     device: torch.device,
     batch_size: int = 32,
     show_progress: bool = True,
+    on_epoch_end: Callable[[int, dict[str, Any]], None] | None = None,
 ) -> QGNNTrainingResult:
     """Train QGNNClassifier's circuit parameters via Adam (T4.5, FR-5).
 
-    Jets are iterated one at a time (T4.2's pattern, reused here for the
-    quantum classifier for the same reason: each jet's circuit reads a
-    different (z_tilde, A_z), so there is no batched tensor to build), with
-    gradients accumulated over a minibatch before each `optimizer.step()`.
+    Each minibatch is one batched `QGNNClassifier` call (T4.8) via
+    `qgnn_batch_loss`/`collate_jet_features` -- unlike the classical GVLS
+    stack (Design Decision 7), the QGNN's inputs are already fixed-size
+    (`M x d`, `M x M`) post-pooling for every jet, so there is no per-jet-`N`
+    obstacle to batching here; the original per-jet loop this superseded
+    (`qgnn_jet_loss` in a Python `for` loop, one `TorchConnector` call per
+    jet) was carried over from that classical-stack pattern without
+    re-examining whether the constraint actually applied. See `plan.md`
+    Design Decision 10 for the full diagnosis.
     Tracks train/val loss and the full metric suite each epoch; returns the
     state dict from whichever epoch had the best validation accuracy.
+
+    `on_epoch_end`, if given, is called once per epoch as
+    `on_epoch_end(epoch, metrics)` with that epoch's `{"epoch", "train_loss",
+    **val_metrics}` row -- mirrors `train_pooled_gvls_on_jets`'s callback
+    (`src/gvls/compression/jet_sweep.py`), added there after stage-1 GVLS
+    pretraining was found to log nothing to W&B until training finished
+    (`specs/phase4/validation.md` V-5). This training loop had the same gap:
+    the caller previously only saw `result.history` after this function
+    returned, so a long run that crashed or was killed partway (a real risk
+    at this stage's current per-jet, unbatched training cost, see T4.8) would
+    report zero training metrics.
     """
     if epochs < 1:
         raise ValueError(f"epochs must be >= 1, got {epochs}")
@@ -132,20 +188,22 @@ def train_qgnn_classifier(
         running_loss, n_seen = 0.0, 0
         for start in range(0, len(perm), batch_size):
             batch_idx = perm[start : start + batch_size]
+            batch = [train_features[i] for i in batch_idx]
             optimizer.zero_grad()
-            batch_loss = 0.0
-            for idx in batch_idx:
-                loss = qgnn_jet_loss(model, train_features[idx], device)
-                (loss / len(batch_idx)).backward()
-                batch_loss += loss.item()
+            loss = qgnn_batch_loss(model, batch, device)  # mean over the minibatch
+            loss.backward()
             optimizer.step()
-            running_loss += batch_loss
+            running_loss += loss.item() * len(batch_idx)  # de-mean back to a sum
             n_seen += len(batch_idx)
         train_loss = running_loss / max(n_seen, 1)
 
         val_metrics = evaluate_qgnn_classifier(model, val_features, device)
-        history.append({"epoch": epoch, "train_loss": train_loss, **val_metrics})
+        epoch_metrics = {"epoch": epoch, "train_loss": train_loss, **val_metrics}
+        history.append(epoch_metrics)
         epoch_iter.set_postfix(train_loss=train_loss, val_acc=val_metrics["accuracy"])
+
+        if on_epoch_end is not None:
+            on_epoch_end(epoch, epoch_metrics)
 
         if val_metrics["accuracy"] > best_val_accuracy:
             best_val_accuracy = val_metrics["accuracy"]

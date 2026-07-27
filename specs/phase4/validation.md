@@ -1,6 +1,6 @@
 # Phase 4 — Validation
 
-**Status: T4.1–T4.4 complete (2026-07-20); T4.5 code-complete and smoke-tested, but not actually run (2026-07-20, user instruction).** T4.6/T4.7 not started.
+**Status: T4.1–T4.4 complete (2026-07-20); T4.5 code-complete and smoke-tested, but not actually run (2026-07-20, user instruction).** T4.6/T4.7 not started. **T4.8 (batched QGNN training) implemented and parity-tested 2026-07-27 — real measured speedup is only ~1.34x (mostly from `input_gradients=False`, not batching itself), likely insufficient on its own to make T4.5's real run tractable at the target dataset scale. See V-8.**
 
 ## Exit Criteria
 
@@ -13,6 +13,7 @@
 - [ ] Test-set accuracy/AUC/macro-F1 reported, literature comparison identified or explicitly declared absent (FR-6)
 - [ ] `README.md` updated with a new results section
 - [ ] `pytest tests/` passes with all new Phase 4 tests included
+- [x] (T4.8, 2026-07-27) QGNN training batched (one `EstimatorQNN`/`TorchConnector` call per minibatch, `input_gradients=False`), gradient-parity-tested against the per-jet loop, with an actual before/after wall-clock recorded — measured ~1.34x, not the large speedup originally hoped for; see V-8
 
 ---
 
@@ -97,7 +98,7 @@
 |---|---|---|
 | GVLS frozen correctly | No gradient updates to GVLS parameters during QGNN training | ✅ (by construction, smoke-tested) `extract_latent_features` only ever calls the GVLS model under `torch.no_grad()`; no optimizer is ever constructed over its parameters in `train_qgnn_classifier`. `test_extract_latent_features_does_not_change_model_params` confirms every parameter is bit-identical (and `.grad is None`) after extraction |
 | Training converges | Train/val loss decreases, no NaNs | Not evaluated — this requires a real run (deferred to the user's remote machine). Smoke test (`test_train_qgnn_classifier_smoke`, 2 epochs on 6 synthetic jets) only confirms the loop completes and losses are finite, not that they trend downward over a real training run |
-| W&B logging | `qgnn-jet-classification` group tag present | Implemented in `experiments/train_qgnn.py` (`wandb.init(..., group="qgnn-jet-classification")`); not exercised against a real run |
+| W&B logging | `qgnn-jet-classification` group tag present, metrics logged **per epoch** during training, not just at the end | ✅ Fixed 2026-07-27 (see below); `wandb.init(..., group="qgnn-jet-classification")` present, and per-epoch `wandb.log(metrics, step=epoch)` verified live via a real 3-epoch smoke run (3 distinct logged points, `train_loss` trending 1.74→1.61→1.47) |
 | Checkpointing | Best-val-accuracy parameters saved | ✅ mechanism verified: `train_qgnn_classifier` tracks the highest validation accuracy seen across epochs and returns that epoch's state dict; `test_train_qgnn_classifier_best_state_dict_is_loadable` confirms a saved/reloaded checkpoint reproduces the exact same validation accuracy |
 
 **Full classification metrics (beyond FR-5/FR-6's minimum):** `classification_metrics` (`src/gvls/eval/metrics.py`) returns accuracy, AUC, average precision, macro-F1, precision, recall, and the confusion matrix from one call — used both for `train_qgnn_classifier`'s per-epoch validation tracking (not just accuracy) and for `evaluate_qgnn.py`'s test-set report. 5 tests in `tests/test_metrics.py` cover perfect/inverted/random predictions, tensor inputs, and threshold sensitivity.
@@ -106,7 +107,9 @@
 
 **Gap found and fixed (2026-07-21): stage-1 GVLS pretraining logged nothing to W&B.** `experiments/pretrain_gvls_jets_final.py` originally only called `wandb.init(config=...)` (the run's hyperparameters) — there was no `wandb.log(...)` call anywhere in it or in `train_pooled_gvls_on_jets`, so a run's W&B page would show a populated config panel but an empty metrics/charts tab; per-epoch loss was only ever visible locally via the tqdm postfix. Fixed by adding optional `eval_jets`, `eval_every`, and `on_epoch_end` parameters to `train_pooled_gvls_on_jets` (all default to the prior no-logging behavior, so T4.3's sweep is unaffected): each epoch it now builds a `{"epoch", "train_loss", **val_* keys}` dict (val_* computed via the existing `evaluate_pooled_gvls_on_jets` every `eval_every` epochs, and always on the final epoch) and, if given, calls `on_epoch_end(epoch, metrics)` — the training function stays logging-backend-agnostic; the wiring to `wandb.log` lives entirely in `experiments/pretrain_gvls_jets_final.py`. 4 new tests in `tests/test_jet_sweep.py` cover: the callback fires once per epoch; val_* keys appear only on eval epochs (and always on the last epoch, regardless of `eval_every`); static/config fields (`num_clusters`, `latent_dim`, `k`, `num_features`, `dim_compression_ratio`) are excluded from per-epoch logging since they don't change; and omitting `eval_jets` produces no `val_*` keys and doesn't crash.
 
-**What still needs to happen before this is genuinely "done":** run `scripts/run_full_qgnn_pipeline.sh` (or the three `run_*.sh` scripts individually) on a real machine; confirm loss actually decreases, val F1 is reasonable, and accuracy is better than a 50/50 random baseline; fill in the "Result" cells above with real numbers; confirm the W&B run pages for stage 1 (`jet-gvls-final` group) actually show live-updating charts, not just a static config panel.
+**Same gap found and fixed for stage 2 (QGNN training) — 2026-07-27.** `experiments/train_qgnn.py` had the equivalent problem, in a different shape: `train_qgnn_classifier` had no callback hook at all, so `wandb.log` was only ever called *after* the whole training loop returned (`for row in result.history: wandb.log(row)`), dumping every epoch's metrics at once instead of streaming them live. Consequences: no live progress visible in the W&B UI while a run is in flight, and — more seriously — a run that crashed or was killed partway (a real risk at this stage's current per-jet, unbatched training cost, see T4.8) would report **zero** training metrics, since nothing was logged until completion. Fixed the same way as stage 1: added an `on_epoch_end: Callable[[int, dict], None] | None` parameter to `train_qgnn_classifier` (`src/gvls/qgnn_training.py`), called once per epoch with that epoch's `{"epoch", "train_loss", **val_metrics}` row (the same dict already appended to `result.history` — verified identical via `test_train_qgnn_classifier_on_epoch_end_called_once_per_epoch`, not just structurally similar); `experiments/train_qgnn.py` now wires `on_epoch_end=lambda epoch, metrics: wandb.log(metrics, step=epoch)` and no longer has a post-hoc `for row in result.history` loop. Verified live (not just unit-tested) via a real 3-epoch smoke run: W&B's run history showed 3 distinct logged points with `train_loss` trending 1.74→1.61→1.47, confirming per-epoch streaming rather than a bulk end-of-run dump. 1 new test in `tests/test_qgnn_training.py`.
+
+**What still needs to happen before this is genuinely "done":** run `scripts/run_full_qgnn_pipeline.sh` (or the three `run_*.sh` scripts individually) on a real machine; confirm loss actually decreases, val F1 is reasonable, and accuracy is better than a 50/50 random baseline; fill in the "Result" cells above with real numbers; confirm the W&B run pages for stage 1 (`jet-gvls-final` group) actually show live-updating charts, not just a static config panel. Now also true of stage 2 (`qgnn-jet-classification` group) given the fix above, though still gated on T4.8's batching fix to be tractable at the target dataset scale.
 
 ---
 
@@ -126,3 +129,35 @@
 |---|---|---|
 | `pytest tests/` | All new Phase 4 tests pass alongside the existing suite | ⬜ |
 | `ruff check src/` | Zero violations | ⬜ |
+
+---
+
+## V-8: Batched QGNN Training (T4.8) ✅ Implemented 2026-07-27 — modest speedup, honestly reported below
+
+**Trigger:** T4.5's real run (deferred to a remote machine per V-5) was reported intractably slow. Root-caused to `train_qgnn_classifier`'s per-jet `EstimatorQNN`/`TorchConnector` calls — one Estimator job dispatch per jet — compounded by `input_gradients=True` differentiating all 19 circuit parameters (9 trainable weights + 10 runtime inputs) via parameter-shift when only the 9 weights are ever optimized. Full diagnosis and design in `plan.md` Design Decision 10; requirements in `requirements.md` FR-5 (amended) and NFR-2/NFR-3 (amended).
+
+**Verified before speccing (not assumed):** read the installed `qiskit-machine-learning==0.8.2` source directly. `TorchConnector`'s `_TorchNNFunction.forward`/`backward` (`connectors/torch_connector.py`) already accept a batched `(B, num_inputs)` tensor with a single shared weight vector. `EstimatorQNN._forward`/`_backward` (`neural_networks/estimator_qnn.py`) already tile per-sample parameter values into one `estimator.run()`/`gradient.run()` call regardless of `num_samples`. Batching is natively supported by the pinned library version — it was simply never used, because the per-jet loop pattern was copied from the classical stack's T4.2 precedent (Design Decision 7) without checking whether that constraint (variable per-jet `N`) actually applied to the QGNN, which operates on fixed-size `(M,d)`/`(M,M)` inputs post-pooling and has no such constraint.
+
+**Files:** `src/gvls/models/qgnn.py` (`QGNNClassifier.encode_input_batch`, dim-dispatching `forward`, `input_gradients=False`), `src/gvls/qgnn_training.py` (`collate_jet_features`, `qgnn_batch_loss`, batched `train_qgnn_classifier` inner loop, chunked-batch `evaluate_qgnn_classifier`). Tests: 5 new in `tests/test_qgnn.py`, 3 new in `tests/test_qgnn_training.py`.
+
+| Check | Pass condition | Result |
+|---|---|---|
+| `QGNNClassifier.forward` accepts a batch | 3D `(B,M,d)`/`(B,M,M)` input routes through one `TorchConnector` call, not a Python loop over jets | ✅ dispatches on `z_tilde.dim()` |
+| Batched forward matches per-jet loop | `test_forward_batch_matches_per_jet_loop`: batched logits equal per-jet-computed-and-stacked logits (float tolerance) | ✅ (also `test_batch_of_one_matches_single_jet_call` for the ragged-tail case) |
+| Batched backward matches per-jet loop | `test_batched_backward_matches_accumulated_per_jet_gradients`: batched `loss.backward()` gradients on `theta`/`b_i`/`gamma_i` equal the sum of the pre-T4.8 per-jet-accumulated gradients — required before trusting the batched path over the known-correct one, given V-4's precedent of non-obvious bugs in this exact stack | ✅ `atol=1e-5` |
+| `input_gradients=False` set | `EstimatorQNN` in `QGNNClassifier.__init__` no longer computes unused input-parameter gradients | ✅ |
+| Ragged final minibatch handled | `collate_jet_features` with `len(features) % batch_size != 0` doesn't error | ✅ `test_collate_jet_features_handles_ragged_final_batch`, `test_train_qgnn_classifier_handles_ragged_final_minibatch` |
+| Existing smoke test still passes | `test_train_qgnn_classifier_smoke` unaffected by the loop rewrite | ✅ |
+| Full suite / lint | `pytest tests/` (212 tests) and `ruff check` on all touched files | ✅ |
+
+**Real wall-clock measurement (not assumed) — the honest result is smaller than hoped.** Benchmarked the pre-T4.8 code (loaded directly from commit `31b5afe` via `git show`, not reconstructed from memory) against the current implementation on identical synthetic jets (`M=4, d=8, num_layers=1`, 300 train / 60 val jets, 3 epochs, CPU), decomposed into the two independent levers:
+
+| Variant | Wall-clock | vs. original |
+|---|---|---|
+| (a) original: per-jet loop, `input_gradients=True` | 26.3–26.6s | 1.00x (baseline) |
+| (b) per-jet loop, `input_gradients=False` only | 21.2–21.3s | 1.24–1.25x |
+| (c) T4.8 (batched, `input_gradients=False`) | 19.7–19.8s | 1.34x |
+
+Batching's *own* marginal contribution on top of `input_gradients=False` is only ~1.07–1.08x, tested at both `batch_size=16` and `batch_size=64` (no further improvement at the larger batch size — the win does not scale with batch size, i.e. it's saturated). **Most of the total 1.34x speedup comes from `input_gradients=False`, not from batching itself.** This contradicts the original diagnosis's expectation that per-jet Python/job-dispatch overhead was the dominant cost. The actual dominant cost appears to be intrinsic to `qiskit-machine-learning`'s parameter-shift gradient estimator (`ParamShiftEstimatorGradient`, invoked automatically per the "No gradient function provided, creating a gradient function" warning) constructing and evaluating one bound circuit per shifted parameter per sample — work our outer-level batching doesn't touch, since it happens *inside* the single `gradient.run()` call regardless of how many samples are packed into it.
+
+**Implication:** T4.8 is implemented correctly (parity-tested) and gives a real, modest ~1.3x speedup, primarily from `input_gradients=False`. It is very unlikely to be enough on its own to make the target 10,000–50,000-jet × 50-epoch real run in `specs/phase4/plan.md` Design Decision 9 tractable — extrapolating the 1.34x from this benchmark's scale, a run that was intractable before is very likely still intractable after, just ~25% faster. Further levers (not implemented here, flagged for a follow-up decision): reducing `num_layers`/circuit depth further, reducing the jet subset size, switching to a cheaper gradient method (e.g. SPSA instead of exact parameter-shift, trading gradient variance for far fewer circuit evaluations per step), or reducing epoch count. This should be surfaced to the user before assuming T4.5's real run is now unblocked.

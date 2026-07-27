@@ -31,8 +31,8 @@
 
 ### FR-5: Two-stage supervised training
 - Loads the frozen GVLS checkpoint selected by FR-3, runs it once (no gradient) over every jet in the labeled split to produce `(z̃, A_z)` per jet
-- Trains only the QGNN's circuit parameters (`θ`, `b_i`) via Adam, using `TorchConnector`'s autograd bridge (parameter-shift rule under the hood), against a BCE loss on the quark/gluon label
-- Batches jets by accumulating loss/gradients over a minibatch before each `optimizer.step()` (no true batched quantum circuit execution required — each jet's circuit still runs individually)
+- Trains only the QGNN's circuit parameters (`θ`, `b_i`, the readout rotation `γ_i`) via Adam, using `TorchConnector`'s autograd bridge (parameter-shift rule under the hood), against a BCE loss on the quark/gluon label
+- **Batches jets via a true batched `EstimatorQNN`/`TorchConnector` call per minibatch (amended 2026-07-27, T4.8), not a per-jet loop with manually accumulated gradients.** The original wording ("no true batched quantum circuit execution required — each jet's circuit still runs individually") is superseded: T4.5's real run proved intractably slow, and `TorchConnector`/`EstimatorQNN` were confirmed (against the installed `qiskit-machine-learning==0.8.2` source, not assumed) to already natively support a `(B, num_inputs)` batched call submitted as one job, which the original per-jet design simply never used. See `plan.md` Design Decision 10.
 - Tracks train/val loss and accuracy per epoch; logs to W&B under group tag `qgnn-jet-classification`; checkpoints the best-val-accuracy parameter set
 
 ### FR-6: Evaluation and literature comparison
@@ -55,14 +55,16 @@
 - Same config + seed must reproduce the same compression-sweep CSV row and the same QGNN test-set metrics within floating-point / parameter-shift-rule tolerance
 
 ### NFR-2: Scale and compute budget
-- Per-jet iteration (`plan.md` Design Decision 7) means training cost scales with the number of jets × epochs × (one classical forward pass + one quantum circuit execution each) — if this proves too slow at the target 10,000–50,000-jet subset, reducing the subset size is preferred over prematurely rewriting the classical stack for true batching (document whichever tradeoff is actually taken)
+- Per-jet iteration (`plan.md` Design Decision 7) means training cost scales with the number of jets × epochs × (one classical forward pass + one quantum circuit execution each) — if this proves too slow at the target 10,000–50,000-jet subset, reducing the subset size is preferred over prematurely rewriting the classical stack for true batching (document whichever tradeoff is actually taken). **This tradeoff is about the classical GVLS stack specifically** (constrained by variable per-jet `N`, Design Decision 7); it does not apply to the QGNN stage, whose inputs are fixed-size post-pooling — see the QGNN-specific note below.
 - Qiskit Aer statevector simulation cost scales as `O(2^M)` in qubit count `M`; since `M ≤ 8` here, this is not expected to be a bottleneck — flag immediately if it becomes one, since it would suggest the ansatz or simulator choice needs revisiting, not just the subset size
 - Circuit depth (`num_layers`) must stay shallow enough (1–2 layers to start) that gradient estimation via parameter-shift doesn't dominate wall-clock time — parameter-shift requires 2 circuit evaluations per trainable parameter per sample, which grows with both `M` and `num_layers`
+- **(Added 2026-07-27, T4.8) QGNN training must batch circuit evaluations across a minibatch, not loop per jet.** Unlike the classical stack, the QGNN's inputs (`z̃`, `A_z`) are already fixed-size (`M×d`, `M×M`) across every jet post-pooling, so there is no per-jet-`N` obstacle to batching here — the per-jet loop pattern in the original FR-5 wording was carried over from the classical stack's constraint without re-examining whether it applied. A per-jet loop pays Qiskit/`EstimatorQNN`'s Python-level job-dispatch overhead once per jet instead of once per minibatch, which in practice dominated wall-clock time at the target dataset scale (10,000–50,000 jets × up to 50 epochs). `input_gradients` on the `EstimatorQNN` must also be set to `False` — `z̃`/`A_z` are frozen extraction outputs that never need `∂L/∂input`, so computing them via parameter-shift is pure waste, roughly doubling the shifted-circuit count for no benefit.
 
 ### NFR-3: Test coverage
 - Every new module (`jets.py`, `jet_sweep.py`, `qgnn.py`, `train_qgnn.py`) has at least one shape/correctness test
 - `test_qgnn.py` must verify the core topology-equivariance claim directly: a toy `A_z` with a known edge set produces `RZZ` gates on exactly those qubit pairs and no others
 - `test_jet_sweep.py` and `test_train_qgnn.py` use tiny smoke-test configurations (few jets, few epochs, small `M`) so the suite completes quickly
+- **(Added 2026-07-27, T4.8)** Batched QGNN forward/backward must be verified against the pre-existing per-jet loop, not trusted from reading the `qiskit-machine-learning` source alone — this codebase has already found two non-obvious correctness bugs in this exact pinned stack (T4.4, `validation.md` V-4). A gradient-parity test (batched `loss.backward()` vs. summed per-jet gradients) is required before the batched path replaces the per-jet one, mirroring T4.2's `test_gradient_accumulation_matches_batched_mean` precedent
 
 ### NFR-4: Code style
 - `ruff check src/` passes with zero warnings after each task

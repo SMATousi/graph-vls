@@ -12,6 +12,7 @@ from gvls.compression.jet_sweep import (
 from gvls.data.jets import NUM_FEATURES, PDGIDS, build_jet_graph
 from gvls.qgnn_training import (
     JetFeatures,
+    collate_jet_features,
     evaluate_qgnn_classifier,
     extract_latent_features,
     load_qgnn_checkpoint,
@@ -106,6 +107,28 @@ def test_gvls_checkpoint_roundtrip_preserves_behavior() -> None:
         assert torch.equal(f_before.a_z, f_after.a_z)
 
 
+# ── collate_jet_features (T4.8) ──────────────────────────────────────────────
+
+def test_collate_jet_features_shapes() -> None:
+    features = _tiny_features(5, seed_offset=0)
+    z_tildes, a_zs, labels = collate_jet_features(features)
+    assert z_tildes.shape == (5, M, LATENT_DIM)
+    assert a_zs.shape == (5, M, M)
+    assert labels.shape == (5,)
+    assert labels.tolist() == [float(f.label) for f in features]
+
+
+def test_collate_jet_features_handles_ragged_final_batch() -> None:
+    features = _tiny_features(5, seed_offset=0)
+    chunks = [features[i : i + 2] for i in range(0, len(features), 2)]
+    assert [len(c) for c in chunks] == [2, 2, 1]  # last chunk is ragged
+    for chunk in chunks:
+        z_tildes, a_zs, labels = collate_jet_features(chunk)
+        assert z_tildes.shape == (len(chunk), M, LATENT_DIM)
+        assert a_zs.shape == (len(chunk), M, M)
+        assert labels.shape == (len(chunk),)
+
+
 # ── train_qgnn_classifier ────────────────────────────────────────────────────
 
 def _tiny_features(n: int, seed_offset: int) -> list[JetFeatures]:
@@ -129,6 +152,43 @@ def test_train_qgnn_classifier_smoke() -> None:
     assert 0.0 <= result.best_val_metrics["accuracy"] <= 1.0
     for row in result.history:
         assert not torch.isnan(torch.tensor(row["train_loss"]))
+
+
+def test_train_qgnn_classifier_handles_ragged_final_minibatch() -> None:
+    """5 train jets with batch_size=2 leaves a final minibatch of size 1 --
+    the batched training loop (T4.8) must handle this without error."""
+    train_features = _tiny_features(5, seed_offset=0)
+    val_features = _tiny_features(4, seed_offset=100)
+
+    result = train_qgnn_classifier(
+        train_features, val_features, m=M, d=LATENT_DIM, num_layers=1,
+        lr=0.1, epochs=2, seed=42, device=DEVICE, batch_size=2, show_progress=False,
+    )
+
+    assert len(result.history) == 2
+    for row in result.history:
+        assert not torch.isnan(torch.tensor(row["train_loss"]))
+
+
+def test_train_qgnn_classifier_on_epoch_end_called_once_per_epoch() -> None:
+    train_features = _tiny_features(6, seed_offset=0)
+    val_features = _tiny_features(4, seed_offset=100)
+    calls: list[tuple[int, dict]] = []
+
+    result = train_qgnn_classifier(
+        train_features, val_features, m=M, d=LATENT_DIM, num_layers=1,
+        lr=0.1, epochs=3, seed=42, device=DEVICE, batch_size=3, show_progress=False,
+        on_epoch_end=lambda epoch, metrics: calls.append((epoch, metrics)),
+    )
+
+    assert [c[0] for c in calls] == [0, 1, 2]
+    for epoch, metrics in calls:
+        assert metrics["epoch"] == epoch
+        assert "train_loss" in metrics
+        assert "accuracy" in metrics
+    # the callback's per-epoch rows must be the same objects/values train_qgnn_classifier
+    # itself returns in result.history -- not a separate, possibly-drifting copy
+    assert [metrics for _epoch, metrics in calls] == result.history
 
 
 def test_train_qgnn_classifier_best_state_dict_is_loadable() -> None:

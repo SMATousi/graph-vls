@@ -24,6 +24,14 @@ Four architectural questions were put to the user directly (`AskUserQuestion`) g
 8. **Two-stage training, not joint end-to-end fine-tuning.** GVLS is pretrained fully unsupervised (ELBO only, no jet labels) on the full pretraining split, then **frozen**; (z̃, A_z) are extracted once per jet; the QGNN classifier is trained supervised on top, using quark/gluon labels — directly mirroring T3.5's frozen-features pattern for node classification. This keeps the (already novel) quantum training loop isolated from the classical ELBO training loop, so a failure in one is easy to attribute. Joint fine-tuning (backprop the classification loss through the quantum circuit *and* into the classical encoder/pooling/latent-graph stack) is a stretch goal (T4.7) — attempt only once the frozen-feature pipeline is validated end-to-end.
 9. **Dataset scope: a subset, not the full ~2M-jet dataset.** Qiskit Aer's statevector simulator is exponential in qubit count but `M` here is small (single digits), so simulating one circuit is fast — the actual bottleneck is the **number of jets** to pretrain GVLS and train the QGNN on, both of which require one classical forward pass *and* one quantum circuit execution per jet per epoch. Start with a subset on the order of **10,000–50,000 jets** (balanced quark/gluon, standard train/val/test split), sized to keep a full training run tractable on a laptop/single machine; scale up only if accuracy is compute-bound rather than data-bound. Exact subset size is a tuning knob, not fixed here — record whatever is actually used in `validation.md` once T4.1 runs.
 
+10. **Batch QGNN training instead of per-jet iteration (new, 2026-07-27, motivated by an actual slow real run, not anticipated at original spec time).** T4.5's design (Decision 8 above, and NFR-2) iterates jets one at a time through `QGNNClassifier` for the same reason the classical stack does (Decision 7) — but that reason doesn't actually apply here. The classical stack stays per-jet because `LatentGraphPooling`/`LatentGraphLearner`/`LatentMessagePassing` operate on one dense `(N,N)`-shaped graph and jets have different `N`; the QGNN operates purely downstream of pooling, on the fixed-size `(M,d)`/`(M,M)` `(z̃, A_z)` pair that's identical in shape across every jet by construction (that's the whole point of fixed-`M` pooling, Decision 3). There is no jagged-shape obstacle to batching the QGNN specifically.
+
+    Diagnosis (see `specs/phase4/requirements.md` FR-5 and NFR-2 for the resulting requirement): `train_qgnn_classifier`'s inner loop calls the `TorchConnector`-wrapped circuit once per jet — one `EstimatorQNN`/Aer `Estimator.run()` job dispatch per jet, `batch_size` times more Python-level overhead per minibatch than necessary. Verified directly against the installed `qiskit-machine-learning==0.8.2` source (not assumed): `TorchConnector`'s `_TorchNNFunction.forward`/`backward` (`connectors/torch_connector.py`) already accept a 2D `(B, num_inputs)` tensor with a single shared 1D weight vector — the 1D-vs-2D branch only special-cases `len(shape)==1` — and `EstimatorQNN._forward`/`_backward` (`neural_networks/estimator_qnn.py`) already tile per-sample parameter values into one `estimator.run()` / `gradient.run()` call regardless of `num_samples`. So batching is natively supported by the pinned library version; it was simply never used because the per-jet loop pattern was copied from the classical stack's T4.2 precedent without re-examining whether the same constraint applied.
+
+    This is a **constant-factor** fix, not an algorithmic one: parameter-shift still needs `O(batch_size × num_params)` circuit evaluations per minibatch — batching collapses `batch_size` separate job dispatches into one, it does not reduce the number of underlying circuit evaluations. A complementary, independent, near-zero-risk change is bundled in: `EstimatorQNN(..., input_gradients=True)` (`src/gvls/models/qgnn.py`) currently makes parameter-shift differentiate all 19 parameters (9 trainable weights + 10 runtime inputs: `A_z` edges + re-uploaded `z̃` features) per call, even though `z̃`/`A_z` are frozen extraction outputs that never need `∂L/∂input` — only the 9 weights are ever optimized. Setting `input_gradients=False` roughly halves the shifted-circuit count per sample, independent of and multiplicative with the batching win.
+
+    Risk: this codebase has already found two non-obvious correctness bugs in this exact pinned `qiskit`/`qiskit-machine-learning` stack (T4.4's diagonal-ansatz degeneracy and `default_precision` shot-noise default, `specs/phase4/validation.md` V-4) — reading the library source is not sufficient grounds to trust batched forward/backward without a direct numerical-parity test against the known-correct per-jet loop (see T4.8 below).
+
 ---
 
 ## Scope
@@ -35,6 +43,7 @@ Four architectural questions were put to the user directly (`AskUserQuestion`) g
 - **T4.4** — QGNN ansatz (Design Decisions 1, 2): Qiskit circuit construction from `(z̃, A_z)`, wrapped as an `EstimatorQNN`, embedded in a `torch.nn.Module` via `TorchConnector`
 - **T4.5** — Two-stage supervised training (Design Decision 8): freeze the pretrained GVLS, extract (z̃, A_z) for every jet once, train the QGNN classifier on quark/gluon labels; Hydra config + W&B logging following the existing convention (new group tag, e.g. `qgnn-jet-classification`)
 - **T4.6** — Evaluation: accuracy / AUC / macro-F1 on held-out test jets; literature search to identify a comparable published QGNN result on this dataset and report against it (Design Decision 4) — the comparison target itself is a deliverable of this task, not an input to it
+- **T4.8 (new, 2026-07-27)** — Batch T4.5's QGNN training loop (Design Decision 10): replace the per-jet `EstimatorQNN`/`TorchConnector` call with one batched call per minibatch, plus `input_gradients=False`, to fix real observed training slowness
 
 ### Stretch / explicitly deferred
 - **T4.7 (stretch)** — Joint end-to-end fine-tuning of GVLS + QGNN together (Design Decision 8), compared against the frozen-feature baseline
@@ -186,6 +195,29 @@ Only attempted once T4.1–T4.6 produce a working, evaluated frozen-feature pipe
 
 ---
 
+### T4.8 — Batched QGNN training (new, 2026-07-27, performance fix for T4.5)
+
+**Files:** `src/gvls/models/qgnn.py` (`QGNNClassifier.encode_input_batch`, batch-dispatching `forward`), `src/gvls/qgnn_training.py` (`collate_jet_features`, `qgnn_batch_loss`, batched `train_qgnn_classifier` inner loop, batched `evaluate_qgnn_classifier`)
+
+Triggered by T4.5's real run (deferred to a remote machine, `validation.md` V-5) proving intractably slow. See Design Decision 10 for the full diagnosis and rationale; summarized here as concrete changes:
+
+1. **`QGNNClassifier.encode_input_batch(z_tildes, a_zs)`** — `(B,M,d)`, `(B,M,M)` in, `(B, num_input_params)` out; stacks the existing per-jet `encode_input` across the batch dimension (pure tensor construction, no quantum calls, so a Python loop here is fine).
+2. **`QGNNClassifier.forward`** — dispatches on `z_tilde.dim()`: `dim()==3` routes through `encode_input_batch` and a single `self.connector(...)` call for the whole batch; `dim()==2` keeps today's single-jet path unchanged (needed by any remaining single-jet callers/tests).
+3. **`collate_jet_features(features: list[JetFeatures])`** — stacks a minibatch's `z_tilde`/`a_z`/`label` into `(B,M,d)`, `(B,M,M)`, `(B,)` tensors. Valid because every jet's pooled shape is identical by construction (fixed-`M` pooling, Design Decision 3) — no padding/masking logic needed, unlike the classical stack's per-jet constraint (Design Decision 7).
+4. **`qgnn_batch_loss`** — one `BCEWithLogitsLoss` call (mean-reduced) over a collated minibatch, replacing the current per-jet loop + manual gradient accumulation in `train_qgnn_classifier` (`qgnn_training.py:133-143`) with a single `loss.backward()` per minibatch.
+5. **`evaluate_qgnn_classifier`** — same batching treatment for the eval pass (chunked if the val/test split is large enough that one `EstimatorQNN` call over the whole split is impractical).
+6. **`EstimatorQNN(..., input_gradients=False)`** in `QGNNClassifier.__init__` (`qgnn.py:196`) — bundled in as a complementary, independent fix (Design Decision 10): `z̃`/`A_z` are frozen extraction outputs that never need `∂L/∂input`, so computing input gradients via parameter-shift is pure waste.
+
+Tests (`tests/test_qgnn.py`, `tests/test_qgnn_training.py`):
+- `test_forward_batch_matches_per_jet_loop` — for a fixed batch of jets and fixed weights, the batched `forward` call's logits match calling `forward` per jet and stacking (float tolerance).
+- `test_batched_backward_matches_accumulated_per_jet_gradients` — batched `loss.backward()` produces `theta`/`b_i`/`gamma_i` gradients matching the sum of per-jet gradients from the pre-T4.8 loop — the direct analogue of T4.2's `test_gradient_accumulation_matches_batched_mean`, load-bearing here specifically because this codebase has already found two non-obvious correctness bugs in this exact pinned `qiskit`/`qiskit-machine-learning` stack (V-4) and reading the library source is not sufficient grounds for trust on its own.
+- A ragged-final-minibatch case (`len(train_features) % batch_size != 0`) for `collate_jet_features`.
+- `test_train_qgnn_classifier_smoke` (existing) must keep passing unchanged.
+
+**Explicitly not claimed:** this does not reduce the underlying `O(num_jets × num_params)` parameter-shift circuit-evaluation count — it removes `batch_size`-fold per-jet job-dispatch overhead only. Record the actual before/after wall-clock once run, rather than assuming the fix worked.
+
+---
+
 ## Deliverable
 
 - A working `src/gvls/data/jets.py` loader producing labeled, graph-structured jet data at a documented subset size
@@ -195,3 +227,4 @@ Only attempted once T4.1–T4.6 produce a working, evaluated frozen-feature pipe
 - A literature comparison point (T4.6) — either a genuine published QGNN benchmark number for this dataset, or an explicit, honest statement that none was found
 - `README.md` updated with a new "Quantum Graph Neural Network — Quark/Gluon Jet Classification" results section, following this repo's existing convention (numbers, findings bullets, a plot if one is informative)
 - `specs/phase4/validation.md` populated with the actual results and any bugs/surprises found along the way, mirroring Phases 0–3's validation-doc convention
+- (T4.8) Batched QGNN training with the gradient-parity tests passing and an actual before/after wall-clock comparison recorded — done, but the measured ~1.34x speedup (mostly from `input_gradients=False`, not batching itself, `validation.md` V-8) is likely insufficient on its own to make T4.5's target-scale real run tractable; further levers (smaller subset, fewer layers/epochs, a cheaper gradient method) remain an open follow-up

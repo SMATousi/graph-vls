@@ -56,6 +56,22 @@ explicitly to `EstimatorQNN`, repeated calls with identical inputs returned
 slightly different values (shot noise); with it, they were bit-identical.
 FR-4 requires Aer's *noiseless statevector* simulator, so `default_precision=0.0`
 is set explicitly here rather than relying on the estimator's own defaults.
+
+**Batched training (T4.8, 2026-07-27).** `forward` accepts either a single
+jet (`z_tilde`: `(M,d)`, `a_z`: `(M,M)`) or a minibatch (`(B,M,d)`, `(B,M,M)`),
+dispatching on `z_tilde.dim()`. Batching routes through one `TorchConnector`
+call for the whole minibatch instead of one call per jet -- verified directly
+against the installed `qiskit-machine-learning` source (`connectors/
+torch_connector.py`, `neural_networks/estimator_qnn.py`) that a 2D
+`(B, num_inputs)` input with a single shared weight vector is natively
+supported and submitted as one Estimator job regardless of `B`
+(`specs/phase4/plan.md` Design Decision 10). This does not reduce the number
+of parameter-shift circuit evaluations (`O(B x num_params)` either way); it
+removes `B`-fold per-jet job-dispatch overhead. `input_gradients` is now
+`False`: `z_tilde`/`a_z` are frozen extraction outputs that never need
+`d(loss)/d(input)` (T4.5's two-stage design freezes GVLS before the QGNN is
+ever trained), so computing them via parameter-shift was pure waste --
+roughly doubling the shifted-circuit count for no benefit.
 """
 
 from __future__ import annotations
@@ -169,13 +185,15 @@ def build_qgnn_circuit(m: int, num_layers: int = 1) -> tuple[QuantumCircuit, QGN
 class QGNNClassifier(nn.Module):
     """Verdon-style QGNN readout on a pooled GVLS latent graph (T4.4).
 
-    `forward(z_tilde, a_z) -> Tensor`: a single logit (raw expectation value
-    of `sum_z_observable`, fed to a BCE-with-logits loss in T4.5 -- consistent
+    `forward(z_tilde, a_z) -> Tensor`: single-jet inputs (`(M,d)`, `(M,M)`)
+    return one logit, shape `(1,)`; batched inputs (`(B,M,d)`, `(B,M,M)`)
+    return one logit per jet, shape `(B,)` (T4.8) -- both are raw expectation
+    values of `sum_z_observable`, fed to a BCE-with-logits loss, consistent
     with the rest of this codebase's convention of working with logits, not
-    probabilities, everywhere). Built once per `(m, d, num_layers)` and
-    reused for every jet (see module docstring for why); only `theta`, `b_i`,
-    and the final readout rotation are trainable -- `z_tilde` and `A_z` are
-    runtime inputs, never weights.
+    probabilities, everywhere. Built once per `(m, d, num_layers)` and reused
+    for every jet/minibatch (see module docstring for why); only `theta`,
+    `b_i`, and the final readout rotation are trainable -- `z_tilde` and
+    `A_z` are runtime inputs, never weights.
     """
 
     def __init__(self, m: int, d: int, num_layers: int = 1, seed: int | None = None) -> None:
@@ -193,7 +211,7 @@ class QGNNClassifier(nn.Module):
             observables=observable,
             input_params=self.circuit_params.input_params,
             weight_params=self.circuit_params.weight_params,
-            input_gradients=True,
+            input_gradients=False,
             estimator=AerEstimatorV2(),
             default_precision=0.0,  # exact statevector expectation, no shot noise
         )
@@ -205,10 +223,10 @@ class QGNNClassifier(nn.Module):
         self.connector = TorchConnector(qnn, initial_weights=initial_weights)
 
     def encode_input(self, z_tilde: Tensor, a_z: Tensor) -> Tensor:
-        """Flatten (z_tilde, a_z) into the circuit's input-parameter order:
-        edge values (canonical i<j order) first, then re-uploaded features
-        (layer-major: layer 0's m qubits, then layer 1's, ...), matching
-        `QGNNCircuitParams.input_params`'s order exactly.
+        """Flatten one jet's (z_tilde, a_z) into the circuit's input-parameter
+        order: edge values (canonical i<j order) first, then re-uploaded
+        features (layer-major: layer 0's m qubits, then layer 1's, ...),
+        matching `QGNNCircuitParams.input_params`'s order exactly.
         """
         values: list[Tensor] = [a_z[i, j] for i, j in self.circuit_params.edge_pairs]
         for layer in range(self.num_layers):
@@ -216,5 +234,24 @@ class QGNNClassifier(nn.Module):
             values.extend(z_tilde[i, dim] for i in range(self.m))
         return torch.stack(values).float()
 
+    def encode_input_batch(self, z_tildes: Tensor, a_zs: Tensor) -> Tensor:
+        """Batched counterpart of `encode_input` (T4.8): `(B,M,d)`, `(B,M,M)`
+        -> `(B, num_input_params)`. Valid only because every jet is pooled to
+        the same fixed `M` (Design Decision 3) -- every jet's flattened input
+        has identical length, so stacking needs no padding/masking, unlike
+        the classical encoder/pooling stack's per-jet-`N` constraint (Design
+        Decision 7). The loop here is pure tensor indexing (no quantum
+        calls), so its cost is negligible next to the batched `TorchConnector`
+        call it feeds.
+        """
+        return torch.stack(
+            [self.encode_input(z_tildes[b], a_zs[b]) for b in range(z_tildes.shape[0])]
+        )
+
     def forward(self, z_tilde: Tensor, a_z: Tensor) -> Tensor:
+        if z_tilde.dim() == 3:
+            # batched: (B, num_inputs) -> TorchConnector returns (B, 1); squeeze
+            # to (B,) to match a per-jet call's (1,)-shaped output and BCE's
+            # expected label shape.
+            return self.connector(self.encode_input_batch(z_tilde, a_z)).squeeze(-1)
         return self.connector(self.encode_input(z_tilde, a_z))

@@ -190,3 +190,74 @@ def test_different_a_z_gives_different_output() -> None:
     out_empty = model(z_tilde, a_z_empty).item()
     out_edge = model(z_tilde, a_z_edge).item()
     assert out_empty != out_edge
+
+
+# ── Batched forward/backward (T4.8) ─────────────────────────────────────────
+# These are the gradient-parity checks required before trusting the batched
+# path over the known-correct per-jet loop it replaces (plan.md Design
+# Decision 10, requirements.md NFR-3): this codebase has already found two
+# non-obvious correctness bugs in this exact pinned qiskit/qiskit-machine-
+# learning stack, so reading the library source is not sufficient on its own.
+
+def _random_batch(batch_size: int, m: int, d: int, seed: int) -> tuple[torch.Tensor, torch.Tensor]:
+    gen = torch.Generator().manual_seed(seed)
+    z_tildes = torch.randn(batch_size, m, d, generator=gen)
+    a_zs = torch.zeros(batch_size, m, m)
+    for b in range(batch_size):
+        i, j = b % m, (b + 1) % m
+        a_zs[b, i, j] = a_zs[b, j, i] = 1.0
+    return z_tildes, a_zs
+
+
+def test_forward_batch_matches_per_jet_loop() -> None:
+    model = QGNNClassifier(m=M, d=D, num_layers=1, seed=3)
+    batch_size = 5
+    z_tildes, a_zs = _random_batch(batch_size, M, D, seed=1)
+
+    batched_logits = model(z_tildes, a_zs)
+    per_jet_logits = torch.stack(
+        [model(z_tildes[b], a_zs[b]) for b in range(batch_size)]
+    ).squeeze(-1)
+
+    assert batched_logits.shape == (batch_size,)
+    assert torch.allclose(batched_logits, per_jet_logits, atol=1e-6)
+
+
+def test_batched_backward_matches_accumulated_per_jet_gradients() -> None:
+    import torch.nn.functional as F
+
+    batch_size = 4
+    z_tildes, a_zs = _random_batch(batch_size, M, D, seed=2)
+    labels = torch.tensor([0.0, 1.0, 0.0, 1.0])
+
+    model_batched = QGNNClassifier(m=M, d=D, num_layers=1, seed=11)
+    model_perjet = QGNNClassifier(m=M, d=D, num_layers=1, seed=11)
+    for p_b, p_j in zip(model_batched.parameters(), model_perjet.parameters()):
+        assert torch.equal(p_b, p_j)  # same seed -> identical initial weights
+
+    batched_logits = model_batched(z_tildes, a_zs)
+    loss_batched = F.binary_cross_entropy_with_logits(batched_logits, labels)
+    loss_batched.backward()
+    grad_batched = model_batched.connector.weight.grad.clone()
+
+    for b in range(batch_size):
+        logit = model_perjet(z_tildes[b], a_zs[b])
+        loss = F.binary_cross_entropy_with_logits(logit, labels[b : b + 1])
+        (loss / batch_size).backward()
+    grad_perjet = model_perjet.connector.weight.grad.clone()
+
+    assert grad_batched is not None and grad_batched.abs().sum().item() > 0
+    assert torch.allclose(grad_batched, grad_perjet, atol=1e-5)
+
+
+def test_batch_of_one_matches_single_jet_call() -> None:
+    """The ragged-final-minibatch case: a batch of size 1 must behave exactly
+    like the plain single-jet call, not hit some batch-size-1 edge case."""
+    model = QGNNClassifier(m=M, d=D, num_layers=1, seed=5)
+    z_tildes, a_zs = _random_batch(1, M, D, seed=4)
+
+    batched = model(z_tildes, a_zs)
+    single = model(z_tildes[0], a_zs[0])
+
+    assert batched.shape == (1,)
+    assert torch.allclose(batched, single, atol=1e-6)
