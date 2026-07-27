@@ -1,9 +1,20 @@
 # T4.5: QGNNClassifier supervised training config. num_layers=1 is the
-# starting default (NFR-2: keep circuit depth shallow so parameter-shift
-# gradient estimation doesn't dominate wall-clock time); revisit only if
-# reconstruction/classification fidelity demands more re-uploading layers.
+# starting default (NFR-2: keep circuit depth shallow so gradient estimation
+# doesn't dominate wall-clock time); revisit only if reconstruction/
+# classification fidelity demands more re-uploading layers.
 num_layers: 1
 lr: 0.05
 epochs: 50
 batch_size: 32
 seed: 42
+
+# T4.8-followup: SPSA replaces parameter-shift as the default gradient
+# estimator -- measured 14-24x fewer circuit evaluations per sample (grows
+# with num_layers), independent of weight-parameter count. Set to
+# param_shift to fall back to the exact (but far more expensive) gradient,
+# e.g. for debugging or comparison. See src/gvls/models/qgnn.py module
+# docstring and specs/phase4/validation.md V-8 for the measured numbers and
+# the stochastic-gradient tradeoff this introduces.
+gradient_method: spsa
+spsa_epsilon: 1e-6
+spsa_batch_size: 1

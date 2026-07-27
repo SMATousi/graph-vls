@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from qiskit.quantum_info import Statevector
+from qiskit_machine_learning.gradients import ParamShiftEstimatorGradient, SPSAEstimatorGradient
 
 from gvls.models.qgnn import QGNNClassifier, build_qgnn_circuit, sum_z_observable
 
@@ -124,9 +125,16 @@ def test_sum_z_observable_qubit_count() -> None:
 
 
 # ── QGNNClassifier: gradient flow through TorchConnector ────────────────────
+# Pinned to gradient_method="param_shift" (not the SPSA default) deliberately:
+# these test that each INDIVIDUAL parameter has a nonzero analytic gradient
+# (the T4.4 diagonal-ansatz degeneracy bug). SPSA perturbs every differentiated
+# parameter jointly along one random direction, so it cannot isolate a single
+# parameter's own gradient -- under SPSA these would "pass" even if the
+# ansatz were still degenerate, silently defeating the point of the test. See
+# qgnn.py's module docstring, "Tradeoff, stated plainly" section.
 
 def test_gradients_flow_to_weight_params() -> None:
-    model = QGNNClassifier(m=M, d=D, num_layers=1, seed=0)
+    model = QGNNClassifier(m=M, d=D, num_layers=1, seed=0, gradient_method="param_shift")
     z_tilde = torch.randn(M, D)
     a_z = torch.zeros(M, M)
     a_z[0, 1] = a_z[1, 0] = 1.0
@@ -141,7 +149,7 @@ def test_gradients_flow_to_weight_params() -> None:
 
 
 def test_gradients_flow_with_multiple_layers() -> None:
-    model = QGNNClassifier(m=M, d=D, num_layers=2, seed=0)
+    model = QGNNClassifier(m=M, d=D, num_layers=2, seed=0, gradient_method="param_shift")
     z_tilde = torch.randn(M, D)
     a_z = torch.zeros(M, M)
     a_z[0, 1] = a_z[1, 0] = 1.0
@@ -224,14 +232,18 @@ def test_forward_batch_matches_per_jet_loop() -> None:
 
 
 def test_batched_backward_matches_accumulated_per_jet_gradients() -> None:
+    # gradient_method="param_shift": this is an exact-gradient equality check,
+    # deliberately not exercising the (now-default) SPSA path, whose stochastic
+    # per-call perturbation makes "batched == accumulated per-jet" a much
+    # fuzzier, RNG-draw-order-dependent claim rather than a clean invariant.
     import torch.nn.functional as F
 
     batch_size = 4
     z_tildes, a_zs = _random_batch(batch_size, M, D, seed=2)
     labels = torch.tensor([0.0, 1.0, 0.0, 1.0])
 
-    model_batched = QGNNClassifier(m=M, d=D, num_layers=1, seed=11)
-    model_perjet = QGNNClassifier(m=M, d=D, num_layers=1, seed=11)
+    model_batched = QGNNClassifier(m=M, d=D, num_layers=1, seed=11, gradient_method="param_shift")
+    model_perjet = QGNNClassifier(m=M, d=D, num_layers=1, seed=11, gradient_method="param_shift")
     for p_b, p_j in zip(model_batched.parameters(), model_perjet.parameters()):
         assert torch.equal(p_b, p_j)  # same seed -> identical initial weights
 
@@ -261,3 +273,122 @@ def test_batch_of_one_matches_single_jet_call() -> None:
 
     assert batched.shape == (1,)
     assert torch.allclose(batched, single, atol=1e-6)
+
+
+# ── SPSA gradient estimator (T4.8-followup) ─────────────────────────────────
+
+def test_spsa_is_the_default_gradient_method() -> None:
+    model = QGNNClassifier(m=M, d=D, num_layers=1, seed=0)
+    assert model.gradient_method == "spsa"
+    assert isinstance(model.connector.neural_network.gradient, SPSAEstimatorGradient)
+
+
+def test_param_shift_still_selectable() -> None:
+    model = QGNNClassifier(m=M, d=D, num_layers=1, seed=0, gradient_method="param_shift")
+    assert model.gradient_method == "param_shift"
+    assert isinstance(model.connector.neural_network.gradient, ParamShiftEstimatorGradient)
+
+
+def test_invalid_gradient_method_raises() -> None:
+    try:
+        QGNNClassifier(m=M, d=D, num_layers=1, gradient_method="finite_difference")
+        raise AssertionError("expected ValueError")
+    except ValueError:
+        pass
+
+
+def _backward_pub_count(model: QGNNClassifier, z_tilde: torch.Tensor, a_z: torch.Tensor) -> int:
+    """Count how many (circuit, observable, params) pubs the underlying
+    AerEstimatorV2 actually evaluates during one .backward() call -- a direct,
+    concrete check of the evaluation-count claim in qgnn.py's module
+    docstring, not just trust in the qiskit-machine-learning source."""
+    logit = model(z_tilde, a_z)  # forward pass (not counted) primes the graph
+    estimator = model.connector.neural_network.estimator
+    original_run = estimator.run
+    count = {"n": 0}
+
+    def wrapped(pubs, **kwargs):
+        pubs = list(pubs)
+        count["n"] += len(pubs)
+        return original_run(pubs, **kwargs)
+
+    estimator.run = wrapped
+    try:
+        logit.backward()
+    finally:
+        estimator.run = original_run
+    return count["n"]
+
+
+def test_spsa_evaluation_count_is_constant_independent_of_weight_count() -> None:
+    """Empirically measured, not hand-derived: param-shift's cost is NOT simply
+    2*len(weight_params) here, because `theta` (one shared scalar per layer,
+    QGNNCircuitParams docstring) appears in every one of the layer's
+    m*(m-1)/2 RZZ gates -- the shift rule needs its own shifted pair per
+    occurrence, not per parameter, so `theta` alone costs 2*num_edges
+    evaluations (12 of the 28 total below, for m=4). SPSA is unaffected by
+    this since it perturbs every weight jointly in one shot regardless of how
+    many gates each one touches."""
+    z_tilde = torch.randn(M, D)
+    a_z = torch.zeros(M, M)
+    a_z[0, 1] = a_z[1, 0] = 1.0
+
+    model_ps = QGNNClassifier(m=M, d=D, num_layers=1, seed=0, gradient_method="param_shift")
+    model_spsa = QGNNClassifier(
+        m=M, d=D, num_layers=1, seed=0, gradient_method="spsa", spsa_batch_size=1
+    )
+
+    n_ps = _backward_pub_count(model_ps, z_tilde, a_z)
+    n_spsa = _backward_pub_count(model_spsa, z_tilde, a_z)
+
+    assert n_ps == 28  # measured; see docstring for why this isn't 2*9
+    assert n_spsa == 2  # spsa (batch_size=1): constant, regardless of weight/edge count
+    assert n_spsa < n_ps
+
+
+def test_spsa_evaluation_count_scales_with_num_layers_for_param_shift_only() -> None:
+    """The gap between the two methods widens as the ansatz grows -- SPSA's
+    cost is flat, param-shift's is linear in the number of weight params."""
+    z_tilde = torch.randn(M, D)
+    a_z = torch.zeros(M, M)
+    a_z[0, 1] = a_z[1, 0] = 1.0
+
+    model_ps_1 = QGNNClassifier(m=M, d=D, num_layers=1, seed=0, gradient_method="param_shift")
+    model_ps_2 = QGNNClassifier(m=M, d=D, num_layers=2, seed=0, gradient_method="param_shift")
+    model_spsa_1 = QGNNClassifier(m=M, d=D, num_layers=1, seed=0, gradient_method="spsa")
+    model_spsa_2 = QGNNClassifier(m=M, d=D, num_layers=2, seed=0, gradient_method="spsa")
+
+    n_ps_1 = _backward_pub_count(model_ps_1, z_tilde, a_z)
+    n_ps_2 = _backward_pub_count(model_ps_2, z_tilde, a_z)
+    n_spsa_1 = _backward_pub_count(model_spsa_1, z_tilde, a_z)
+    n_spsa_2 = _backward_pub_count(model_spsa_2, z_tilde, a_z)
+
+    assert n_ps_2 > n_ps_1  # more weight params at num_layers=2 -> more evaluations
+    assert n_spsa_2 == n_spsa_1  # SPSA's cost is unaffected by weight-param count
+
+
+def test_spsa_gradient_deterministic_given_fixed_seed() -> None:
+    z_tilde = torch.randn(M, D)
+    a_z = torch.zeros(M, M)
+    a_z[0, 1] = a_z[1, 0] = 1.0
+
+    model_a = QGNNClassifier(m=M, d=D, num_layers=1, seed=7, gradient_method="spsa")
+    model_b = QGNNClassifier(m=M, d=D, num_layers=1, seed=7, gradient_method="spsa")
+
+    model_a(z_tilde, a_z).backward()
+    model_b(z_tilde, a_z).backward()
+
+    assert torch.allclose(model_a.connector.weight.grad, model_b.connector.weight.grad)
+
+
+def test_spsa_gradients_flow_and_are_nonzero() -> None:
+    model = QGNNClassifier(m=M, d=D, num_layers=1, seed=0, gradient_method="spsa")
+    z_tilde = torch.randn(M, D)
+    a_z = torch.zeros(M, M)
+    a_z[0, 1] = a_z[1, 0] = 1.0
+
+    model(z_tilde, a_z).backward()
+
+    grad = model.connector.weight.grad
+    assert grad is not None
+    assert grad.abs().sum().item() > 0

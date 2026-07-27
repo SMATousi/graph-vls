@@ -72,6 +72,58 @@ removes `B`-fold per-jet job-dispatch overhead. `input_gradients` is now
 `d(loss)/d(input)` (T4.5's two-stage design freezes GVLS before the QGNN is
 ever trained), so computing them via parameter-shift was pure waste --
 roughly doubling the shifted-circuit count for no benefit.
+
+Measuring T4.8 directly (`specs/phase4/validation.md` V-8) showed batching's
+own contribution was small (~1.07-1.08x): most circuit-evaluation cost is not
+per-jet Python dispatch overhead, it's `ParamShiftEstimatorGradient` itself
+needing shifted circuit evaluations per differentiated parameter, per sample
+(`weight_params` only, since `input_gradients=False`).
+
+**SPSA gradient estimator (T4.8-followup, 2026-07-27) -- an actual reduction
+in evaluation count, not just dispatch overhead.** `qiskit_machine_learning.
+gradients.SPSAEstimatorGradient` (verified by reading `spsa_estimator_
+gradient.py`, not assumed) perturbs *all* differentiated parameters at once
+along one random +-1 direction and takes a single two-point finite difference
+-- exactly `2 * spsa_batch_size` circuit evaluations per sample, *independent
+of how many parameters are being differentiated or how many gates they touch*.
+Measured directly (`tests/test_qgnn.py::test_spsa_evaluation_count_is_
+constant_independent_of_weight_count`, not assumed from theory): for the
+current `m=4, num_layers=1` ansatz, `ParamShiftEstimatorGradient` needs `28`
+circuit evaluations per sample versus SPSA's constant `2` at the default
+`spsa_batch_size=1` -- a `14x` reduction (`24x` at `num_layers=2`, `48` vs.
+`2` -- the ratio widens as the ansatz grows, since SPSA's cost never
+changes). Note `28`, not `2*9`: `theta` (one shared scalar per layer,
+`QGNNCircuitParams` docstring) appears in every one of that layer's
+`m*(m-1)/2` RZZ gates, and the shift rule needs its own shifted pair per
+*occurrence*, not per parameter -- `theta` alone costs `2*num_edges = 12` of
+the `28`; only `bias`/`readout` (one gate each) cost the naively-expected `2`
+each. `gradient_method="spsa"` is the new default (`gradient_method=
+"param_shift"` remains available and is what the T4.8 gradient-parity/
+degeneracy tests in `tests/test_qgnn.py` pin to explicitly -- see below for
+why).
+
+**Tradeoff, stated plainly: SPSA gradients are stochastic, not analytic.**
+Each call's gradient estimate comes from one random-direction finite
+difference, not an exact per-parameter derivative -- it has real variance,
+and every differentiated parameter in a single call gets the *same-magnitude*
+estimate (`+-diff`, differing only in the perturbation's random sign for that
+parameter), since one shared scalar `diff` is divided by each parameter's own
++-1 offset. This has a specific, non-obvious consequence for testing: SPSA
+cannot distinguish "this individual parameter has a genuinely zero analytic
+gradient" (the exact bug T4.4 found and fixed with the readout rotation) from
+"this parameter happened to matter in this call only because it was perturbed
+jointly with others that do" -- a parameter-shift estimate isolates each
+parameter; an SPSA estimate never does. For that reason the degeneracy-
+sensitive tests (`test_gradients_flow_to_weight_params`, `test_gradients_
+flow_with_multiple_layers`) and T4.8's exact gradient-parity tests
+(`test_batched_backward_matches_accumulated_per_jet_gradients`) explicitly
+pass `gradient_method="param_shift"` rather than relying on the (now-SPSA)
+default -- they are testing a property only an exact gradient estimator can
+verify. Determinism given a fixed `seed` is preserved for SPSA too (its own
+internal RNG is seeded from the same `seed` `QGNNClassifier` already uses for
+weight initialization), satisfying NFR-1's reproducibility requirement, but
+"deterministic" here means "the same stochastic estimate every time for the
+same seed and inputs," not "the true analytic gradient."
 """
 
 from __future__ import annotations
@@ -85,8 +137,11 @@ from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_aer.primitives import EstimatorV2 as AerEstimatorV2
 from qiskit_machine_learning.connectors import TorchConnector
+from qiskit_machine_learning.gradients import ParamShiftEstimatorGradient, SPSAEstimatorGradient
 from qiskit_machine_learning.neural_networks import EstimatorQNN
 from torch import Tensor
+
+GRADIENT_METHODS = ("spsa", "param_shift")
 
 
 @dataclass
@@ -196,24 +251,49 @@ class QGNNClassifier(nn.Module):
     `A_z` are runtime inputs, never weights.
     """
 
-    def __init__(self, m: int, d: int, num_layers: int = 1, seed: int | None = None) -> None:
+    def __init__(
+        self,
+        m: int,
+        d: int,
+        num_layers: int = 1,
+        seed: int | None = None,
+        gradient_method: str = "spsa",
+        spsa_epsilon: float = 1e-6,
+        spsa_batch_size: int = 1,
+    ) -> None:
         super().__init__()
         if d < 1:
             raise ValueError(f"d must be >= 1, got {d}")
+        if gradient_method not in GRADIENT_METHODS:
+            raise ValueError(
+                f"gradient_method must be one of {GRADIENT_METHODS}, got {gradient_method!r}"
+            )
         self.m = m
         self.d = d
         self.num_layers = num_layers
+        self.gradient_method = gradient_method
 
         circuit, self.circuit_params = build_qgnn_circuit(m, num_layers)
         observable = sum_z_observable(m)
+        estimator = AerEstimatorV2()  # default_precision=0.0 (exact) -- see class Options
+        if gradient_method == "spsa":
+            # 2 * spsa_batch_size circuit evaluations per sample, independent
+            # of len(weight_params) -- see module docstring for why this
+            # replaces param_shift as the default.
+            gradient = SPSAEstimatorGradient(
+                estimator=estimator, epsilon=spsa_epsilon, batch_size=spsa_batch_size, seed=seed
+            )
+        else:
+            gradient = ParamShiftEstimatorGradient(estimator=estimator)
         qnn = EstimatorQNN(
             circuit=circuit,
             observables=observable,
             input_params=self.circuit_params.input_params,
             weight_params=self.circuit_params.weight_params,
             input_gradients=False,
-            estimator=AerEstimatorV2(),
+            estimator=estimator,
             default_precision=0.0,  # exact statevector expectation, no shot noise
+            gradient=gradient,
         )
 
         initial_weights = None

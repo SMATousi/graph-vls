@@ -60,7 +60,8 @@ def main(cfg: DictConfig) -> None:
     train_cfg = OmegaConf.to_container(cfg.train, resolve=True)
     print(
         f"QGNN config: M={m} num_layers={train_cfg['num_layers']} lr={train_cfg['lr']} "
-        f"epochs={train_cfg['epochs']} batch_size={train_cfg['batch_size']}"
+        f"epochs={train_cfg['epochs']} batch_size={train_cfg['batch_size']} "
+        f"gradient_method={train_cfg['gradient_method']}"
     )
 
     wandb.init(
@@ -83,6 +84,9 @@ def main(cfg: DictConfig) -> None:
         device=device,
         batch_size=int(train_cfg["batch_size"]),
         on_epoch_end=lambda epoch, metrics: wandb.log(metrics, step=epoch),
+        gradient_method=str(train_cfg["gradient_method"]),
+        spsa_epsilon=float(train_cfg["spsa_epsilon"]),
+        spsa_batch_size=int(train_cfg["spsa_batch_size"]),
     )
 
     best = result.best_val_metrics
@@ -91,7 +95,12 @@ def main(cfg: DictConfig) -> None:
         f"val_auc={best['auc']:.4f}  val_macro_f1={best['macro_f1']:.4f}"
     )
 
-    config = {"m": m, "d": d, "num_layers": int(train_cfg["num_layers"])}
+    config = {
+        "m": m,
+        "d": d,
+        "num_layers": int(train_cfg["num_layers"]),
+        "gradient_method": str(train_cfg["gradient_method"]),
+    }
     save_qgnn_checkpoint(result.best_state_dict, config, str(cfg.qgnn_checkpoint_path))
     print(f"Saved best QGNN checkpoint to {cfg.qgnn_checkpoint_path}")
 

@@ -1,6 +1,6 @@
 # Phase 4 — Validation
 
-**Status: T4.1–T4.4 complete (2026-07-20); T4.5 code-complete and smoke-tested, but not actually run (2026-07-20, user instruction).** T4.6/T4.7 not started. **T4.8 (batched QGNN training) implemented and parity-tested 2026-07-27 — real measured speedup is only ~1.34x (mostly from `input_gradients=False`, not batching itself), likely insufficient on its own to make T4.5's real run tractable at the target dataset scale. See V-8.**
+**Status: T4.1–T4.4 complete (2026-07-20); T4.5 code-complete and smoke-tested, but not actually run (2026-07-20, user instruction).** T4.6/T4.7 not started. **T4.8 (batched QGNN training, 2026-07-27) gave only ~1.34x — insufficient alone. T4.9 (SPSA gradient estimator, 2026-07-27) followed up and gave ~15.5x combined — by far the largest lever found, and the first one that plausibly makes T4.5's real run tractable at the target dataset scale, though not yet confirmed at that real scale. See V-8, V-9.**
 
 ## Exit Criteria
 
@@ -14,6 +14,7 @@
 - [ ] `README.md` updated with a new results section
 - [ ] `pytest tests/` passes with all new Phase 4 tests included
 - [x] (T4.8, 2026-07-27) QGNN training batched (one `EstimatorQNN`/`TorchConnector` call per minibatch, `input_gradients=False`), gradient-parity-tested against the per-jet loop, with an actual before/after wall-clock recorded — measured ~1.34x, not the large speedup originally hoped for; see V-8
+- [x] (T4.9, 2026-07-27) SPSA gradient estimator replacing parameter-shift as the default, with the evaluation-count claim measured directly (not assumed) and degeneracy-sensitive tests pinned to param_shift — combined ~15.5x speedup measured on synthetic jets; see V-9
 
 ---
 
@@ -161,3 +162,40 @@
 Batching's *own* marginal contribution on top of `input_gradients=False` is only ~1.07–1.08x, tested at both `batch_size=16` and `batch_size=64` (no further improvement at the larger batch size — the win does not scale with batch size, i.e. it's saturated). **Most of the total 1.34x speedup comes from `input_gradients=False`, not from batching itself.** This contradicts the original diagnosis's expectation that per-jet Python/job-dispatch overhead was the dominant cost. The actual dominant cost appears to be intrinsic to `qiskit-machine-learning`'s parameter-shift gradient estimator (`ParamShiftEstimatorGradient`, invoked automatically per the "No gradient function provided, creating a gradient function" warning) constructing and evaluating one bound circuit per shifted parameter per sample — work our outer-level batching doesn't touch, since it happens *inside* the single `gradient.run()` call regardless of how many samples are packed into it.
 
 **Implication:** T4.8 is implemented correctly (parity-tested) and gives a real, modest ~1.3x speedup, primarily from `input_gradients=False`. It is very unlikely to be enough on its own to make the target 10,000–50,000-jet × 50-epoch real run in `specs/phase4/plan.md` Design Decision 9 tractable — extrapolating the 1.34x from this benchmark's scale, a run that was intractable before is very likely still intractable after, just ~25% faster. Further levers (not implemented here, flagged for a follow-up decision): reducing `num_layers`/circuit depth further, reducing the jet subset size, switching to a cheaper gradient method (e.g. SPSA instead of exact parameter-shift, trading gradient variance for far fewer circuit evaluations per step), or reducing epoch count. This should be surfaced to the user before assuming T4.5's real run is now unblocked.
+
+---
+
+## V-9: SPSA Gradient Estimator (T4.9) ✅ Implemented 2026-07-27 — the large speedup T4.8 didn't deliver
+
+**Trigger:** V-8's own honest finding — batching alone was insufficient (~1.07-1.08x), and the actual dominant cost was intrinsic to `ParamShiftEstimatorGradient`'s circuit-evaluation count, not per-jet dispatch overhead. A real fix required reducing that count, not just how it's dispatched. Full diagnosis and design in `plan.md` Design Decision 11; requirements in `requirements.md` NFR-2 (amended).
+
+**Verified before/while implementing (not assumed):** read `qiskit_machine_learning.gradients.spsa.spsa_estimator_gradient.SPSAEstimatorGradient._run` directly. It perturbs every differentiated parameter jointly along one random ±1 direction and computes a single two-point finite difference per sample — `2 × spsa_batch_size` circuit evaluations, independent of parameter count. Also verified `AerEstimatorV2`'s own `Options.default_precision` defaults to `0.0` (exact) at the class level, distinct from `EstimatorQNN`'s separate `default_precision=0.015625` default (the thing V-4 had to override) — so sharing one `AerEstimatorV2()` instance between `EstimatorQNN` and `SPSAEstimatorGradient` keeps SPSA's gradient computation exact/noiseless automatically, without needing a second precision override.
+
+**Files:** `src/gvls/models/qgnn.py` (`QGNNClassifier.__init__` gains `gradient_method`/`spsa_epsilon`/`spsa_batch_size`), `src/gvls/qgnn_training.py` (`train_qgnn_classifier`, `load_qgnn_checkpoint` plumb the same through), `experiments/train_qgnn.py`, `configs/train/qgnn_classifier.yaml`. Tests: 9 new in `tests/test_qgnn.py`; 2 existing tests (`test_gradients_flow_to_weight_params`, `test_gradients_flow_with_multiple_layers`) and T4.8's `test_batched_backward_matches_accumulated_per_jet_gradients` amended to pin `gradient_method="param_shift"` explicitly (see below for why).
+
+| Check | Pass condition | Result |
+|---|---|---|
+| SPSA is the new default | `QGNNClassifier(...).gradient_method == "spsa"`, wired to `SPSAEstimatorGradient` | ✅ `test_spsa_is_the_default_gradient_method` |
+| `param_shift` still selectable | `gradient_method="param_shift"` wires to `ParamShiftEstimatorGradient` | ✅ `test_param_shift_still_selectable` |
+| Invalid method rejected | Unknown `gradient_method` raises `ValueError` | ✅ `test_invalid_gradient_method_raises` |
+| Evaluation-count claim, measured not assumed | Direct pub-count via a monkeypatched `AerEstimatorV2.run` during one `.backward()` call | ✅ `test_spsa_evaluation_count_is_constant_independent_of_weight_count`: param-shift needs **28** evaluations at `m=4, num_layers=1` — not the naively-expected `2×9=18` (see next row) — SPSA needs a constant **2** |
+| Why 28, not 18 | `theta` is shared across all `m(m-1)/2` RZZ gates per layer; the shift rule needs a shifted pair per *occurrence*, not per parameter | `theta` alone costs `2×6=12` of the 28; `bias`/`readout` (one gate each) cost the expected `2` each (`4×2 + 4×2 = 16`); `12+16=28` |
+| Gap widens with `num_layers` | SPSA's cost stays flat; param-shift's grows | ✅ `test_spsa_evaluation_count_scales_with_num_layers_for_param_shift_only`: `48` vs. constant `2` at `num_layers=2` (measured, not derived) |
+| Determinism given fixed seed (NFR-1) | Same seed -> same stochastic gradient estimate | ✅ `test_spsa_gradient_deterministic_given_fixed_seed` |
+| Gradients still flow | SPSA backward produces a nonzero gradient | ✅ `test_spsa_gradients_flow_and_are_nonzero` |
+| Degeneracy tests preserve their regression value | T4.4's diagonal-ansatz tests must not silently pass under SPSA regardless of whether the bug recurs | ✅ pinned to `gradient_method="param_shift"` explicitly — SPSA's jointly-perturbed estimate gives every differentiated parameter the same magnitude (`±diff`), so it cannot isolate an individual parameter's own zero gradient the way these tests require |
+| T4.8's gradient-parity test preserved | Exact batched-vs-per-jet equality check must stay exact | ✅ pinned to `gradient_method="param_shift"` — SPSA's stochastic estimate makes "batched == accumulated per-jet" a fuzzier, RNG-draw-order-dependent claim rather than a clean invariant, even though empirically it still held under the default before this pin was added |
+| Config plumbing | Hydra composes `gradient_method`/`spsa_epsilon`/`spsa_batch_size`; checkpoint records `gradient_method` for provenance | ✅ `python experiments/train_qgnn.py --cfg job --resolve` verified directly |
+| Full suite / lint | `pytest tests/` and `ruff check` on all touched files | ✅ |
+
+**Real wall-clock measurement (not assumed) — this is the large win the diagnosis originally hoped T4.8 would be.** Same benchmark methodology as V-8 (pre-T4.8 original loaded from commit `31b5afe` via `git show`, identical synthetic jets, `M=4, d=8, num_layers=1`, 300 train / 60 val jets, 3 epochs, `batch_size=16`, CPU):
+
+| Variant | Wall-clock | vs. original |
+|---|---|---|
+| Original (pre-T4.8): per-jet loop, `param_shift`, `input_gradients=True` | ~26.1s | 1.00x (baseline) |
+| T4.8 only: batched, `param_shift`, `input_gradients=False` | ~19.0s | 1.37x |
+| T4.9 (this): batched, `spsa`, `input_gradients=False` | ~1.6–1.7s | **~15.5x** |
+
+SPSA alone (batched param-shift -> batched SPSA, holding batching constant) contributes **~11.7x** on top of T4.8's own ~1.34-1.37x. This is by far the largest single lever found across T4.8/T4.9, consistent with the evaluation-count measurement above (14-24x fewer circuit evaluations per sample) modulo Python-level overhead that doesn't scale down as cleanly as the evaluation count itself.
+
+**Implication:** unlike T4.8, this is a plausible real fix for T4.5's target-scale tractability, not just an honest-but-modest improvement. **Caveat, stated as plainly as V-8's was:** this is still a synthetic-jet CPU benchmark at a much smaller scale (300 jets, 3 epochs) than the target real run (10,000-50,000 jets, up to 50 epochs) — directionally strong evidence, not a substitute for actually running T4.5 at real scale. The stochastic-gradient tradeoff (SPSA's variance vs. param-shift's exactness) also hasn't been evaluated for its effect on classification accuracy/convergence, only on speed and gradient-flow sanity checks — if training doesn't converge well under SPSA's noisier gradient at the target scale, `spsa_batch_size` can be increased (still far cheaper than param-shift for any batch size well below `num_weight_params`) or `gradient_method="param_shift"` can be restored via one config override.

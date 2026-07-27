@@ -139,6 +139,9 @@ def train_qgnn_classifier(
     batch_size: int = 32,
     show_progress: bool = True,
     on_epoch_end: Callable[[int, dict[str, Any]], None] | None = None,
+    gradient_method: str = "spsa",
+    spsa_epsilon: float = 1e-6,
+    spsa_batch_size: int = 1,
 ) -> QGNNTrainingResult:
     """Train QGNNClassifier's circuit parameters via Adam (T4.5, FR-5).
 
@@ -169,7 +172,15 @@ def train_qgnn_classifier(
         raise ValueError(f"epochs must be >= 1, got {epochs}")
 
     torch.manual_seed(seed)
-    model = QGNNClassifier(m=m, d=d, num_layers=num_layers, seed=seed).to(device)
+    model = QGNNClassifier(
+        m=m,
+        d=d,
+        num_layers=num_layers,
+        seed=seed,
+        gradient_method=gradient_method,
+        spsa_epsilon=spsa_epsilon,
+        spsa_batch_size=spsa_batch_size,
+    ).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     shuffle_generator = torch.Generator().manual_seed(seed)
 
@@ -230,11 +241,20 @@ def save_qgnn_checkpoint(
 
 
 def load_qgnn_checkpoint(path: str, device: torch.device) -> tuple[QGNNClassifier, dict[str, Any]]:
-    """Inverse of `save_qgnn_checkpoint`: rebuild the ansatz, load weights."""
+    """Inverse of `save_qgnn_checkpoint`: rebuild the ansatz, load weights.
+
+    `gradient_method` only affects `.backward()`, never `forward()`, so it
+    has no bearing on correctness here (this model is only ever `.eval()`'d
+    for inference) -- restored anyway for provenance/completeness, defaulting
+    to "spsa" for older checkpoints saved before T4.8's SPSA follow-up.
+    """
     checkpoint = torch.load(path, map_location=device, weights_only=False)
     config = checkpoint["config"]
     model = QGNNClassifier(
-        m=int(config["m"]), d=int(config["d"]), num_layers=int(config["num_layers"])
+        m=int(config["m"]),
+        d=int(config["d"]),
+        num_layers=int(config["num_layers"]),
+        gradient_method=config.get("gradient_method", "spsa"),
     ).to(device)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()
