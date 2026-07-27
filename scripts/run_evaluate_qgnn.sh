@@ -5,20 +5,21 @@
 # run_train_qgnn.sh to have already produced checkpoints/qgnn_jets_m*.pt.
 #
 # Usage:
-#   ./scripts/run_evaluate_qgnn.sh
+#   ./scripts/run_evaluate_qgnn.sh              # offline W&B (default)
+#   ./scripts/run_evaluate_qgnn.sh --online     # sync to W&B live
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=./_activate_env.sh
 source "${SCRIPT_DIR}/_activate_env.sh"
 
-# This script doesn't use W&B, so --online (understood by the other two
-# run_*.sh scripts) is silently dropped here rather than passed through to
-# Hydra, letting run_full_qgnn_pipeline.sh forward the same "$@" to all three
-# steps uniformly.
+# --online is a convenience alias for the Hydra override wandb.mode=online;
+# everything else passes through unchanged.
 ARGS=()
 for arg in "$@"; do
-    if [[ "$arg" != "--online" ]]; then
+    if [[ "$arg" == "--online" ]]; then
+        ARGS+=("wandb.mode=online")
+    else
         ARGS+=("$arg")
     fi
 done

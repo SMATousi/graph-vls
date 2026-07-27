@@ -58,6 +58,12 @@ def main(cfg: DictConfig) -> None:
         config={**base_cfg, "num_jets": int(cfg.data.num_jets)},
     )
 
+    last_metrics: dict = {}
+
+    def _on_epoch_end(epoch: int, metrics: dict) -> None:
+        last_metrics.update(metrics)
+        wandb.log(metrics, step=epoch)
+
     model = train_pooled_gvls_on_jets(
         split.train,
         in_channels=NUM_FEATURES,
@@ -71,9 +77,8 @@ def main(cfg: DictConfig) -> None:
         batch_size=int(base_cfg["batch_size"]),
         progress_desc=f"pretrain GVLS (production, M={m})",
         eval_jets=split.val,
-        on_epoch_end=lambda epoch, metrics: wandb.log(metrics, step=epoch),
+        on_epoch_end=_on_epoch_end,
     )
-    wandb.finish()
 
     config = {
         "in_channels": NUM_FEATURES,
@@ -85,6 +90,20 @@ def main(cfg: DictConfig) -> None:
     checkpoint_path = str(cfg.checkpoint_path)
     save_gvls_checkpoint(model, config, checkpoint_path)
     print(f"\nSaved production GVLS checkpoint (M={m}) to {checkpoint_path}")
+
+    artifact = wandb.Artifact(
+        name=f"gvls-jets-m{m}",
+        type="model",
+        metadata={
+            "m": m,
+            "latent_dim": int(base_cfg["latent_dim"]),
+            "k": k,
+            **{key: val for key, val in last_metrics.items() if key != "epoch"},
+        },
+    )
+    artifact.add_file(checkpoint_path)
+    wandb.log_artifact(artifact, aliases=["latest"])
+    wandb.finish()
 
 
 if __name__ == "__main__":

@@ -86,7 +86,6 @@ def main(cfg: DictConfig) -> None:
 
     for row in result.history:
         wandb.log(row)
-    wandb.finish()
 
     best = result.best_val_metrics
     print(
@@ -97,6 +96,21 @@ def main(cfg: DictConfig) -> None:
     config = {"m": m, "d": d, "num_layers": int(train_cfg["num_layers"])}
     save_qgnn_checkpoint(result.best_state_dict, config, str(cfg.qgnn_checkpoint_path))
     print(f"Saved best QGNN checkpoint to {cfg.qgnn_checkpoint_path}")
+
+    artifact = wandb.Artifact(
+        name=f"qgnn-jets-m{m}",
+        type="model",
+        metadata={
+            "m": m,
+            "d": d,
+            "num_layers": int(train_cfg["num_layers"]),
+            "best_epoch": result.best_epoch,
+            **{f"best_val_{key}": val for key, val in best.items() if key != "confusion_matrix"},
+        },
+    )
+    artifact.add_file(str(cfg.qgnn_checkpoint_path))
+    wandb.log_artifact(artifact, aliases=["best"])
+    wandb.finish()
 
 
 if __name__ == "__main__":

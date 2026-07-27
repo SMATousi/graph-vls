@@ -26,6 +26,7 @@ import hydra
 import torch
 from omegaconf import DictConfig
 
+import wandb
 from gvls.compression.jet_sweep import load_gvls_checkpoint
 from gvls.data.jets import load_qg_jets, split_jets
 from gvls.qgnn_training import (
@@ -61,8 +62,18 @@ def main(cfg: DictConfig) -> None:
     )
     print(f"Evaluating on {len(split.test)} held-out test jets (untouched by training)...")
 
+    wandb.init(
+        project=cfg.wandb.project,
+        mode=cfg.wandb.mode,
+        name=f"qgnn-eval-M{m}",
+        group="qgnn-jet-classification",
+        job_type="evaluation",
+        config={"m": m, "num_layers": num_layers, "num_test_jets": len(split.test)},
+    )
+
     test_features = extract_latent_features(gvls_model, split.test, device)
     metrics = evaluate_qgnn_classifier(qgnn_model, test_features, device)
+    wandb.log({f"test_{key}": val for key, val in metrics.items() if key != "confusion_matrix"})
 
     print("\nTest-set metrics:")
     for key in ("accuracy", "auc", "ap", "macro_f1", "precision", "recall"):
@@ -88,6 +99,15 @@ def main(cfg: DictConfig) -> None:
     results_path.parent.mkdir(parents=True, exist_ok=True)
     results_path.write_text(json.dumps(results, indent=2))
     print(f"\nResults written to {results_path}")
+
+    artifact = wandb.Artifact(
+        name=f"qgnn-jets-m{m}-test-metrics",
+        type="evaluation",
+        metadata={key: val for key, val in results.items() if key != "confusion_matrix"},
+    )
+    artifact.add_file(str(results_path))
+    wandb.log_artifact(artifact)
+    wandb.finish()
 
 
 if __name__ == "__main__":
