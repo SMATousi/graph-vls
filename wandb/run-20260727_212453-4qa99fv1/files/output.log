@@ -1,0 +1,36 @@
+[2026-07-27 21:24:53,923][qiskit_machine_learning.neural_networks.estimator_qnn][WARNING] - No gradient function provided, creating a gradient function. If your Estimator requires transpilation, please provide a pass manager.
+train QGNN:  10%|██▋                        | 1/10 [33:28<5:01:15, 2008.38s/it, train_loss=0.686, val_acc=0.618]
+Traceback (most recent call last):
+  File "/root/home/graph-vls/experiments/train_qgnn.py", line 117, in <module>
+    main()
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+    _run_hydra(
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+    _run_app(
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+    run_and_report(
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+           ^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+    lambda: hydra.run(
+            ^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 119, in run
+    ret = run_job(
+          ^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+    ret.return_value = task_function(task_cfg)
+                       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/home/graph-vls/experiments/train_qgnn.py", line 74, in main
+    result = train_qgnn_classifier(
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/home/graph-vls/src/gvls/qgnn_training.py", line 139, in train_qgnn_classifier
+    (loss / len(batch_idx)).backward()
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/torch/_tensor.py", line 581, in backward
+    torch.autograd.backward(
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/torch/autograd/__init__.py", line 347, in backward
+    _engine_run_backward(
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/torch/autograd/graph.py", line 825, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

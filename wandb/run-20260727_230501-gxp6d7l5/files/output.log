@@ -1,0 +1,68 @@
+pretrain GVLS (production, M=4):   2%|▎                | 2/100 [00:35<29:09, 17.86s/it, loss=11.1, val_f1=0.681]
+Traceback (most recent call last):
+  File "/root/home/graph-vls/experiments/pretrain_gvls_jets_final.py", line 110, in <module>
+    main()
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+    _run_hydra(
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+    _run_app(
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+    run_and_report(
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+           ^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+    lambda: hydra.run(
+            ^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 119, in run
+    ret = run_job(
+          ^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+    ret.return_value = task_function(task_cfg)
+                       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/home/graph-vls/experiments/pretrain_gvls_jets_final.py", line 67, in main
+    model = train_pooled_gvls_on_jets(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/home/graph-vls/src/gvls/compression/jet_sweep.py", line 223, in train_pooled_gvls_on_jets
+    eval_metrics = evaluate_pooled_gvls_on_jets(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/home/graph-vls/src/gvls/compression/jet_sweep.py", line 342, in evaluate_pooled_gvls_on_jets
+    _, _, _, a_z, _z_tilde, _s, recon_logits = model(x, edge_index)
+                                               ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/home/graph-vls/src/gvls/models/pooling.py", line 158, in forward
+    mu, log_var, z = self.encoder(x, edge_index)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/home/graph-vls/src/gvls/models/encoder.py", line 25, in forward
+    log_var = self.log_var_head(h, edge_index).clamp(-10.0, 10.0)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/torch_geometric/nn/conv/gcn_conv.py", line 260, in forward
+    x = self.lin(x)
+        ^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/torch_geometric/nn/dense/linear.py", line 127, in forward
+    return F.linear(x, self.weight, self.bias)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

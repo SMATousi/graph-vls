@@ -44,7 +44,7 @@ VAL_RATIO=0.15
 DATA_SEED=42
 
 # --- W&B ---
-WANDB_MODE=offline   # offline | online
+WANDB_MODE=online   # offline | online
 
 # --- Stage 1: GVLS pretraining -- configs/train/jet_pretrain_final.yaml ---
 GVLS_HIDDEN_DIM=32
@@ -57,19 +57,24 @@ GVLS_MP_ROUNDS=1
 GVLS_LR=0.01
 GVLS_BETA=0.001
 GVLS_LAMBDA=1.0
-GVLS_EPOCHS=100
+GVLS_EPOCHS=200
 GVLS_BATCH_SIZE=32
 GVLS_SEED=42
 
 # --- Stage 2: QGNN training -- configs/train/qgnn_classifier.yaml ---
 QGNN_NUM_LAYERS=1
-# T4.10: optimizer/lr/batch_size default to the Lorentz-EQGNN literature
-# baseline's protocol (plan.md Design Decision 12) -- set QGNN_OPTIMIZER=adam,
-# QGNN_LR=0.05, QGNN_BATCH_SIZE=32 to restore the pre-T4.10 configuration.
-QGNN_OPTIMIZER=adamw           # adamw (default, T4.10) | adam (pre-T4.10)
-QGNN_LR=0.001
-QGNN_EPOCHS=50
-QGNN_BATCH_SIZE=16
+# Defaults below (adam, lr=0.05, epochs=100, batch=32) are the exact config
+# the first completed real run used (commit 53e14f0, "first training is
+# done" -- results/qgnn/qg_jets_metrics.json: accuracy=0.695, auc=0.735,
+# 20000 jets, M=4) -- kept as the default so this script stays reproducible
+# for that already-executed, already-committed result. For a dedicated
+# Lorentz-EQGNN literature-comparability run instead (T4.10, plan.md Design
+# Decision 12), set QGNN_OPTIMIZER=adamw, QGNN_LR=0.001, QGNN_BATCH_SIZE=16,
+# QGNN_EPOCHS=50, and NUM_JETS=800 above.
+QGNN_OPTIMIZER=adam            # adam (matches the completed run above) | adamw (T4.10)
+QGNN_LR=0.05
+QGNN_EPOCHS=100
+QGNN_BATCH_SIZE=32
 QGNN_SEED=42
 QGNN_GRADIENT_METHOD=spsa      # spsa (default, ~15x fewer circuit evals,
                                 # T4.9) | param_shift (exact, much slower --

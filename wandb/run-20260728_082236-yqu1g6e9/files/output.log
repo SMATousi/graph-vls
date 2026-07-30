@@ -1,0 +1,15 @@
+
+Test-set metrics:
+  accuracy    : 0.6950
+  auc         : 0.7347
+  ap          : 0.7454
+  macro_f1    : 0.6923
+  precision   : 0.7508
+  recall      : 0.5939
+  confusion_matrix (rows=true, cols=pred, label 0=quark/1=gluon): [[1184, 299], [616, 901]]
+  qubit_count (M): 4
+  circuit_depth (num_layers): 1
+
+NOTE: no literature QGNN comparison number is included here -- that search (plan.md T4.6) has not been done yet.
+
+Results written to results/qgnn/qg_jets_metrics.json

@@ -1,0 +1,62 @@
+{
+  "os":  "Linux-6.8.0-134-generic-x86_64-with-glibc2.35",
+  "python":  "CPython 3.11.15",
+  "startedAt":  "2026-07-27T23:11:48.971020Z",
+  "args":  [
+    "data.num_jets=20000",
+    "data.k_graph_cap=8",
+    "data.train_ratio=0.7",
+    "data.val_ratio=0.15",
+    "data.seed=42",
+    "wandb.mode=online",
+    "train.hidden_dim=32",
+    "train.latent_dim=8",
+    "train.k=3",
+    "train.m=4",
+    "train.graph_method=attention",
+    "train.prior=isotropic",
+    "train.mp_rounds=1",
+    "train.lr=0.01",
+    "train.beta=0.001",
+    "train.lambda_=1.0",
+    "train.epochs=200",
+    "train.batch_size=32",
+    "train.seed=42",
+    "checkpoint_path=checkpoints/gvls_jets_m4.pt"
+  ],
+  "program":  "/root/home/graph-vls/experiments/pretrain_gvls_jets_final.py",
+  "codePath":  "experiments/pretrain_gvls_jets_final.py",
+  "codePathLocal":  "experiments/pretrain_gvls_jets_final.py",
+  "git":  {
+    "remote":  "git@github.com:SMATousi/graph-vls.git",
+    "commit":  "a40e79f68f94566787f538ff51cf3579f74b2c31"
+  },
+  "email":  "stmmc@umsystem.edu",
+  "root":  "/root/home/graph-vls",
+  "host":  "3-ali-100-dep-vigir-575d848757-g2xfd",
+  "executable":  "/opt/conda/envs/graph-vls/bin/python",
+  "cpu_count":  128,
+  "cpu_count_logical":  256,
+  "gpu":  "NVIDIA A100-SXM4-80GB",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "1599952912384",
+      "used":  "990359556096"
+    }
+  },
+  "memory":  {
+    "total":  "1081702215680"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA A100-SXM4-80GB",
+      "memoryTotal":  "85899345920",
+      "cudaCores":  6912,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-231fc033-4fbc-29d9-a55d-42f6037b4442"
+    }
+  ],
+  "cudaVersion":  "13.2",
+  "writerId":  "51j12ivcm634fblv7zexxlu4ja22mtpl"
+}

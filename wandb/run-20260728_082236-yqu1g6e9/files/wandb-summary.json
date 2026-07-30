@@ -1,0 +1,1 @@
+{"test_recall":0.5939353988134476,"_wandb":{"runtime":10},"test_accuracy":0.695,"test_precision":0.7508333333333334,"_runtime":10,"_step":0,"test_macro_f1":0.6922615035060327,"test_ap":0.7453728753834185,"_timestamp":1.7852269671912637e+09,"test_auc":0.7347232600098412}
