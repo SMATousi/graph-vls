@@ -3,9 +3,16 @@
 # doesn't dominate wall-clock time); revisit only if reconstruction/
 # classification fidelity demands more re-uploading layers.
 num_layers: 1
-lr: 0.05
+
+# T4.10 (plan.md Design Decision 12): optimizer/lr/batch_size realigned to
+# match the Lorentz-EQGNN literature baseline (sota-table.png Table II,
+# Quark-Gluon dataset, 4 qubits -- matching our M=4) for direct
+# comparability. Override back to optimizer=adam, lr=0.05, batch_size=32 for
+# the project's own (non-comparability) experiments if still needed.
+optimizer: adamw  # adamw (default, T4.10) | adam (pre-T4.10 default)
+lr: 0.001
 epochs: 50
-batch_size: 32
+batch_size: 16
 seed: 42
 
 # T4.8-followup: SPSA replaces parameter-shift as the default gradient

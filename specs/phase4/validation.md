@@ -1,6 +1,6 @@
 # Phase 4 — Validation
 
-**Status: T4.1–T4.4 complete (2026-07-20); T4.5 code-complete and smoke-tested, but not actually run (2026-07-20, user instruction).** T4.6/T4.7 not started. **T4.8 (batched QGNN training, 2026-07-27) gave only ~1.34x — insufficient alone. T4.9 (SPSA gradient estimator, 2026-07-27) followed up and gave ~15.5x combined — by far the largest lever found, and the first one that plausibly makes T4.5's real run tractable at the target dataset scale, though not yet confirmed at that real scale. See V-8, V-9.**
+**Status: T4.1–T4.4 complete (2026-07-20); T4.5 code-complete and smoke-tested, but not actually run (2026-07-20, user instruction).** T4.6/T4.7 not started. **T4.8 (batched QGNN training, 2026-07-27) gave only ~1.34x — insufficient alone. T4.9 (SPSA gradient estimator, 2026-07-27) followed up and gave ~15.5x combined — by far the largest lever found, and the first one that plausibly makes T4.5's real run tractable at the target dataset scale, though not yet confirmed at that real scale. See V-8, V-9.** **T4.10 (new, 2026-07-30): literature comparison target confirmed (Lorentz-EQGNN, user-supplied table) and pipeline realignment implemented (AdamW/lr=1e-3/batch=16 defaults, optimizer selector, train-accuracy + wall-clock reporting, bash-script overrides) and tested — the actual 800-jet comparability run has not been executed yet. See V-10.**
 
 ## Exit Criteria
 
@@ -15,6 +15,7 @@
 - [ ] `pytest tests/` passes with all new Phase 4 tests included
 - [x] (T4.8, 2026-07-27) QGNN training batched (one `EstimatorQNN`/`TorchConnector` call per minibatch, `input_gradients=False`), gradient-parity-tested against the per-jet loop, with an actual before/after wall-clock recorded — measured ~1.34x, not the large speedup originally hoped for; see V-8
 - [x] (T4.9, 2026-07-27) SPSA gradient estimator replacing parameter-shift as the default, with the evaluation-count claim measured directly (not assumed) and degeneracy-sensitive tests pinned to param_shift — combined ~15.5x speedup measured on synthetic jets; see V-9
+- [x] (T4.10, 2026-07-30) Literature comparison target confirmed and pipeline realigned: `configs/train/qgnn_classifier.yaml` updated to `AdamW, lr=1e-3, batch_size=16`; an `800`-jet comparability subset reachable via `data.num_jets=800`/`NUM_JETS` (bash script); `evaluate_qgnn.py` reports train/test accuracy and wall-clock training/inference time — implemented and unit-tested; the real 800-jet run itself has not been executed — see V-10
 
 ---
 
@@ -204,3 +205,35 @@ Batching's *own* marginal contribution on top of `input_gradients=False` is only
 SPSA alone (batched param-shift -> batched SPSA, holding batching constant) contributes **~11.7x** on top of T4.8's own ~1.34-1.37x. This is by far the largest single lever found across T4.8/T4.9, consistent with the evaluation-count measurement above (14-24x fewer circuit evaluations per sample) modulo Python-level overhead that doesn't scale down as cleanly as the evaluation count itself.
 
 **Implication:** unlike T4.8, this is a plausible real fix for T4.5's target-scale tractability, not just an honest-but-modest improvement. **Caveat, stated as plainly as V-8's was:** this is still a synthetic-jet CPU benchmark at a much smaller scale (300 jets, 3 epochs) than the target real run (10,000-50,000 jets, up to 50 epochs) — directionally strong evidence, not a substitute for actually running T4.5 at real scale. The stochastic-gradient tradeoff (SPSA's variance vs. param-shift's exactness) also hasn't been evaluated for its effect on classification accuracy/convergence, only on speed and gradient-flow sanity checks — if training doesn't converge well under SPSA's noisier gradient at the target scale, `spsa_batch_size` can be increased (still far cheaper than param-shift for any batch size well below `num_weight_params`) or `gradient_method="param_shift"` can be restored via one config override.
+
+---
+
+## V-10: Literature Comparison Target & Pipeline Realignment (T4.10) 🔶 Pipeline implemented and tested; comparability run not yet executed
+
+**Trigger:** user supplied a benchmark table (`sota-table.png`, Table II "Quark-Gluon Dataset" / Table III "Electron-Photon Dataset", 2026-07-30) reporting QGNN/hybrid-QNN/classical-CNN accuracy on jet-classification tasks. Resolves T4.6's previously-unidentified literature-comparison target (Design Decision 4 / FR-6). Full design reasoning in `plan.md` Design Decision 12; requirement amendments in `requirements.md` FR-1/FR-5/FR-6.
+
+**Comparison target:** `Lorentz-EQGNN`, Table II, Quark-Gluon dataset — `4` qubits (matches our `M=4`), `AdamW`, `lr=1e-3`, `batch_size=16`, `50` epochs, `Cross Entropy Loss`, `800`-jet training subset, `74.00% ± 0.26%` test accuracy. **Not yet bibliographically confirmed** — the source paper's title/venue/arXiv ID have not been verified, only the supplied table image; do not present as a confirmed citation in `README.md` until resolved (NFR-5).
+
+**User decisions (`AskUserQuestion`, 2026-07-30):**
+
+| Question | Decision |
+|---|---|
+| Alignment target | Match Lorentz-EQGNN exactly, not the table's broader conventions or a no-change citation-only approach |
+| Dataset scope | Quark-Gluon only; Electron-Photon (Table III) explicitly deferred |
+| Training subset size | Match literally: `800` jets, as a dedicated comparability run (additive to, not replacing, the 10,000–50,000-jet target) |
+| Metrics format | Add train/test accuracy and wall-clock training/inference time reporting, alongside existing accuracy/AUC/macro-F1 |
+
+**Implemented 2026-07-30.** Files: `src/gvls/qgnn_training.py` (`_build_optimizer`, `_OPTIMIZERS = {"adam": Adam, "adamw": AdamW}`, `train_qgnn_classifier` gains `optimizer: str = "adamw"`; `QGNNTrainingResult` gains `best_train_metrics`, computed once on the best-val-accuracy weights via the existing `evaluate_qgnn_classifier`); `configs/train/qgnn_classifier.yaml` (`optimizer: adamw`, `lr: 0.001`, `batch_size: 16`, `epochs: 50` unchanged); `experiments/train_qgnn.py` (times the `train_qgnn_classifier` call via `time.perf_counter()`, persists `optimizer`/`train_accuracy`/`training_time_s` into the QGNN checkpoint's saved config and W&B); `experiments/evaluate_qgnn.py` (reads those three back via `qgnn_config.get(...)` with `None` fallback for pre-T4.10 checkpoints, times its own inference pass, prints/persists/logs all of it, plus the NFR-5 hardware-non-parity note); `scripts/run_full_qgnn_pipeline.sh` (`QGNN_OPTIMIZER` variable added to Stage 2, `QGNN_LR`/`QGNN_BATCH_SIZE` defaults updated to `0.001`/`16` to mirror the new yaml defaults, `NUM_JETS` comment documents setting `800` for the literal comparability run). Tests: 4 new in `tests/test_qgnn_training.py`.
+
+| Check | Pass condition | Result |
+|---|---|---|
+| Comparability config exists | `800`-jet subset reachable via the existing `data.num_jets` Hydra key / `NUM_JETS` bash variable — no new config file needed since this was already overridable | ✅ verified via `python experiments/train_qgnn.py --cfg job --resolve data.num_jets=800` |
+| Optimizer/hyperparameters realigned | `configs/train/qgnn_classifier.yaml` uses `AdamW, lr=1e-3, batch_size=16, epochs=50` by default; `train_qgnn_classifier` gains an optimizer selector (`optimizer="adamw"` default, `"adam"` selectable, invalid names raise `ValueError`) | ✅ `test_train_qgnn_classifier_default_optimizer_is_adamw`, `test_train_qgnn_classifier_supports_adam`, `test_train_qgnn_classifier_invalid_optimizer_raises`; config verified via `--cfg job --resolve` both with and without an override back to `adam/0.05/32` |
+| Loss-function equivalence documented | `BCEWithLogitsLoss` kept on the single-logit readout (no code change — already the default); the CE-equivalence reasoning is recorded in `plan.md` Design Decision 12, referenced from `evaluate_qgnn.py`'s module docstring | ✅ |
+| Train/test accuracy reported | `evaluate_qgnn.py` reports both — `train_accuracy` read back from the checkpoint, `test_accuracy` from the fresh test-split evaluation | ✅ `test_train_qgnn_classifier_result_includes_best_train_metrics`; `evaluate_qgnn.py`'s `results` dict includes both keys |
+| Wall-clock timing reported | Training time (`experiments/train_qgnn.py`) and inference time (`experiments/evaluate_qgnn.py`) in seconds, printed/logged/persisted, with the NFR-5 hardware-non-parity caveat printed alongside | ✅ code-complete; not yet exercised on a real (non-synthetic) run — see below |
+| Real comparability run executed | `800`-jet run actually completed (not just smoke-tested) with real numbers reported against Table II | ⬜ not yet run |
+| README updated | New results section includes a direct row added to (or placed alongside) `sota-table.png`'s Table II format | ⬜ not yet done — depends on the real run above |
+| Full suite / lint | `pytest tests/` and `ruff check` on all touched files | ✅ 223/223 passing; `ruff check src/gvls/qgnn_training.py experiments/train_qgnn.py experiments/evaluate_qgnn.py tests/test_qgnn_training.py` clean (3 pre-existing import-order violations in unrelated files — `compression_sweep.py`, `smoke_test.py`, `train_gvls.py` — untouched by this task) |
+
+**What still needs to happen before this is genuinely "done":** run `scripts/run_full_qgnn_pipeline.sh` with `NUM_JETS=800` on a real machine, confirm the reported `train_accuracy`/`test_accuracy`/`training_time_s`/`inference_time_s` are real (not synthetic-smoke-test) numbers, and add the resulting row to `README.md` alongside `sota-table.png`'s Table II. This mirrors V-5's own "code-complete, not run" status for the larger-scale pipeline — the two comparability configurations (10,000–50,000 jets vs. this 800-jet literature-comparability run) share the same underlying code path and both await an actual execution.

@@ -7,6 +7,7 @@
 - Each jet is converted to a PyG-`Data`-compatible object: `x` (per-particle feature matrix), `edge_index` (k-NN graph in `(η, φ)` space, `k_graph = min(particle_count − 1, 8)`), `y` (binary quark=0/gluon=1 label, or vice versa — pick one convention and document it)
 - Per-particle features: `(log pT, y, φ, one_hot(pdgid))`, `F ≈ 15` (Design Decision 6); must handle jets with varying particle counts `N` without padding or truncation (each jet keeps its own real `N`)
 - Subsets the full dataset to a documented, tractable size (target 10,000–50,000 jets, Design Decision 9), balanced quark/gluon within a configurable tolerance
+- **Amended 2026-07-30 (T4.10, `plan.md` Design Decision 12):** a second, dedicated `num_jets=800` configuration exists for literal comparability with the Lorentz-EQGNN literature baseline — additive to, not a replacement for, the 10,000–50,000-jet target above. Uses the same 70/15/15 split convention (`560`/`120`/`120`) as an explicit assumption, since the source table states only "800 (subset)" with no train/val/test breakdown to match against (flag per NFR-5 until/unless a more specific protocol is found).
 - Produces a deterministic train/val/test split given a seed (target 70/15/15)
 
 ### FR-2: Fixed-`M` pooling for variable-`N` jets
@@ -32,6 +33,7 @@
 ### FR-5: Two-stage supervised training
 - Loads the frozen GVLS checkpoint selected by FR-3, runs it once (no gradient) over every jet in the labeled split to produce `(z̃, A_z)` per jet
 - Trains only the QGNN's circuit parameters (`θ`, `b_i`, the readout rotation `γ_i`) via Adam, using `TorchConnector`'s autograd bridge (parameter-shift rule under the hood), against a BCE loss on the quark/gluon label
+- **Amended 2026-07-30 (T4.10, `plan.md` Design Decision 12):** for the literature-comparability run specifically, the optimizer is `AdamW` (`torch.optim.AdamW`, was `Adam`), `lr=1e-3` (was `0.05`), `batch_size=16` (was `32`) — matching Lorentz-EQGNN's reported protocol exactly. `epochs=50` is unchanged (already matched). `BCEWithLogitsLoss` is kept (not replaced by a literal `nn.CrossEntropyLoss`) — documented as the mathematically equivalent formulation for a single-logit binary readout, per Design Decision 12's reconciliation. These become new Hydra-configurable defaults in `configs/train/qgnn_classifier.yaml`; the original `Adam, lr=0.05, batch_size=32` configuration remains available via override for the project's own (non-comparability) experiments if still needed.
 - **Batches jets via a true batched `EstimatorQNN`/`TorchConnector` call per minibatch (amended 2026-07-27, T4.8), not a per-jet loop with manually accumulated gradients.** The original wording ("no true batched quantum circuit execution required — each jet's circuit still runs individually") is superseded: T4.5's real run proved intractably slow, and `TorchConnector`/`EstimatorQNN` were confirmed (against the installed `qiskit-machine-learning==0.8.2` source, not assumed) to already natively support a `(B, num_inputs)` batched call submitted as one job, which the original per-jet design simply never used. See `plan.md` Design Decision 10.
 - Tracks train/val loss and accuracy per epoch; logs to W&B under group tag `qgnn-jet-classification`; checkpoints the best-val-accuracy parameter set
 
@@ -39,6 +41,8 @@
 - Computes accuracy, AUC, and macro-F1 on the held-out test split
 - Reports the qubit count (`M`) and circuit depth (`num_layers`) actually used alongside classification metrics
 - Identifies and cites at least one literature QGNN (or closely related quantum-ML jet-tagging) result on this or a comparable dataset for direct comparison — if none exists, this must be stated explicitly rather than substituting an unrelated benchmark
+- **Target identified 2026-07-30**: `Lorentz-EQGNN` (`sota-table.png` Table II, Quark-Gluon dataset, 4 qubits, `74.00% ± 0.26%` test accuracy) — see `plan.md` Design Decision 12. The source paper is not yet bibliographically confirmed (title/venue/arXiv ID unverified, table image only); do not present it as a confirmed citation until resolved (NFR-5).
+- **Amended 2026-07-30 (T4.10):** also computes and reports **train accuracy** (in addition to test accuracy — the table reports both) and **wall-clock training time** and **inference time** (seconds), formatted to allow a direct row-by-row comparison against `sota-table.png`'s Table II. Per the honesty flag in `plan.md` Design Decision 12, wall-clock numbers must be reported as measured on our own hardware, not implied to be hardware-matched against the literature table.
 - Results and comparison written to `results/qgnn/` and summarized in `README.md`, following the existing results-section convention (numbers table + findings bullets)
 
 ### FR-7: Joint fine-tuning ablation (stretch, T4.7)
@@ -73,6 +77,7 @@
 
 ### NFR-5: Honesty about unresolved items
 - Do not present an assumed detail (dataset source, feature set, literature comparison number) as confirmed fact in `README.md` or `validation.md` until it has actually been checked — carry forward `plan.md`'s explicit "assumption, not yet confirmed" flags until they're resolved, consistent with how this project's other specs (e.g. `specs/phase3/plan.md`'s dataset-source and decoder-trigger flags) have handled open items
+- **Added 2026-07-30 (T4.10):** the Lorentz-EQGNN literature table's source paper is not yet bibliographically confirmed (title/venue/arXiv ID unverified, table image only) — do not cite it as a confirmed reference until resolved. Wall-clock training/inference time comparisons against that table are directional only, not apples-to-apples, since the table's hardware is unknown; report our own measured numbers plainly without implying hardware parity.
 
 ---
 

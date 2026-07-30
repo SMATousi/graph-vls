@@ -118,12 +118,35 @@ def evaluate_qgnn_classifier(
     return classification_metrics(labels, logits)
 
 
+_OPTIMIZERS: dict[str, type[torch.optim.Optimizer]] = {
+    "adam": torch.optim.Adam,
+    "adamw": torch.optim.AdamW,
+}
+
+
+def _build_optimizer(name: str, params, lr: float) -> torch.optim.Optimizer:
+    """Construct the training-loop optimizer by name (T4.10).
+
+    `adamw` is the default (`plan.md` Design Decision 12, matching the
+    Lorentz-EQGNN literature baseline's protocol); `adam` remains selectable
+    for the pre-T4.10 configuration or any other comparison.
+    """
+    try:
+        optimizer_cls = _OPTIMIZERS[name]
+    except KeyError:
+        raise ValueError(
+            f"Unknown optimizer {name!r}, expected one of {sorted(_OPTIMIZERS)}"
+        ) from None
+    return optimizer_cls(params, lr=lr)
+
+
 @dataclass
 class QGNNTrainingResult:
     best_state_dict: dict[str, Tensor]
     best_epoch: int
     best_val_metrics: dict[str, Any]
     history: list[dict[str, Any]] = field(default_factory=list)
+    best_train_metrics: dict[str, Any] = field(default_factory=dict)
 
 
 def train_qgnn_classifier(
@@ -142,8 +165,16 @@ def train_qgnn_classifier(
     gradient_method: str = "spsa",
     spsa_epsilon: float = 1e-6,
     spsa_batch_size: int = 1,
+    optimizer: str = "adamw",
 ) -> QGNNTrainingResult:
-    """Train QGNNClassifier's circuit parameters via Adam (T4.5, FR-5).
+    """Train QGNNClassifier's circuit parameters via Adam/AdamW (T4.5, FR-5).
+
+    `optimizer` (new, T4.10, `plan.md` Design Decision 12) selects between
+    `"adamw"` (default, matching the Lorentz-EQGNN literature baseline's
+    protocol) and `"adam"` (the pre-T4.10 default, still available). This is
+    purely a classical training-loop choice -- it has no bearing on the
+    quantum circuit's `gradient_method` (SPSA vs. parameter-shift, T4.9),
+    which is an orthogonal, separately-configurable concern.
 
     Each minibatch is one batched `QGNNClassifier` call (T4.8) via
     `qgnn_batch_loss`/`collate_jet_features` -- unlike the classical GVLS
@@ -181,7 +212,7 @@ def train_qgnn_classifier(
         spsa_epsilon=spsa_epsilon,
         spsa_batch_size=spsa_batch_size,
     ).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optim = _build_optimizer(optimizer, model.parameters(), lr)
     shuffle_generator = torch.Generator().manual_seed(seed)
 
     best_val_accuracy = -1.0
@@ -200,10 +231,10 @@ def train_qgnn_classifier(
         for start in range(0, len(perm), batch_size):
             batch_idx = perm[start : start + batch_size]
             batch = [train_features[i] for i in batch_idx]
-            optimizer.zero_grad()
+            optim.zero_grad()
             loss = qgnn_batch_loss(model, batch, device)  # mean over the minibatch
             loss.backward()
-            optimizer.step()
+            optim.step()
             running_loss += loss.item() * len(batch_idx)  # de-mean back to a sum
             n_seen += len(batch_idx)
         train_loss = running_loss / max(n_seen, 1)
@@ -222,11 +253,19 @@ def train_qgnn_classifier(
             best_state_dict = {k: v.clone() for k, v in model.state_dict().items()}
             best_val_metrics = val_metrics
 
+    # T4.10 (FR-6 amendment): report train accuracy (and the full metric
+    # suite) alongside val/test, matching the literature table's convention
+    # of reporting both -- computed once, on the best-val-accuracy weights,
+    # not re-derived from the (val-only) per-epoch history.
+    model.load_state_dict(best_state_dict)
+    best_train_metrics = evaluate_qgnn_classifier(model, train_features, device)
+
     return QGNNTrainingResult(
         best_state_dict=best_state_dict,
         best_epoch=best_epoch,
         best_val_metrics=best_val_metrics,
         history=history,
+        best_train_metrics=best_train_metrics,
     )
 
 

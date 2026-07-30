@@ -154,6 +154,68 @@ def test_train_qgnn_classifier_smoke() -> None:
         assert not torch.isnan(torch.tensor(row["train_loss"]))
 
 
+def test_train_qgnn_classifier_default_optimizer_is_adamw() -> None:
+    """T4.10 (plan.md Design Decision 12): adamw is the default, matching
+    the Lorentz-EQGNN literature baseline's protocol."""
+    train_features = _tiny_features(6, seed_offset=0)
+    val_features = _tiny_features(4, seed_offset=100)
+
+    result = train_qgnn_classifier(
+        train_features, val_features, m=M, d=LATENT_DIM, num_layers=1,
+        lr=0.1, epochs=2, seed=42, device=DEVICE, batch_size=3, show_progress=False,
+    )
+
+    assert len(result.history) == 2
+    for row in result.history:
+        assert not torch.isnan(torch.tensor(row["train_loss"]))
+
+
+def test_train_qgnn_classifier_supports_adam() -> None:
+    """adam remains selectable for the pre-T4.10 configuration."""
+    train_features = _tiny_features(6, seed_offset=0)
+    val_features = _tiny_features(4, seed_offset=100)
+
+    result = train_qgnn_classifier(
+        train_features, val_features, m=M, d=LATENT_DIM, num_layers=1,
+        lr=0.1, epochs=2, seed=42, device=DEVICE, batch_size=3, show_progress=False,
+        optimizer="adam",
+    )
+
+    assert len(result.history) == 2
+    for row in result.history:
+        assert not torch.isnan(torch.tensor(row["train_loss"]))
+
+
+def test_train_qgnn_classifier_invalid_optimizer_raises() -> None:
+    train_features = _tiny_features(4, seed_offset=0)
+    val_features = _tiny_features(4, seed_offset=100)
+
+    try:
+        train_qgnn_classifier(
+            train_features, val_features, m=M, d=LATENT_DIM, num_layers=1,
+            lr=0.1, epochs=1, seed=42, device=DEVICE, batch_size=2, show_progress=False,
+            optimizer="rmsprop",
+        )
+        raise AssertionError("expected ValueError for an unknown optimizer")
+    except ValueError as exc:
+        assert "rmsprop" in str(exc)
+
+
+def test_train_qgnn_classifier_result_includes_best_train_metrics() -> None:
+    """T4.10 (FR-6 amendment): train accuracy (and the full metric suite) is
+    reported alongside val/test, matching the literature table's convention."""
+    train_features = _tiny_features(6, seed_offset=0)
+    val_features = _tiny_features(4, seed_offset=100)
+
+    result = train_qgnn_classifier(
+        train_features, val_features, m=M, d=LATENT_DIM, num_layers=1,
+        lr=0.1, epochs=2, seed=42, device=DEVICE, batch_size=3, show_progress=False,
+    )
+
+    assert "accuracy" in result.best_train_metrics
+    assert 0.0 <= result.best_train_metrics["accuracy"] <= 1.0
+
+
 def test_train_qgnn_classifier_handles_ragged_final_minibatch() -> None:
     """5 train jets with batch_size=2 leaves a final minibatch of size 1 --
     the batched training loop (T4.8) must handle this without error."""

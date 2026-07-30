@@ -30,6 +30,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ============================================================================
 
 # --- Shared: configs/data/qg_jets.yaml (used by all three stages) ---
+# T4.10 (literature comparability, plan.md Design Decision 12): to reproduce
+# the Lorentz-EQGNN literature baseline (sota-table.png Table II, Quark-Gluon
+# dataset) as closely as possible, set NUM_JETS=800 -- a dedicated
+# comparability run, additive to (not a replacement for) this 20000 default.
+# TRAIN_RATIO/VAL_RATIO's 70/15/15 split then gives 560/120/120 jets; the
+# literature table itself does not state a train/val/test breakdown for its
+# "800 (subset)" figure, so this split is an explicit assumption (NFR-5).
 NUM_JETS=20000
 K_GRAPH_CAP=8
 TRAIN_RATIO=0.7
@@ -56,9 +63,13 @@ GVLS_SEED=42
 
 # --- Stage 2: QGNN training -- configs/train/qgnn_classifier.yaml ---
 QGNN_NUM_LAYERS=1
-QGNN_LR=0.05
+# T4.10: optimizer/lr/batch_size default to the Lorentz-EQGNN literature
+# baseline's protocol (plan.md Design Decision 12) -- set QGNN_OPTIMIZER=adam,
+# QGNN_LR=0.05, QGNN_BATCH_SIZE=32 to restore the pre-T4.10 configuration.
+QGNN_OPTIMIZER=adamw           # adamw (default, T4.10) | adam (pre-T4.10)
+QGNN_LR=0.001
 QGNN_EPOCHS=50
-QGNN_BATCH_SIZE=32
+QGNN_BATCH_SIZE=16
 QGNN_SEED=42
 QGNN_GRADIENT_METHOD=spsa      # spsa (default, ~15x fewer circuit evals,
                                 # T4.9) | param_shift (exact, much slower --
@@ -116,6 +127,7 @@ STAGE1_ARGS+=(
 
 STAGE2_ARGS+=(
     "train.num_layers=${QGNN_NUM_LAYERS}"
+    "train.optimizer=${QGNN_OPTIMIZER}"
     "train.lr=${QGNN_LR}"
     "train.epochs=${QGNN_EPOCHS}"
     "train.batch_size=${QGNN_BATCH_SIZE}"

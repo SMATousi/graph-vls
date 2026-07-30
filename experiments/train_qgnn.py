@@ -16,7 +16,13 @@ Usage:
     python experiments/train_qgnn.py train.epochs=100 train.num_layers=2
     python experiments/train_qgnn.py gvls_checkpoint_path=checkpoints/gvls_jets_m6.pt \
         qgnn_checkpoint_path=checkpoints/qgnn_jets_m6.pt
+    # T4.10: literature-comparability run (Lorentz-EQGNN, plan.md Design
+    # Decision 12) -- 800-jet subset, AdamW/lr=1e-3/batch=16 already the
+    # config defaults (configs/train/qgnn_classifier.yaml):
+    python experiments/train_qgnn.py data.num_jets=800
 """
+
+import time
 
 import hydra
 import torch
@@ -58,8 +64,10 @@ def main(cfg: DictConfig) -> None:
     val_features = extract_latent_features(gvls_model, split.val, device)
 
     train_cfg = OmegaConf.to_container(cfg.train, resolve=True)
+    optimizer_name = str(train_cfg.get("optimizer", "adam"))  # pre-T4.10 configs lack this key
     print(
-        f"QGNN config: M={m} num_layers={train_cfg['num_layers']} lr={train_cfg['lr']} "
+        f"QGNN config: M={m} num_layers={train_cfg['num_layers']} "
+        f"optimizer={optimizer_name} lr={train_cfg['lr']} "
         f"epochs={train_cfg['epochs']} batch_size={train_cfg['batch_size']} "
         f"gradient_method={train_cfg['gradient_method']}"
     )
@@ -72,6 +80,7 @@ def main(cfg: DictConfig) -> None:
         config={"m": m, "d": d, **train_cfg},
     )
 
+    training_start = time.perf_counter()
     result = train_qgnn_classifier(
         train_features,
         val_features,
@@ -87,19 +96,29 @@ def main(cfg: DictConfig) -> None:
         gradient_method=str(train_cfg["gradient_method"]),
         spsa_epsilon=float(train_cfg["spsa_epsilon"]),
         spsa_batch_size=int(train_cfg["spsa_batch_size"]),
+        optimizer=optimizer_name,
     )
+    training_time_s = time.perf_counter() - training_start
 
     best = result.best_val_metrics
+    train_accuracy = result.best_train_metrics["accuracy"]
     print(
         f"\nBest epoch={result.best_epoch}  val_accuracy={best['accuracy']:.4f}  "
         f"val_auc={best['auc']:.4f}  val_macro_f1={best['macro_f1']:.4f}"
     )
+    print(f"train_accuracy={train_accuracy:.4f}  training_time_s={training_time_s:.2f}")
+    # NFR-5 (T4.10): this wall-clock number is our own hardware's, not
+    # matched to the literature table's -- report plainly, don't imply parity.
+    wandb.log({"train_accuracy": train_accuracy, "training_time_s": training_time_s})
 
     config = {
         "m": m,
         "d": d,
         "num_layers": int(train_cfg["num_layers"]),
         "gradient_method": str(train_cfg["gradient_method"]),
+        "optimizer": optimizer_name,
+        "train_accuracy": train_accuracy,
+        "training_time_s": training_time_s,
     }
     save_qgnn_checkpoint(result.best_state_dict, config, str(cfg.qgnn_checkpoint_path))
     print(f"Saved best QGNN checkpoint to {cfg.qgnn_checkpoint_path}")
@@ -111,7 +130,10 @@ def main(cfg: DictConfig) -> None:
             "m": m,
             "d": d,
             "num_layers": int(train_cfg["num_layers"]),
+            "optimizer": optimizer_name,
             "best_epoch": result.best_epoch,
+            "train_accuracy": train_accuracy,
+            "training_time_s": training_time_s,
             **{f"best_val_{key}": val for key, val in best.items() if key != "confusion_matrix"},
         },
     )

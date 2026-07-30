@@ -13,6 +13,16 @@ requirements.md NFR-5 forbids fabricating a comparison number before that
 search is actually done. This script reports GVLS+QGNN's own numbers only --
 its absence here means "not yet looked for," not "none exists."
 
+T4.10 (plan.md Design Decision 12) adds train accuracy and wall-clock
+training/inference time to the report, read back from the QGNN checkpoint's
+saved config (`train_accuracy`/`training_time_s`, persisted by
+experiments/train_qgnn.py) plus a freshly-measured test-set inference time --
+matching sota-table.png's Table II columns for a direct row-by-row
+comparison. Per NFR-5, these wall-clock numbers are our own hardware's, not
+matched to the literature table's -- reported plainly, not implying parity.
+Checkpoints saved before T4.10 lack the two training-side fields; this script
+reports them as unavailable rather than fabricating a number.
+
 Usage:
     python experiments/evaluate_qgnn.py
     python experiments/evaluate_qgnn.py gvls_checkpoint_path=checkpoints/gvls_jets_m6.pt \
@@ -20,6 +30,7 @@ Usage:
 """
 
 import json
+import time
 from pathlib import Path
 
 import hydra
@@ -72,8 +83,21 @@ def main(cfg: DictConfig) -> None:
     )
 
     test_features = extract_latent_features(gvls_model, split.test, device)
+    inference_start = time.perf_counter()
     metrics = evaluate_qgnn_classifier(qgnn_model, test_features, device)
+    inference_time_s = time.perf_counter() - inference_start
+
+    # T4.10: read back what train_qgnn.py measured/persisted at training time.
+    # `.get(...)` defaults to None for checkpoints saved before T4.10 --
+    # reported as "not available" below rather than fabricated (NFR-5).
+    optimizer_name = qgnn_config.get("optimizer")
+    train_accuracy = qgnn_config.get("train_accuracy")
+    training_time_s = qgnn_config.get("training_time_s")
+
     wandb.log({f"test_{key}": val for key, val in metrics.items() if key != "confusion_matrix"})
+    wandb.log({"inference_time_s": inference_time_s})
+    if train_accuracy is not None:
+        wandb.log({"train_accuracy": train_accuracy, "training_time_s": training_time_s})
 
     print("\nTest-set metrics:")
     for key in ("accuracy", "auc", "ap", "macro_f1", "precision", "recall"):
@@ -82,17 +106,35 @@ def main(cfg: DictConfig) -> None:
         "  confusion_matrix (rows=true, cols=pred, label 0=quark/1=gluon): "
         f"{metrics['confusion_matrix']}"
     )
+    def _fmt(val: float | str | None, spec: str = "") -> str:
+        # checkpoints saved before T4.10 lack train_accuracy/training_time_s
+        return "not available (checkpoint predates T4.10)" if val is None else format(val, spec)
+
     print(f"  qubit_count (M): {m}")
     print(f"  circuit_depth (num_layers): {num_layers}")
+    print(f"  optimizer: {_fmt(optimizer_name)}")
+    print(f"  train_accuracy: {_fmt(train_accuracy, '.4f')}")
+    print(f"  training_time_s: {_fmt(training_time_s, '.2f')}")
+    print(f"  inference_time_s: {inference_time_s:.2f}  ({len(split.test)} test jets)")
+    print(
+        "\nNOTE (NFR-5): wall-clock timing above is measured on this run's own hardware, "
+        "not matched to sota-table.png's Table II hardware -- directional comparison only."
+    )
     print(
         "\nNOTE: no literature QGNN comparison number is included here -- "
-        "that search (plan.md T4.6) has not been done yet."
+        "that search (plan.md T4.6) has not been done yet. Comparison target identified "
+        "2026-07-30 (Lorentz-EQGNN, sota-table.png Table II) -- see plan.md Design Decision 12."
     )
 
     results = {
         "m": m,
         "num_layers": num_layers,
+        "optimizer": optimizer_name,
         "num_test_jets": len(split.test),
+        "train_accuracy": train_accuracy,
+        "test_accuracy": metrics["accuracy"],
+        "training_time_s": training_time_s,
+        "inference_time_s": inference_time_s,
         **metrics,
     }
     results_path = Path(str(cfg.results_path))

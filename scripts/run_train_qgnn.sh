@@ -8,6 +8,11 @@
 #   ./scripts/run_train_qgnn.sh                 # offline W&B (default)
 #   ./scripts/run_train_qgnn.sh --online        # sync to W&B live
 #   ./scripts/run_train_qgnn.sh train.epochs=100 train.num_layers=2
+#   ./scripts/run_train_qgnn.sh train.optimizer=adam train.lr=0.05 \
+#       train.batch_size=32   # restore the pre-T4.10 configuration
+#   ./scripts/run_train_qgnn.sh data.num_jets=800   # T4.10 literature-
+#       # comparability subset (Lorentz-EQGNN, see specs/phase4/plan.md
+#       # Design Decision 12) -- or edit run_full_qgnn_pipeline.sh's NUM_JETS
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

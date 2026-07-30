@@ -38,6 +38,16 @@ Four architectural questions were put to the user directly (`AskUserQuestion`) g
 
     **Real measured wall-clock (not assumed):** benchmarked against the pre-T4.8 original code (loaded from git commit `31b5afe`, not reconstructed from memory) on identical synthetic jets (`M=4, d=8, num_layers=1`, 300 train / 60 val jets, 3 epochs, CPU): the original took ~26.1s; batched+SPSA takes ~1.7s — a **~15.5x combined speedup**, of which SPSA alone (batched param-shift → batched SPSA) contributes ~11.7x on top of T4.8's own ~1.34x. This is the first change in the whole slow-training investigation that plausibly makes the target 10,000–50,000-jet × 50-epoch real run in Design Decision 9 tractable, though it hasn't been run at that real scale yet — see `validation.md` V-9.
 
+12. **Literature comparison target confirmed: Lorentz-EQGNN, and the training pipeline realigned to match it (T4.10, new 2026-07-30, user-directed).** T4.6's literature-comparison search (Design Decision 4's "not yet identified" flag) is resolved by a benchmark table the user supplied directly (`sota-table.png`, Table II "Quark-Gluon Dataset" and Table III "Electron-Photon Dataset" — **the source paper itself is not yet bibliographically confirmed: no title/venue/arXiv ID has been verified, only the table image; do not cite this as a confirmed reference in `README.md`/`results/qgnn/` until that's resolved, per NFR-5**). Table II reports seven models on the Quark-Gluon dataset (the dataset this project already has, `energyflow.qg_jets`, T4.1); `Lorentz-EQGNN` is the strongest quantum/hybrid row and — uniquely among the table's rows — uses **4 qubits**, matching T4.3's already-selected compression-optimal `M=4` exactly, by coincidence rather than by design. Its full protocol: `AdamW` optimizer, `lr=1e-3`, `batch_size=16`, `50` epochs, `Cross Entropy Loss`, an `800`-jet training subset, reaching `74.00% ± 0.26%` test accuracy.
+
+    User decisions (`AskUserQuestion`, 2026-07-30): (a) realign the pipeline to match Lorentz-EQGNN specifically, not the table's broader/looser conventions, and not a no-change citation-only approach; (b) Quark-Gluon only — Electron-Photon (Table III) explicitly deferred, no data source confirmed for it, revisit after Quark-Gluon results land; (c) match the `800`-jet training subset **literally**, as a dedicated comparability run distinct from Design Decision 9's larger 10,000–50,000-jet run (both are kept — the large run for the project's own rate-distortion/statistical-power purposes, the 800-jet run specifically for this comparison); (d) `evaluate_qgnn.py` gains train/test accuracy and wall-clock training/inference time reporting, matching the table's columns, in addition to the existing accuracy/AUC/macro-F1 metrics.
+
+    **Reconciling `Cross Entropy Loss` with this project's single-logit binary readout.** `QGNNClassifier`'s observable (`sum_z_observable`, V-4) produces one scalar logit per jet, trained via `BCEWithLogitsLoss` (T4.5/T4.8's `qgnn_batch_loss`). The literature table's `Cross Entropy Loss` almost certainly means `nn.CrossEntropyLoss` over a 2-class softmax head, which is mathematically equivalent to binary cross-entropy on a single logit for a 2-class problem (softmax-CE with logits `(0, x)` reduces exactly to sigmoid-BCE with logit `x`) — not a functional difference, just a different parameterization. Building a literal 2-output softmax head would require a second observable/readout qubit, which is unnecessary for equivalence and would confound the "matches Lorentz-EQGNN's qubit count" comparison. **Decision: keep `BCEWithLogitsLoss` on the existing single-logit readout, documented explicitly in `results/qgnn/` and `README.md` as the equivalent of the table's `Cross Entropy Loss` rather than a literal `nn.CrossEntropyLoss` call** — a real reconciliation judgment call, recorded here so it isn't mistaken for an unexamined mismatch later.
+
+    **What this does *not* change:** the QGNN ansatz itself (Design Decisions 1–2, T4.4), the SPSA gradient estimator default (Design Decision 11, T4.9 — Lorentz-EQGNN's own classical-optimizer choice doesn't speak to our quantum gradient-estimation method, a separate concern), or T4.3's GVLS pretraining sweep (`M=4` was already selected before this table was seen; T4.10 does not re-run T4.3, it only changes T4.5's stage-2 QGNN training and T4.1's jet-subset size for this specific comparability run).
+
+    **Honesty flag (NFR-5):** wall-clock training/inference time comparisons against the table are directional only, not apples-to-apples — the table's hardware is unknown and almost certainly differs from whatever machine this project's run executes on. Report our own measured numbers plainly; do not imply hardware parity.
+
 ---
 
 ## Scope
@@ -51,6 +61,7 @@ Four architectural questions were put to the user directly (`AskUserQuestion`) g
 - **T4.6** — Evaluation: accuracy / AUC / macro-F1 on held-out test jets; literature search to identify a comparable published QGNN result on this dataset and report against it (Design Decision 4) — the comparison target itself is a deliverable of this task, not an input to it
 - **T4.8 (new, 2026-07-27)** — Batch T4.5's QGNN training loop (Design Decision 10): replace the per-jet `EstimatorQNN`/`TorchConnector` call with one batched call per minibatch, plus `input_gradients=False`, to fix real observed training slowness
 - **T4.9 (new, 2026-07-27)** — Replace parameter-shift with SPSA as the default gradient estimator (Design Decision 11): a genuine reduction in circuit-evaluation count (not just dispatch overhead), measured ~15.5x combined speedup over the pre-T4.8 original
+- **T4.10 (new, 2026-07-30)** — Realign the pipeline with the Lorentz-EQGNN literature baseline (Design Decision 12): `AdamW`, `lr=1e-3`, `batch_size=16`, an `800`-jet comparability subset, and train/test-accuracy + wall-clock reporting in `evaluate_qgnn.py`, so the eventual T4.6 comparison is a direct row-by-row match against the literature table rather than a loosely-comparable citation
 
 ### Stretch / explicitly deferred
 - **T4.7 (stretch)** — Joint end-to-end fine-tuning of GVLS + QGNN together (Design Decision 8), compared against the frozen-feature baseline
@@ -58,6 +69,7 @@ Four architectural questions were put to the user directly (`AskUserQuestion`) g
 - Real quantum hardware execution or noise-model simulation — Qiskit Aer noiseless statevector simulation only this phase; hardware/noise is Phase 5+ ablation material
 - Any new latent-graph-inference method beyond Phase 1's existing attention/FGP/NRI — reuse whichever method Phase 2/3 already validated as a starting point
 - Multi-class or full-detector jet tagging — this dataset and task are binary quark-vs-gluon only
+- **Electron-Photon dataset (new, 2026-07-30)** — `sota-table.png`'s Table III reports the same literature methods on an Electron-Photon jet dataset; user explicitly deferred pursuing it (`AskUserQuestion`, 2026-07-30) until Quark-Gluon results land. No data source is confirmed for it.
 
 ---
 
@@ -248,14 +260,32 @@ Tests (`tests/test_qgnn.py`):
 
 ---
 
+### T4.10 — Realign the pipeline with the Lorentz-EQGNN literature baseline (new, 2026-07-30)
+
+**Files:** `configs/data/qg_jets.yaml` (or a new named override, e.g. `configs/data/qg_jets_lit_compare.yaml`) — `num_jets=800`; `configs/train/qgnn_classifier.yaml` — `optimizer=AdamW`, `lr=1e-3`, `batch_size=16` (`epochs=50` already matches); `src/gvls/qgnn_training.py` (`train_qgnn_classifier`'s optimizer construction, currently hardcoded `torch.optim.Adam`, `qgnn_training.py:184`) needs an `optimizer` selector, not just an `lr` override, to switch to `AdamW`; `experiments/evaluate_qgnn.py` — add train accuracy, wall-clock training time, and wall-clock inference time to its reported/logged metrics.
+
+Triggered by a benchmark table the user supplied directly (Design Decision 12): `Lorentz-EQGNN` (4 qubits, `AdamW`, `lr=1e-3`, `batch_size=16`, `50` epochs, `Cross Entropy Loss`, `800`-jet subset, `74.00% ± 0.26%` test accuracy on Quark-Gluon) is the closest comparable published result — same qubit count as our compression-optimal `M=4` — so the pipeline is realigned to reproduce its protocol as closely as our single-logit-readout architecture allows, per the reconciliation in Design Decision 12.
+
+1. **`800`-jet comparability config** — additive to (not replacing) Design Decision 9's 10,000–50,000-jet target; same 70/15/15 split convention (`560`/`120`/`120`) unless the literature table's own validation protocol turns out to be discoverable and different (currently unknown — the table only states "800 (subset)" with no train/val/test breakdown; document this as an assumption per NFR-5 until/unless resolved).
+2. **`configs/train/qgnn_classifier.yaml` realigned**: `AdamW` (new optimizer option in `train_qgnn_classifier`), `lr=1e-3` (was `0.05`), `batch_size=16` (was `32`). `epochs=50` unchanged. `gradient_method=spsa` (T4.9's default) is **not** changed by this task — Lorentz-EQGNN's own quantum-gradient method (if any) isn't stated in the table, and T4.9's SPSA-vs-param-shift choice is an orthogonal concern (Design Decision 11).
+3. **Loss function reconciliation**: keep `BCEWithLogitsLoss` on the single-logit readout (no code change needed — already the default), documented in `results/qgnn/` and `README.md` as equivalent to the table's `Cross Entropy Loss` (see Design Decision 12's derivation).
+4. **`evaluate_qgnn.py` metric additions**: train accuracy (currently only test-split metrics are computed — needs a pass over the train split too), wall-clock training time (already measurable by timing `train_qgnn_classifier`'s call in `experiments/train_qgnn.py`, needs to be persisted/logged, not just observed), wall-clock inference time (time the test-split forward pass in `evaluate_qgnn.py`). Report alongside the existing accuracy/AUC/macro-F1, formatted so a row can be added directly under `sota-table.png`'s Table II style in `README.md`.
+
+Tests: extend `tests/test_qgnn_training.py` with an `AdamW`-optimizer-selection smoke test (mirrors the existing `Adam`-path smoke test); extend `evaluate_qgnn.py`'s test coverage with a train-accuracy-computation check; no new correctness-critical logic is introduced (the metric additions are read-only measurements, and `AdamW` is a drop-in `torch.optim` swap), so this task's test burden is lighter than T4.8/T4.9's.
+
+**Explicitly not claimed:** this task does not itself run the 800-jet comparability training — it specs and (once implemented) wires up the configuration to allow that run. Recording real numbers against Table II is T4.6's job, using this task's pipeline.
+
+---
+
 ## Deliverable
 
 - A working `src/gvls/data/jets.py` loader producing labeled, graph-structured jet data at a documented subset size
 - `results/compression/qg_jets_pooling.csv`: per-jet compression fidelity vs. fixed `M ∈ {4,6,8}`, with a chosen compression-optimal `M`
 - `src/gvls/models/qgnn.py`: a tested, working Qiskit QGNN ansatz whose entangling structure is a direct function of the learned `A_z`
 - A trained QGNN classifier (T4.5) with accuracy/AUC/macro-F1 reported on held-out test jets
-- A literature comparison point (T4.6) — either a genuine published QGNN benchmark number for this dataset, or an explicit, honest statement that none was found
+- A literature comparison point (T4.6) — **target identified 2026-07-30**: `Lorentz-EQGNN` (`sota-table.png` Table II, 4 qubits, 74.00% test accuracy on Quark-Gluon), pending bibliographic confirmation of the source paper and pending the actual comparability run (T4.10's pipeline realignment, then T4.6's real execution)
 - `README.md` updated with a new "Quantum Graph Neural Network — Quark/Gluon Jet Classification" results section, following this repo's existing convention (numbers, findings bullets, a plot if one is informative)
 - `specs/phase4/validation.md` populated with the actual results and any bugs/surprises found along the way, mirroring Phases 0–3's validation-doc convention
 - (T4.8) Batched QGNN training with the gradient-parity tests passing and an actual before/after wall-clock comparison recorded — done; the measured ~1.34x speedup on its own (mostly from `input_gradients=False`, not batching itself, `validation.md` V-8) was insufficient, which motivated T4.9
 - (T4.9) SPSA gradient estimator replacing parameter-shift as the default — measured ~15.5x combined speedup (T4.8+T4.9) over the pre-T4.8 original on synthetic jets, the first change in this investigation that plausibly makes the target-scale real run tractable; not yet confirmed at that real scale (`validation.md` V-9)
+- (T4.10) Pipeline realigned with the Lorentz-EQGNN literature baseline (`AdamW`, `lr=1e-3`, `batch_size=16`, `800`-jet comparability subset, train/test-accuracy + wall-clock reporting) — specced 2026-07-30, not yet implemented or run (`validation.md` V-10)
