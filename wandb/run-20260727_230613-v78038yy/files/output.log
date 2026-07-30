@@ -1,0 +1,3 @@
+pretrain GVLS (production, M=4): 100%|███████████████████| 5/5 [01:00<00:00, 12.01s/it, loss=7.24, val_f1=0.681]
+
+Saved production GVLS checkpoint (M=4) to checkpoints/gvls_jets_m4.pt

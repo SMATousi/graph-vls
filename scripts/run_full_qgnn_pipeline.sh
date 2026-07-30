@@ -37,7 +37,7 @@ VAL_RATIO=0.15
 DATA_SEED=42
 
 # --- W&B ---
-WANDB_MODE=offline   # offline | online
+WANDB_MODE=online   # offline | online
 
 # --- Stage 1: GVLS pretraining -- configs/train/jet_pretrain_final.yaml ---
 GVLS_HIDDEN_DIM=32
@@ -50,14 +50,14 @@ GVLS_MP_ROUNDS=1
 GVLS_LR=0.01
 GVLS_BETA=0.001
 GVLS_LAMBDA=1.0
-GVLS_EPOCHS=100
+GVLS_EPOCHS=200
 GVLS_BATCH_SIZE=32
 GVLS_SEED=42
 
 # --- Stage 2: QGNN training -- configs/train/qgnn_classifier.yaml ---
 QGNN_NUM_LAYERS=1
 QGNN_LR=0.05
-QGNN_EPOCHS=50
+QGNN_EPOCHS=100
 QGNN_BATCH_SIZE=32
 QGNN_SEED=42
 QGNN_GRADIENT_METHOD=spsa      # spsa (default, ~15x fewer circuit evals,

@@ -1,0 +1,44 @@
+{
+  "os":  "Linux-6.8.0-134-generic-x86_64-with-glibc2.35",
+  "python":  "CPython 3.11.15",
+  "startedAt":  "2026-07-27T22:24:18.279071Z",
+  "args":  [
+    "train.epochs=10",
+    "wandb.mode=online"
+  ],
+  "program":  "/root/home/graph-vls/experiments/train_qgnn.py",
+  "codePath":  "experiments/train_qgnn.py",
+  "codePathLocal":  "experiments/train_qgnn.py",
+  "git":  {
+    "remote":  "git@github.com:SMATousi/graph-vls.git",
+    "commit":  "9d6300f76fe25e49652f2ec14483e0019bc5fcb9"
+  },
+  "email":  "stmmc@umsystem.edu",
+  "root":  "/root/home/graph-vls",
+  "host":  "3-ali-100-dep-vigir-575d848757-g2xfd",
+  "executable":  "/opt/conda/envs/graph-vls/bin/python",
+  "cpu_count":  128,
+  "cpu_count_logical":  256,
+  "gpu":  "NVIDIA A100-SXM4-80GB",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "1599952912384",
+      "used":  "988869877760"
+    }
+  },
+  "memory":  {
+    "total":  "1081702215680"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA A100-SXM4-80GB",
+      "memoryTotal":  "85899345920",
+      "cudaCores":  6912,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-231fc033-4fbc-29d9-a55d-42f6037b4442"
+    }
+  ],
+  "cudaVersion":  "13.2",
+  "writerId":  "djlgo0e9llt903col2lhotbwzwf3ud6j"
+}

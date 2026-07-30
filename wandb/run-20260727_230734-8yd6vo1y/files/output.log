@@ -1,0 +1,4 @@
+train QGNN: 100%|████████████████████████████████| 5/5 [00:44<00:00,  8.92s/it, train_loss=0.691, val_acc=0.533]
+
+Best epoch=4  val_accuracy=0.5333  val_auc=0.5323  val_macro_f1=0.5240
+Saved best QGNN checkpoint to checkpoints/qgnn_jets_m4.pt

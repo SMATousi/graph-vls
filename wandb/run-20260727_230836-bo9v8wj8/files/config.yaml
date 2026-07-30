@@ -1,0 +1,75 @@
+_wandb:
+    value:
+        cli_version: 0.28.1
+        e:
+            43hy3m5y98ayswr9yk5ib82yg027n19q:
+                args:
+                    - data.num_jets=2000
+                    - data.k_graph_cap=8
+                    - data.train_ratio=0.7
+                    - data.val_ratio=0.15
+                    - data.seed=42
+                    - wandb.mode=online
+                    - gvls_checkpoint_path=checkpoints/gvls_jets_m4.pt
+                    - qgnn_checkpoint_path=checkpoints/qgnn_jets_m4.pt
+                    - results_path=results/qgnn/qg_jets_metrics.json
+                codePath: experiments/evaluate_qgnn.py
+                codePathLocal: experiments/evaluate_qgnn.py
+                cpu_count: 128
+                cpu_count_logical: 256
+                cudaVersion: "13.2"
+                disk:
+                    /:
+                        total: "1599952912384"
+                        used: "990997073920"
+                email: stmmc@umsystem.edu
+                executable: /opt/conda/envs/graph-vls/bin/python
+                git:
+                    commit: a40e79f68f94566787f538ff51cf3579f74b2c31
+                    remote: git@github.com:SMATousi/graph-vls.git
+                gpu: NVIDIA A100-SXM4-80GB
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ampere
+                      cudaCores: 6912
+                      memoryTotal: "85899345920"
+                      name: NVIDIA A100-SXM4-80GB
+                      uuid: GPU-231fc033-4fbc-29d9-a55d-42f6037b4442
+                host: 3-ali-100-dep-vigir-575d848757-g2xfd
+                memory:
+                    total: "1081702215680"
+                os: Linux-6.8.0-134-generic-x86_64-with-glibc2.35
+                program: /root/home/graph-vls/experiments/evaluate_qgnn.py
+                python: CPython 3.11.15
+                root: /root/home/graph-vls
+                startedAt: "2026-07-27T23:08:36.366705Z"
+                writerId: 43hy3m5y98ayswr9yk5ib82yg027n19q
+        m: []
+        python_version: 3.11.15
+        t:
+            "1":
+                - 1
+                - 5
+                - 50
+                - 53
+                - 77
+            "2":
+                - 1
+                - 5
+                - 50
+                - 53
+                - 77
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.11.15
+            "5": 0.28.1
+            "12": 0.28.1
+            "13": linux-x86_64
+m:
+    value: 4
+num_layers:
+    value: 1
+num_test_jets:
+    value: 300

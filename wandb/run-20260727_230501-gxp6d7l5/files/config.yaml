@@ -1,0 +1,108 @@
+_wandb:
+    value:
+        cli_version: 0.28.1
+        e:
+            27qql5y0mkreczept00mw7qgzvvsweoh:
+                args:
+                    - data.num_jets=2000
+                    - data.k_graph_cap=8
+                    - data.train_ratio=0.7
+                    - data.val_ratio=0.15
+                    - data.seed=42
+                    - wandb.mode=online
+                    - train.hidden_dim=32
+                    - train.latent_dim=8
+                    - train.k=3
+                    - train.m=4
+                    - train.graph_method=attention
+                    - train.prior=isotropic
+                    - train.mp_rounds=1
+                    - train.lr=0.001
+                    - train.beta=0.001
+                    - train.lambda_=1.0
+                    - train.epochs=100
+                    - train.batch_size=32
+                    - train.seed=42
+                    - checkpoint_path=checkpoints/gvls_jets_m4.pt
+                codePath: experiments/pretrain_gvls_jets_final.py
+                codePathLocal: experiments/pretrain_gvls_jets_final.py
+                cpu_count: 128
+                cpu_count_logical: 256
+                cudaVersion: "13.2"
+                disk:
+                    /:
+                        total: "1599952912384"
+                        used: "990027030528"
+                email: stmmc@umsystem.edu
+                executable: /opt/conda/envs/graph-vls/bin/python
+                git:
+                    commit: a40e79f68f94566787f538ff51cf3579f74b2c31
+                    remote: git@github.com:SMATousi/graph-vls.git
+                gpu: NVIDIA A100-SXM4-80GB
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ampere
+                      cudaCores: 6912
+                      memoryTotal: "85899345920"
+                      name: NVIDIA A100-SXM4-80GB
+                      uuid: GPU-231fc033-4fbc-29d9-a55d-42f6037b4442
+                host: 3-ali-100-dep-vigir-575d848757-g2xfd
+                memory:
+                    total: "1081702215680"
+                os: Linux-6.8.0-134-generic-x86_64-with-glibc2.35
+                program: /root/home/graph-vls/experiments/pretrain_gvls_jets_final.py
+                python: CPython 3.11.15
+                root: /root/home/graph-vls
+                startedAt: "2026-07-27T23:05:01.352602Z"
+                writerId: 27qql5y0mkreczept00mw7qgzvvsweoh
+        m: []
+        python_version: 3.11.15
+        t:
+            "1":
+                - 1
+                - 5
+                - 50
+                - 53
+                - 77
+            "2":
+                - 1
+                - 5
+                - 50
+                - 53
+                - 77
+            "3":
+                - 13
+                - 16
+                - 61
+            "4": 3.11.15
+            "5": 0.28.1
+            "12": 0.28.1
+            "13": linux-x86_64
+batch_size:
+    value: 32
+beta:
+    value: 0.001
+epochs:
+    value: 100
+graph_method:
+    value: attention
+hidden_dim:
+    value: 32
+k:
+    value: 3
+lambda_:
+    value: 1
+latent_dim:
+    value: 8
+lr:
+    value: 0.001
+m:
+    value: 4
+mp_rounds:
+    value: 1
+num_jets:
+    value: 2000
+prior:
+    value: isotropic
+seed:
+    value: 42
