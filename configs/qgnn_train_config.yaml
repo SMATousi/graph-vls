@@ -9,6 +9,13 @@ qgnn_checkpoint_path: checkpoints/qgnn_jets_m4.pt
 wandb:
   project: graph-vls
   mode: offline
+  # name/group null|default -> train_qgnn.py falls back to "qgnn-M{m}" /
+  # "qgnn-jet-classification". Overridden per-run for the T4.10 Lorentz-
+  # EQGNN comparability sweep so runs at different num_jets/seeds are
+  # distinguishable in the W&B UI (specs/phase4/validation.md V-10).
+  name: null
+  group: qgnn-jet-classification
+  tags: []
 
 hydra:
   run:

@@ -35,7 +35,7 @@ from pathlib import Path
 
 import hydra
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 import wandb
 from gvls.compression.jet_sweep import load_gvls_checkpoint
@@ -73,13 +73,24 @@ def main(cfg: DictConfig) -> None:
     )
     print(f"Evaluating on {len(split.test)} held-out test jets (untouched by training)...")
 
+    # T4.10 (validation.md V-10): data_cfg (notably num_jets) is logged so
+    # this run is distinguishable in the W&B UI from other dataset-size
+    # configurations, not just via num_test_jets. wandb.name/group/tags
+    # default to the pre-T4.10 behavior unless overridden.
+    data_cfg = OmegaConf.to_container(cfg.data, resolve=True)
     wandb.init(
         project=cfg.wandb.project,
         mode=cfg.wandb.mode,
-        name=f"qgnn-eval-M{m}",
-        group="qgnn-jet-classification",
+        name=cfg.wandb.name or f"qgnn-eval-M{m}",
+        group=cfg.wandb.group or "qgnn-jet-classification",
+        tags=list(cfg.wandb.tags),
         job_type="evaluation",
-        config={"m": m, "num_layers": num_layers, "num_test_jets": len(split.test)},
+        config={
+            "m": m,
+            "num_layers": num_layers,
+            "num_test_jets": len(split.test),
+            "data": data_cfg,
+        },
     )
 
     test_features = extract_latent_features(gvls_model, split.test, device)

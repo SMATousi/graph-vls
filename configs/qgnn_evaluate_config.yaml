@@ -9,6 +9,12 @@ results_path: results/qgnn/qg_jets_metrics.json
 wandb:
   project: graph-vls
   mode: offline
+  # name/group null|default -> evaluate_qgnn.py falls back to
+  # "qgnn-eval-M{m}" / "qgnn-jet-classification". Overridden per-run for the
+  # T4.10 Lorentz-EQGNN comparability sweep (specs/phase4/validation.md V-10).
+  name: null
+  group: qgnn-jet-classification
+  tags: []
 
 hydra:
   run:

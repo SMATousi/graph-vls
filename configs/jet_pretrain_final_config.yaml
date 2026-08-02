@@ -8,6 +8,13 @@ checkpoint_path: checkpoints/gvls_jets_m${train.m}.pt
 wandb:
   project: graph-vls
   mode: offline
+  # name/group null|default -> pretrain_gvls_jets_final.py falls back to
+  # "qg_jets-gvls-final-M{m}" / "jet-gvls-final". Overridden for the T4.10
+  # Lorentz-EQGNN comparability run so it's grouped with its downstream QGNN
+  # train/eval runs in the W&B UI (specs/phase4/validation.md V-10).
+  name: null
+  group: null
+  tags: []
 
 hydra:
   run:

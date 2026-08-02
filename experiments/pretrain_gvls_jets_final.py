@@ -53,8 +53,9 @@ def main(cfg: DictConfig) -> None:
     wandb.init(
         project=cfg.wandb.project,
         mode=cfg.wandb.mode,
-        name=f"qg_jets-gvls-final-M{m}",
-        group="jet-gvls-final",
+        name=cfg.wandb.name or f"qg_jets-gvls-final-M{m}",
+        group=cfg.wandb.group or "jet-gvls-final",
+        tags=list(cfg.wandb.tags),
         config={**base_cfg, "num_jets": int(cfg.data.num_jets)},
     )
 

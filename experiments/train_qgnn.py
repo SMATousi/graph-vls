@@ -64,6 +64,7 @@ def main(cfg: DictConfig) -> None:
     val_features = extract_latent_features(gvls_model, split.val, device)
 
     train_cfg = OmegaConf.to_container(cfg.train, resolve=True)
+    data_cfg = OmegaConf.to_container(cfg.data, resolve=True)
     optimizer_name = str(train_cfg.get("optimizer", "adam"))  # pre-T4.10 configs lack this key
     print(
         f"QGNN config: M={m} num_layers={train_cfg['num_layers']} "
@@ -72,12 +73,18 @@ def main(cfg: DictConfig) -> None:
         f"gradient_method={train_cfg['gradient_method']}"
     )
 
+    # T4.10 (validation.md V-10): data_cfg (notably num_jets) is logged so
+    # runs at different dataset sizes (e.g. the 800-jet Lorentz-EQGNN
+    # comparability subset vs. the 20000-jet target run) are distinguishable
+    # in the W&B config/UI, not just by checkpoint inspection. wandb.name/
+    # group/tags default to the pre-T4.10 behavior unless overridden.
     wandb.init(
         project=cfg.wandb.project,
         mode=cfg.wandb.mode,
-        name=f"qgnn-M{m}",
-        group="qgnn-jet-classification",
-        config={"m": m, "d": d, **train_cfg},
+        name=cfg.wandb.name or f"qgnn-M{m}",
+        group=cfg.wandb.group or "qgnn-jet-classification",
+        tags=list(cfg.wandb.tags),
+        config={"m": m, "d": d, "data": data_cfg, **train_cfg},
     )
 
     training_start = time.perf_counter()
