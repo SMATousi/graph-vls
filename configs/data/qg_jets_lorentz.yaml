@@ -9,6 +9,15 @@
 # test stay fixed at 1250/1250, matching the paper (it does not shrink
 # val/test to match the 800-jet training subset). Set train_subset to null
 # to use the full 10000-jet training draw instead.
+# train_subset_seed (user-directed, validation.md V-10): seeds the
+# train_subset draw independently of `seed` (which seeds the outer
+# train/val/test partition above). Leave null to reuse `seed` (one fixed
+# training subset, the single-run default); for a multi-trial repeat sweep,
+# set this differently per trial so each trial gets a different training
+# subset while every trial shares the same val/test (drawn once by `seed`).
+# train_subset_balanced=true switches from subsample_train's uniform draw
+# (inherits the pool's own class proportions) to subsample_train_balanced's
+# exact per-class split (train_subset must be even, e.g. 800 -> 400/400).
 name: qg_jets
 protocol: lorentz
 k_graph_cap: 8
@@ -18,3 +27,5 @@ num_val: 1250
 num_test: 1250
 min_particles: 10
 train_subset: 800
+train_subset_seed: null
+train_subset_balanced: false

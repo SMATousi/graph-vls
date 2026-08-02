@@ -14,6 +14,7 @@ from gvls.data.jets import (
     load_split_from_config,
     split_jets,
     subsample_train,
+    subsample_train_balanced,
 )
 
 
@@ -259,6 +260,34 @@ def test_subsample_train_rejects_n_too_large() -> None:
         subsample_train(split, n=20, seed=0)
 
 
+def test_subsample_train_balanced_exact_per_class_counts() -> None:
+    # _dummy_graphs alternates label=i%2 -> exactly 50/50 across 100 jets.
+    split = _dummy_split(100, 10, 10)
+    sub = subsample_train_balanced(split, n_per_class=10, seed=0)
+    assert len(sub.train) == 20
+    labels = [g.y.item() for g in sub.train]
+    assert labels.count(0) == 10
+    assert labels.count(1) == 10
+    assert sub.val is split.val
+    assert sub.test is split.test
+
+
+def test_subsample_train_balanced_insufficient_class_raises() -> None:
+    # Only 3 jets total (label alternates 0,1,0) -> class 1 has just 1 jet.
+    split = JetSplit(train=_dummy_graphs(3), val=_dummy_graphs(2), test=_dummy_graphs(2))
+    with pytest.raises(ValueError):
+        subsample_train_balanced(split, n_per_class=10, seed=0)
+
+
+def test_subsample_train_balanced_different_seeds_differ() -> None:
+    split = _dummy_split(200, 5, 5)
+    s1 = subsample_train_balanced(split, n_per_class=20, seed=1)
+    s2 = subsample_train_balanced(split, n_per_class=20, seed=2)
+    ids1 = {id(g) for g in s1.train}
+    ids2 = {id(g) for g in s2.train}
+    assert ids1 != ids2
+
+
 # ── load_split_from_config dispatch (T4.10) ─────────────────────────────────
 
 
@@ -301,3 +330,76 @@ def test_load_split_from_config_lorentz_protocol_with_train_subset() -> None:
 def test_load_split_from_config_unknown_protocol_raises() -> None:
     with pytest.raises(ValueError):
         load_split_from_config({"protocol": "bogus"})
+
+
+def test_load_split_from_config_lorentz_train_subset_balanced() -> None:
+    raw_x, raw_y = _fake_raw_pool(200, min_n=10, max_n=10, class0_frac=0.5, seed=8)
+    with patch("energyflow.qg_jets.load", return_value=(raw_x, raw_y)):
+        split = load_split_from_config(
+            {
+                "protocol": "lorentz",
+                "k_graph_cap": 8,
+                "seed": 0,
+                "num_train": 100,
+                "num_val": 10,
+                "num_test": 10,
+                "min_particles": 1,
+                "train_subset": 20,
+                "train_subset_balanced": True,
+            }
+        )
+    assert len(split.train) == 20
+    labels = [g.y.item() for g in split.train]
+    assert labels.count(0) == 10
+    assert labels.count(1) == 10
+
+
+def test_load_split_from_config_lorentz_train_subset_balanced_odd_raises() -> None:
+    raw_x, raw_y = _fake_raw_pool(50, min_n=10, max_n=10, seed=9)
+    with patch("energyflow.qg_jets.load", return_value=(raw_x, raw_y)):
+        with pytest.raises(ValueError):
+            load_split_from_config(
+                {
+                    "protocol": "lorentz",
+                    "k_graph_cap": 8,
+                    "seed": 0,
+                    "num_train": 20,
+                    "num_val": 5,
+                    "num_test": 5,
+                    "min_particles": 1,
+                    "train_subset": 15,
+                    "train_subset_balanced": True,
+                }
+            )
+
+
+def test_load_split_from_config_train_subset_seed_varies_train_only() -> None:
+    # Same outer `seed` (fixes the train/val/test partition) but a different
+    # `train_subset_seed` per call: val/test must stay byte-identical while
+    # the training subset differs -- this is the repeated-training-subset
+    # comparison's core guarantee (validation.md V-10, user-directed).
+    raw_x, raw_y = _fake_raw_pool(300, min_n=10, max_n=10, seed=10)
+    base_cfg = {
+        "protocol": "lorentz",
+        "k_graph_cap": 8,
+        "seed": 0,
+        "num_train": 100,
+        "num_val": 10,
+        "num_test": 10,
+        "min_particles": 1,
+        "train_subset": 20,
+    }
+    with patch("energyflow.qg_jets.load", return_value=(raw_x, raw_y)):
+        split_a = load_split_from_config({**base_cfg, "train_subset_seed": 111})
+        split_b = load_split_from_config({**base_cfg, "train_subset_seed": 222})
+
+    val_a = [g.x.sum().item() for g in split_a.val]
+    val_b = [g.x.sum().item() for g in split_b.val]
+    test_a = [g.x.sum().item() for g in split_a.test]
+    test_b = [g.x.sum().item() for g in split_b.test]
+    train_a = [g.x.sum().item() for g in split_a.train]
+    train_b = [g.x.sum().item() for g in split_b.train]
+
+    assert val_a == val_b
+    assert test_a == test_b
+    assert train_a != train_b

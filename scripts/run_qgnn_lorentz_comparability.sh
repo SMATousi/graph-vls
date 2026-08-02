@@ -11,11 +11,17 @@
 # skipped after the first run because it is a deterministic, frozen upstream
 # feature extractor (Design Decision 8: no gradient updates to GVLS after
 # pretraining; extract_latent_features has no gradient) -- repeating it would
-# not add any variance the QGNN-training repeats aren't already sampling
-# over, only cost. This means the reported mean +/- std captures the QGNN
-# classifier's own training-seed variance (weight init, minibatch order,
-# SPSA gradient noise), not full end-to-end pipeline variance -- an explicit,
-# documented scope narrowing (NFR-5), not an oversight. See
+# not add any variance the repeats are meant to sample, only cost.
+#
+# Each of the 5 trials draws a *different* class-balanced (400/400) 800-jet
+# training subset from the same fixed 10000-jet training pool (user-directed,
+# validation.md V-10) -- neither (a) reusing one identical training subset
+# across all trials (would vary only the QGNN's own training seed, not the
+# data) nor (b) true k-fold CV (would also re-partition val/test and likely
+# require retraining the frozen GVLS encoder per fold). Validation and test
+# stay fixed at 1250/1250 across every trial -- only the training subset and
+# the QGNN's own training seed vary. See load_split_from_config's
+# train_subset_seed vs. seed distinction (gvls/data/jets.py) and
 # specs/phase4/validation.md V-10.
 #
 # Checkpoints/results use paths suffixed _lorentz800 (and per-seed for the
@@ -46,18 +52,22 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # (arXiv:2411.01641 Section IV.A.1, specs/phase4/validation.md V-10) --
 # a single random draw of NUM_TRAIN+NUM_VAL+NUM_TEST jets with
 # >= MIN_PARTICLES particles each (no forced 50/50 class balance), sliced
-# positionally into train/val/test, with TRAIN_SUBSET further shrinking only
-# the training set (val/test stay fixed at NUM_VAL/NUM_TEST) -- NOT
-# qg_jets.yaml's exact-50/50-draw-then-ratio-split. DATA_SEED is fixed (not
-# swept) across all repeats below so every repeat trains/evaluates on the
-# exact same split -- only the QGNN's own training seed varies between
-# repeats.
+# positionally into train/val/test -- NOT qg_jets.yaml's exact-50/50-draw-
+# then-ratio-split. DATA_SEED seeds *this* outer partition and is fixed (not
+# swept) across all trials, so every trial shares the exact same val/test.
+#
+# TRAIN_SUBSET(_BALANCED) then draws each trial's 800-jet training subset
+# from the fixed NUM_TRAIN-jet pool -- 400/400 class-balanced (user-
+# directed), reseeded per trial in the loop below via train_subset_seed
+# (distinct from DATA_SEED, see load_split_from_config), so each trial trains
+# on a different 800 jets while val/test never change.
 K_GRAPH_CAP=8
 NUM_TRAIN=10000
 NUM_VAL=1250
 NUM_TEST=1250
 MIN_PARTICLES=10
 TRAIN_SUBSET=800
+TRAIN_SUBSET_BALANCED=true
 DATA_SEED=42
 
 # --- W&B ---
@@ -157,9 +167,11 @@ for SEED in "${QGNN_SEEDS[@]}"; do
     RESULTS_PATH="${RESULTS_DIR}/qg_jets_metrics_lorentz800_seed${SEED}.json"
 
     echo
-    echo "=== [2/3] Training QGNN classifier (seed=${SEED}, optimizer=${QGNN_OPTIMIZER}, gradient_method=${QGNN_GRADIENT_METHOD}) ==="
+    echo "=== [2/3] Training QGNN classifier (seed=${SEED}, training subset reseeded per trial, optimizer=${QGNN_OPTIMIZER}, gradient_method=${QGNN_GRADIENT_METHOD}) ==="
     STAGE2_ARGS=(
         "${DATA_ARGS[@]}"
+        "data.train_subset_balanced=${TRAIN_SUBSET_BALANCED}"
+        "data.train_subset_seed=${SEED}"
         "${WANDB_ONLINE_ARGS[@]}"
         "train.num_layers=${QGNN_NUM_LAYERS}"
         "train.optimizer=${QGNN_OPTIMIZER}"
@@ -179,9 +191,11 @@ for SEED in "${QGNN_SEEDS[@]}"; do
     "${SCRIPT_DIR}/run_train_qgnn.sh" "${STAGE2_ARGS[@]}"
 
     echo
-    echo "=== [3/3] Evaluating QGNN on held-out test jets (seed=${SEED}) ==="
+    echo "=== [3/3] Evaluating QGNN on held-out test jets (seed=${SEED}, same fixed test set every trial) ==="
     STAGE3_ARGS=(
         "${DATA_ARGS[@]}"
+        "data.train_subset_balanced=${TRAIN_SUBSET_BALANCED}"
+        "data.train_subset_seed=${SEED}"
         "${WANDB_ONLINE_ARGS[@]}"
         "gvls_checkpoint_path=${GVLS_CHECKPOINT_PATH}"
         "qgnn_checkpoint_path=${QGNN_CHECKPOINT_PATH}"

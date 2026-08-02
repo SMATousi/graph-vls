@@ -275,16 +275,68 @@ def subsample_train(split: JetSplit, n: int, seed: int) -> JetSplit:
     )
 
 
+def subsample_train_balanced(split: JetSplit, n_per_class: int, seed: int) -> JetSplit:
+    """Randomly subsample `split.train` to `n_per_class` jets per label; val/test untouched.
+
+    Used for the T4.10 repeated-training-subset comparison (validation.md
+    V-10, user-directed): each of several trials draws a *different*
+    class-balanced training subset (e.g. 400 quark + 400 gluon) from the
+    same fixed training pool, rather than either (a) reusing one identical
+    800-jet subset across all trials (varies only the QGNN's own training
+    seed, not the data) or (b) true k-fold CV (would also require
+    re-partitioning val/test and likely retraining the frozen GVLS encoder
+    per fold). `seed` should differ per trial to get a different draw;
+    `split`'s own val/test (and the pool `split.train` is drawn from) should
+    come from one fixed outer draw shared by every trial, so only the
+    training subset composition varies -- see `load_split_from_config`'s
+    `train_subset_seed` vs. `seed` distinction.
+    """
+    labels = np.array([g.y.item() for g in split.train])
+    rng = np.random.default_rng(seed)
+    idx_parts = []
+    for label in (0, 1):
+        label_idx = np.flatnonzero(labels == label)
+        if len(label_idx) < n_per_class:
+            raise ValueError(
+                f"class {label} has only {len(label_idx)} training jets, fewer than "
+                f"the requested {n_per_class} per class"
+            )
+        idx_parts.append(rng.choice(label_idx, size=n_per_class, replace=False))
+    idx = np.concatenate(idx_parts)
+    rng.shuffle(idx)
+    return JetSplit(
+        train=[split.train[i] for i in idx],
+        val=split.val,
+        test=split.test,
+    )
+
+
 def load_split_from_config(data_cfg: dict[str, Any]) -> JetSplit:
     """Dispatch to the balanced-draw or Lorentz-protocol jet loader.
 
     `data_cfg["protocol"]` selects between `"balanced"` (default --
     `load_qg_jets` + `split_jets`, this project's original exact-50/50-draw
     convention) and `"lorentz"` (T4.10, `load_qg_jets_lorentz_protocol` +
-    optional `subsample_train`, matching arXiv:2411.01641's protocol exactly
-    -- see `configs/data/qg_jets_lorentz.yaml`). Centralized here so the
-    three jet-pipeline experiment scripts (pretrain/train/evaluate) share
-    one dispatch point instead of three copies of this branch.
+    optional `subsample_train`/`subsample_train_balanced`, matching
+    arXiv:2411.01641's protocol exactly -- see
+    `configs/data/qg_jets_lorentz.yaml`). Centralized here so the three
+    jet-pipeline experiment scripts (pretrain/train/evaluate) share one
+    dispatch point instead of three copies of this branch.
+
+    Under `"lorentz"`, `data_cfg["seed"]` seeds the outer
+    `load_qg_jets_lorentz_protocol` draw (the 10000/1250/1250-jet
+    train/val/test partition) -- keep this fixed across a multi-trial repeat
+    sweep so every trial shares the same val/test. `train_subset`'s own draw
+    is seeded separately by `data_cfg["train_subset_seed"]` (falls back to
+    `data_cfg["seed"]` if absent, i.e. the pre-T4.10-repeats default of one
+    fixed training subset for every trial) -- vary this per trial instead to
+    get a different training subset per trial while val/test stay identical
+    (validation.md V-10's repeated-training-subset comparison, as opposed to
+    true k-fold CV or a single fixed-subset seed-only repeat).
+    `train_subset_balanced` (default `False`) selects `subsample_train_balanced`
+    (exact per-class balance, `train_subset` must be even) over
+    `subsample_train` (uniform draw, inherits the pool's own class
+    proportions).
     """
     protocol = data_cfg.get("protocol", "balanced")
     if protocol == "balanced":
@@ -310,7 +362,19 @@ def load_split_from_config(data_cfg: dict[str, Any]) -> JetSplit:
         )
         train_subset = data_cfg.get("train_subset")
         if train_subset is not None:
-            split = subsample_train(split, n=int(train_subset), seed=int(data_cfg["seed"]))
+            subset_seed_raw = data_cfg.get("train_subset_seed")
+            subset_seed = (
+                int(subset_seed_raw) if subset_seed_raw is not None else int(data_cfg["seed"])
+            )
+            if data_cfg.get("train_subset_balanced", False):
+                n_per_class, remainder = divmod(int(train_subset), 2)
+                if remainder != 0:
+                    raise ValueError(
+                        f"train_subset must be even for train_subset_balanced, got {train_subset}"
+                    )
+                split = subsample_train_balanced(split, n_per_class=n_per_class, seed=subset_seed)
+            else:
+                split = subsample_train(split, n=int(train_subset), seed=subset_seed)
         return split
     else:
         raise ValueError(f"unknown data protocol: {protocol!r}")
