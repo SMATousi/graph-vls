@@ -30,7 +30,7 @@ from omegaconf import DictConfig, OmegaConf
 
 import wandb
 from gvls.compression.jet_sweep import load_gvls_checkpoint
-from gvls.data.jets import load_qg_jets, split_jets
+from gvls.data.jets import load_split_from_config
 from gvls.qgnn_training import extract_latent_features, save_qgnn_checkpoint, train_qgnn_classifier
 
 
@@ -45,18 +45,10 @@ def main(cfg: DictConfig) -> None:
     d = int(gvls_config["latent_dim"])
     print(f"  M={m}  d={d}")
 
-    print(f"Loading {cfg.data.num_jets} qg_jets (seed={cfg.data.seed})...")
-    jets = load_qg_jets(
-        num_jets=int(cfg.data.num_jets),
-        k_graph_cap=int(cfg.data.k_graph_cap),
-        seed=int(cfg.data.seed),
-    )
-    split = split_jets(
-        jets,
-        train_ratio=float(cfg.data.train_ratio),
-        val_ratio=float(cfg.data.val_ratio),
-        seed=int(cfg.data.seed),
-    )
+    data_cfg = OmegaConf.to_container(cfg.data, resolve=True)
+    protocol = data_cfg.get("protocol", "balanced")
+    print(f"Loading qg_jets (protocol={protocol}, seed={cfg.data.seed})...")
+    split = load_split_from_config(data_cfg)
     print(f"  train={len(split.train)}  val={len(split.val)}  test(unused here)={len(split.test)}")
 
     print("Extracting frozen (z_tilde, A_z) features (no gradient)...")
@@ -64,7 +56,6 @@ def main(cfg: DictConfig) -> None:
     val_features = extract_latent_features(gvls_model, split.val, device)
 
     train_cfg = OmegaConf.to_container(cfg.train, resolve=True)
-    data_cfg = OmegaConf.to_container(cfg.data, resolve=True)
     optimizer_name = str(train_cfg.get("optimizer", "adam"))  # pre-T4.10 configs lack this key
     print(
         f"QGNN config: M={m} num_layers={train_cfg['num_layers']} "

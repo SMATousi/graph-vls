@@ -170,3 +170,147 @@ def split_jets(
         val=[graphs[i] for i in val_idx],
         test=[graphs[i] for i in test_idx],
     )
+
+
+def load_qg_jets_fixed_pool(
+    num_jets: int,
+    min_particles: int = 1,
+    k_graph_cap: int = DEFAULT_K_GRAPH_CAP,
+    seed: int = 42,
+    raw_multiplier: float = 1.3,
+    cache_dir: str | None = None,
+) -> list[JetGraph]:
+    """Draw `num_jets` jets uniformly at random, with no forced class balance.
+
+    Mirrors the Lorentz-EQGNN literature protocol (arXiv:2411.01641 Section
+    IV.A.1): filter to jets with >= `min_particles` particles, then draw a
+    uniform random sample of `num_jets` -- unlike `load_qg_jets`'s exact
+    50/50 per-class draw, class proportions here are whatever the random
+    draw yields (the paper reports 4982/658/583 quark jets across its
+    10000/1250/1250 split, not an exact 50/50). `seed` controls the draw
+    order, which callers (e.g. `load_qg_jets_lorentz_protocol`) rely on for
+    a deterministic positional train/val/test slice.
+    """
+    import energyflow as ef
+
+    if num_jets <= 0:
+        raise ValueError(f"num_jets must be positive, got {num_jets}")
+
+    raw_num = min(int(num_jets * raw_multiplier) + 100, 2_000_000)
+    load_kwargs: dict[str, object] = {"num_data": raw_num, "pad": False}
+    if cache_dir is not None:
+        load_kwargs["cache_dir"] = cache_dir
+    raw_x, raw_y = ef.qg_jets.load(**load_kwargs)
+    raw_y = raw_y.astype(np.int64)
+
+    if min_particles > 1:
+        keep = np.array([particles.shape[0] >= min_particles for particles in raw_x])
+        raw_x = [particles for particles, k in zip(raw_x, keep) if k]
+        raw_y = raw_y[keep]
+
+    if len(raw_x) < num_jets:
+        raise ValueError(
+            f"filtered pool has only {len(raw_x)} jets (min_particles={min_particles}), "
+            f"fewer than the requested {num_jets} -- increase raw_multiplier or num_data"
+        )
+
+    rng = np.random.default_rng(seed)
+    selected = rng.choice(len(raw_x), size=num_jets, replace=False)
+
+    return [build_jet_graph(raw_x[i], int(raw_y[i]), k_graph_cap) for i in selected]
+
+
+def load_qg_jets_lorentz_protocol(
+    num_train: int = 10_000,
+    num_val: int = 1_250,
+    num_test: int = 1_250,
+    min_particles: int = 10,
+    k_graph_cap: int = DEFAULT_K_GRAPH_CAP,
+    seed: int = 42,
+    raw_multiplier: float = 1.3,
+    cache_dir: str | None = None,
+) -> JetSplit:
+    """Reproduce the Lorentz-EQGNN paper's train/val/test draw exactly (T4.10).
+
+    arXiv:2411.01641 Section IV.A.1: "we randomly picked N=12,500 jets,
+    allocating the first 10,000 for training, the subsequent 1,250 for
+    validation, and the final 1,250 for testing" from jets with >= 10
+    particles -- a single random draw of `num_train + num_val + num_test`
+    jets, sliced positionally into train/val/test by draw order. This is
+    NOT `load_qg_jets` + `split_jets`'s combination (exact 50/50 per-class
+    draw, then a second independent random permutation for the split).
+    """
+    total = num_train + num_val + num_test
+    graphs = load_qg_jets_fixed_pool(
+        num_jets=total,
+        min_particles=min_particles,
+        k_graph_cap=k_graph_cap,
+        seed=seed,
+        raw_multiplier=raw_multiplier,
+        cache_dir=cache_dir,
+    )
+    return JetSplit(
+        train=graphs[:num_train],
+        val=graphs[num_train : num_train + num_val],
+        test=graphs[num_train + num_val :],
+    )
+
+
+def subsample_train(split: JetSplit, n: int, seed: int) -> JetSplit:
+    """Randomly subsample `split.train` down to `n` jets; val/test untouched.
+
+    Mirrors Table II's "800 (subset)" row (arXiv:2411.01641): only the
+    training set shrinks for the data-scarcity comparison -- validation and
+    test stay at their full, fixed size, so test accuracy is measured on the
+    same held-out jets regardless of training-set size.
+    """
+    if n > len(split.train):
+        raise ValueError(f"n={n} exceeds available training jets ({len(split.train)})")
+    rng = np.random.default_rng(seed)
+    idx = rng.choice(len(split.train), size=n, replace=False)
+    return JetSplit(
+        train=[split.train[i] for i in idx],
+        val=split.val,
+        test=split.test,
+    )
+
+
+def load_split_from_config(data_cfg: dict[str, Any]) -> JetSplit:
+    """Dispatch to the balanced-draw or Lorentz-protocol jet loader.
+
+    `data_cfg["protocol"]` selects between `"balanced"` (default --
+    `load_qg_jets` + `split_jets`, this project's original exact-50/50-draw
+    convention) and `"lorentz"` (T4.10, `load_qg_jets_lorentz_protocol` +
+    optional `subsample_train`, matching arXiv:2411.01641's protocol exactly
+    -- see `configs/data/qg_jets_lorentz.yaml`). Centralized here so the
+    three jet-pipeline experiment scripts (pretrain/train/evaluate) share
+    one dispatch point instead of three copies of this branch.
+    """
+    protocol = data_cfg.get("protocol", "balanced")
+    if protocol == "balanced":
+        graphs = load_qg_jets(
+            num_jets=int(data_cfg["num_jets"]),
+            k_graph_cap=int(data_cfg["k_graph_cap"]),
+            seed=int(data_cfg["seed"]),
+        )
+        return split_jets(
+            graphs,
+            train_ratio=float(data_cfg["train_ratio"]),
+            val_ratio=float(data_cfg["val_ratio"]),
+            seed=int(data_cfg["seed"]),
+        )
+    elif protocol == "lorentz":
+        split = load_qg_jets_lorentz_protocol(
+            num_train=int(data_cfg["num_train"]),
+            num_val=int(data_cfg["num_val"]),
+            num_test=int(data_cfg["num_test"]),
+            min_particles=int(data_cfg.get("min_particles", 10)),
+            k_graph_cap=int(data_cfg["k_graph_cap"]),
+            seed=int(data_cfg["seed"]),
+        )
+        train_subset = data_cfg.get("train_subset")
+        if train_subset is not None:
+            split = subsample_train(split, n=int(train_subset), seed=int(data_cfg["seed"]))
+        return split
+    else:
+        raise ValueError(f"unknown data protocol: {protocol!r}")

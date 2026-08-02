@@ -19,7 +19,7 @@ from omegaconf import DictConfig, OmegaConf
 
 import wandb
 from gvls.compression.jet_sweep import save_gvls_checkpoint, train_pooled_gvls_on_jets
-from gvls.data.jets import NUM_FEATURES, load_qg_jets, split_jets
+from gvls.data.jets import NUM_FEATURES, load_split_from_config
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="jet_pretrain_final_config")
@@ -27,18 +27,10 @@ def main(cfg: DictConfig) -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
 
-    print(f"Loading {cfg.data.num_jets} qg_jets (seed={cfg.data.seed})...")
-    jets = load_qg_jets(
-        num_jets=int(cfg.data.num_jets),
-        k_graph_cap=int(cfg.data.k_graph_cap),
-        seed=int(cfg.data.seed),
-    )
-    split = split_jets(
-        jets,
-        train_ratio=float(cfg.data.train_ratio),
-        val_ratio=float(cfg.data.val_ratio),
-        seed=int(cfg.data.seed),
-    )
+    data_cfg = OmegaConf.to_container(cfg.data, resolve=True)
+    protocol = data_cfg.get("protocol", "balanced")
+    print(f"Loading qg_jets (protocol={protocol}, seed={cfg.data.seed})...")
+    split = load_split_from_config(data_cfg)
     print(f"  train={len(split.train)}  val={len(split.val)}  test={len(split.test)}")
 
     base_cfg = OmegaConf.to_container(cfg.train, resolve=True)
@@ -56,7 +48,7 @@ def main(cfg: DictConfig) -> None:
         name=cfg.wandb.name or f"qg_jets-gvls-final-M{m}",
         group=cfg.wandb.group or "jet-gvls-final",
         tags=list(cfg.wandb.tags),
-        config={**base_cfg, "num_jets": int(cfg.data.num_jets)},
+        config={**base_cfg, "data": data_cfg},
     )
 
     last_metrics: dict = {}

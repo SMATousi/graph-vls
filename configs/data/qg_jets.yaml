@@ -1,4 +1,8 @@
+# protocol=balanced (default): load_qg_jets's exact-50/50-per-class draw,
+# then split_jets's independent ratio split. See configs/data/qg_jets_lorentz.yaml
+# for the arXiv:2411.01641-matching alternative (T4.10).
 name: qg_jets
+protocol: balanced
 num_jets: 20000
 k_graph_cap: 8
 train_ratio: 0.7

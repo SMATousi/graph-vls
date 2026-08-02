@@ -39,7 +39,7 @@ from omegaconf import DictConfig, OmegaConf
 
 import wandb
 from gvls.compression.jet_sweep import load_gvls_checkpoint
-from gvls.data.jets import load_qg_jets, split_jets
+from gvls.data.jets import load_split_from_config
 from gvls.qgnn_training import (
     evaluate_qgnn_classifier,
     extract_latent_features,
@@ -59,25 +59,16 @@ def main(cfg: DictConfig) -> None:
     m, num_layers = int(qgnn_config["m"]), int(qgnn_config["num_layers"])
     print(f"  GVLS M={gvls_config['num_clusters']}  QGNN M={m}  num_layers={num_layers}")
 
-    print(f"Loading {cfg.data.num_jets} qg_jets (seed={cfg.data.seed})...")
-    jets = load_qg_jets(
-        num_jets=int(cfg.data.num_jets),
-        k_graph_cap=int(cfg.data.k_graph_cap),
-        seed=int(cfg.data.seed),
-    )
-    split = split_jets(
-        jets,
-        train_ratio=float(cfg.data.train_ratio),
-        val_ratio=float(cfg.data.val_ratio),
-        seed=int(cfg.data.seed),
-    )
+    data_cfg = OmegaConf.to_container(cfg.data, resolve=True)
+    protocol = data_cfg.get("protocol", "balanced")
+    print(f"Loading qg_jets (protocol={protocol}, seed={cfg.data.seed})...")
+    split = load_split_from_config(data_cfg)
     print(f"Evaluating on {len(split.test)} held-out test jets (untouched by training)...")
 
-    # T4.10 (validation.md V-10): data_cfg (notably num_jets) is logged so
-    # this run is distinguishable in the W&B UI from other dataset-size
-    # configurations, not just via num_test_jets. wandb.name/group/tags
-    # default to the pre-T4.10 behavior unless overridden.
-    data_cfg = OmegaConf.to_container(cfg.data, resolve=True)
+    # T4.10 (validation.md V-10): data_cfg (notably num_jets/protocol) is
+    # logged so this run is distinguishable in the W&B UI from other
+    # dataset-size/protocol configurations, not just via num_test_jets.
+    # wandb.name/group/tags default to the pre-T4.10 behavior unless overridden.
     wandb.init(
         project=cfg.wandb.project,
         mode=cfg.wandb.mode,

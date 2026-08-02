@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # T4.10 (plan.md Design Decision 12): dedicated Lorentz-EQGNN literature-
 # comparability run -- GVLS pretraining (once) -> QGNN training + evaluation
-# (repeated across several seeds) -- with num_jets/optimizer/lr/batch_size/
-# epochs realigned to sota-table.png Table II (Quark-Gluon dataset, 4 qubits,
-# matching our M=4).
+# (repeated across several seeds) -- with the dataset protocol matched to
+# arXiv:2411.01641 Section IV.A.1 exactly (configs/data/qg_jets_lorentz.yaml)
+# and optimizer/lr/batch_size/epochs realigned to sota-table.png Table II
+# (Quark-Gluon dataset, 4 qubits -- our M=4's own architectural choice, not a
+# claim of matching theirs; see the discussion in validation.md V-10).
 #
 # Only the QGNN classifier is retrained per repeat. GVLS pretraining is
 # skipped after the first run because it is a deterministic, frozen upstream
@@ -39,18 +41,23 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Hyperparameters -- edit these directly; running the script needs no flags.
 # ============================================================================
 
-# --- Shared: configs/data/qg_jets.yaml (used by all stages) ---
-# T4.10: num_jets=800 to reproduce the Lorentz-EQGNN "800 (subset)" figure.
-# TRAIN_RATIO/VAL_RATIO's 70/15/15 split gives 560/120/120 jets; the
-# literature table does not state a train/val/test breakdown for its own
-# 800-jet subset, so this split is an explicit assumption (NFR-5). DATA_SEED
-# is fixed (not swept) across all repeats below so every repeat trains/
-# evaluates on the exact same split -- only the QGNN's own training seed
-# varies between repeats.
-NUM_JETS=800
+# --- Shared: configs/data/qg_jets_lorentz.yaml (used by all stages) ---
+# T4.10: reproduces the Lorentz-EQGNN paper's data protocol exactly
+# (arXiv:2411.01641 Section IV.A.1, specs/phase4/validation.md V-10) --
+# a single random draw of NUM_TRAIN+NUM_VAL+NUM_TEST jets with
+# >= MIN_PARTICLES particles each (no forced 50/50 class balance), sliced
+# positionally into train/val/test, with TRAIN_SUBSET further shrinking only
+# the training set (val/test stay fixed at NUM_VAL/NUM_TEST) -- NOT
+# qg_jets.yaml's exact-50/50-draw-then-ratio-split. DATA_SEED is fixed (not
+# swept) across all repeats below so every repeat trains/evaluates on the
+# exact same split -- only the QGNN's own training seed varies between
+# repeats.
 K_GRAPH_CAP=8
-TRAIN_RATIO=0.7
-VAL_RATIO=0.15
+NUM_TRAIN=10000
+NUM_VAL=1250
+NUM_TEST=1250
+MIN_PARTICLES=10
+TRAIN_SUBSET=800
 DATA_SEED=42
 
 # --- W&B ---
@@ -107,10 +114,13 @@ SUMMARY_PATH="${RESULTS_DIR}/qg_jets_metrics_lorentz800_summary.json"
 # bash (3.2) treats "${empty_array[@]}" as an unbound-variable error under
 # `set -u`, a bug fixed only in bash 4.4+.
 DATA_ARGS=(
-    "data.num_jets=${NUM_JETS}"
+    "data=qg_jets_lorentz"
     "data.k_graph_cap=${K_GRAPH_CAP}"
-    "data.train_ratio=${TRAIN_RATIO}"
-    "data.val_ratio=${VAL_RATIO}"
+    "data.num_train=${NUM_TRAIN}"
+    "data.num_val=${NUM_VAL}"
+    "data.num_test=${NUM_TEST}"
+    "data.min_particles=${MIN_PARTICLES}"
+    "data.train_subset=${TRAIN_SUBSET}"
     "data.seed=${DATA_SEED}"
 )
 WANDB_ONLINE_ARGS=()
@@ -118,7 +128,7 @@ if [[ "$WANDB_MODE" == "online" ]]; then
     WANDB_ONLINE_ARGS+=(--online)
 fi
 
-echo "=== [1/3] Pretraining production GVLS checkpoint (M=${GVLS_M}, num_jets=${NUM_JETS}) -- once, reused across all ${#QGNN_SEEDS[@]} QGNN repeats ==="
+echo "=== [1/3] Pretraining production GVLS checkpoint (M=${GVLS_M}, train_subset=${TRAIN_SUBSET}) -- once, reused across all ${#QGNN_SEEDS[@]} QGNN repeats ==="
 STAGE1_ARGS=(
     "${DATA_ARGS[@]}"
     "${WANDB_ONLINE_ARGS[@]}"
