@@ -1,0 +1,22 @@
+# T4.10 followup (validation.md V-11): classical-baseline diagnostic on
+# frozen GVLS features, mirroring the QGNN comparability run's 5-trial
+# repeated-training-subset protocol exactly (same data=qg_jets_lorentz
+# defaults, same train_subset_balanced=true, same per-trial seeds) so
+# results are directly comparable to results/qgnn/qg_jets_metrics_lorentz800_summary.json.
+defaults:
+  - data: qg_jets_lorentz
+  - _self_
+
+data:
+  train_subset_balanced: true
+
+gvls_checkpoint_path: checkpoints/gvls_jets_m4_lorentz800.pt
+train_subset_seeds: [42, 43, 44, 45, 46]
+mlp_hidden_units: 16
+results_path: results/qgnn/classical_baseline_lorentz800.json
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: false
