@@ -1,720 +1,0 @@
-=== [1/3] Pretraining production GVLS checkpoint (M=4, train_subset=800) -- once, reused across all 5 QGNN repeats ===
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: setting up run go8w7xgr
-wandb: Tracking run with wandb version 0.28.1
-wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_060315-go8w7xgr
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run gvls-jets-M4-lorentz800
-wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
-wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/go8w7xgr
-Device: cuda
-Loading qg_jets (protocol=lorentz, seed=42)...
-  train=800  val=1250  test=1250
-Production config: M=4 latent_dim=8 k=3 hidden_dim=32 graph_method=attention prior=isotropic epochs=200
-pretrain GVLS (production, M=4):   0%|          | 0/200 [00:00<?, ?it/s]pretrain GVLS (production, M=4):   0%|          | 0/200 [00:13<?, ?it/s, loss=11.4, val_f1=0.682]pretrain GVLS (production, M=4):   0%|          | 1/200 [00:13<43:11, 13.02s/it, loss=11.4, val_f1=0.682]pretrain GVLS (production, M=4):   0%|          | 1/200 [00:25<43:11, 13.02s/it, loss=6.89, val_f1=0.682]pretrain GVLS (production, M=4):   1%|          | 2/200 [00:25<41:58, 12.72s/it, loss=6.89, val_f1=0.682]pretrain GVLS (production, M=4):   1%|          | 2/200 [00:38<41:58, 12.72s/it, loss=6.05, val_f1=0.682]pretrain GVLS (production, M=4):   2%|▏         | 3/200 [00:38<41:24, 12.61s/it, loss=6.05, val_f1=0.682]pretrain GVLS (production, M=4):   2%|▏         | 3/200 [00:50<41:24, 12.61s/it, loss=5.77, val_f1=0.682]pretrain GVLS (production, M=4):   2%|▏         | 4/200 [00:50<41:12, 12.62s/it, loss=5.77, val_f1=0.682]pretrain GVLS (production, M=4):   2%|▏         | 4/200 [01:03<41:12, 12.62s/it, loss=5.57, val_f1=0.714]pretrain GVLS (production, M=4):   2%|▎         | 5/200 [01:03<40:58, 12.61s/it, loss=5.57, val_f1=0.714]pretrain GVLS (production, M=4):   2%|▎         | 5/200 [01:15<40:58, 12.61s/it, loss=5.33, val_f1=0.721]pretrain GVLS (production, M=4):   3%|▎         | 6/200 [01:15<40:53, 12.65s/it, loss=5.33, val_f1=0.721]pretrain GVLS (production, M=4):   3%|▎         | 6/200 [01:28<40:53, 12.65s/it, loss=5.26, val_f1=0.709]pretrain GVLS (production, M=4):   4%|▎         | 7/200 [01:28<40:25, 12.57s/it, loss=5.26, val_f1=0.709]pretrain GVLS (production, M=4):   4%|▎         | 7/200 [01:40<40:25, 12.57s/it, loss=5.27, val_f1=0.717]pretrain GVLS (production, M=4):   4%|▍         | 8/200 [01:40<39:53, 12.47s/it, loss=5.27, val_f1=0.717]pretrain GVLS (production, M=4):   4%|▍         | 8/200 [01:55<39:53, 12.47s/it, loss=5.22, val_f1=0.73] pretrain GVLS (production, M=4):   4%|▍         | 9/200 [01:55<42:19, 13.30s/it, loss=5.22, val_f1=0.73]pretrain GVLS (production, M=4):   4%|▍         | 9/200 [02:08<42:19, 13.30s/it, loss=5.17, val_f1=0.73]pretrain GVLS (production, M=4):   5%|▌         | 10/200 [02:08<41:27, 13.09s/it, loss=5.17, val_f1=0.73]pretrain GVLS (production, M=4):   5%|▌         | 10/200 [02:20<41:27, 13.09s/it, loss=5.1, val_f1=0.726]pretrain GVLS (production, M=4):   6%|▌         | 11/200 [02:20<40:21, 12.81s/it, loss=5.1, val_f1=0.726]pretrain GVLS (production, M=4):   6%|▌         | 11/200 [02:32<40:21, 12.81s/it, loss=5.02, val_f1=0.74]pretrain GVLS (production, M=4):   6%|▌         | 12/200 [02:32<39:34, 12.63s/it, loss=5.02, val_f1=0.74]pretrain GVLS (production, M=4):   6%|▌         | 12/200 [02:45<39:34, 12.63s/it, loss=5.01, val_f1=0.74]pretrain GVLS (production, M=4):   6%|▋         | 13/200 [02:45<39:02, 12.53s/it, loss=5.01, val_f1=0.74]pretrain GVLS (production, M=4):   6%|▋         | 13/200 [03:02<39:02, 12.53s/it, loss=4.98, val_f1=0.741]pretrain GVLS (production, M=4):   7%|▋         | 14/200 [03:02<43:53, 14.16s/it, loss=4.98, val_f1=0.741]pretrain GVLS (production, M=4):   7%|▋         | 14/200 [03:19<43:53, 14.16s/it, loss=4.98, val_f1=0.743]pretrain GVLS (production, M=4):   8%|▊         | 15/200 [03:19<46:12, 14.99s/it, loss=4.98, val_f1=0.743]pretrain GVLS (production, M=4):   8%|▊         | 15/200 [03:35<46:12, 14.99s/it, loss=4.97, val_f1=0.746]pretrain GVLS (production, M=4):   8%|▊         | 16/200 [03:35<46:42, 15.23s/it, loss=4.97, val_f1=0.746]pretrain GVLS (production, M=4):   8%|▊         | 16/200 [03:48<46:42, 15.23s/it, loss=4.93, val_f1=0.746]pretrain GVLS (production, M=4):   8%|▊         | 17/200 [03:48<44:16, 14.51s/it, loss=4.93, val_f1=0.746]pretrain GVLS (production, M=4):   8%|▊         | 17/200 [04:01<44:16, 14.51s/it, loss=4.92, val_f1=0.748]pretrain GVLS (production, M=4):   9%|▉         | 18/200 [04:01<42:36, 14.05s/it, loss=4.92, val_f1=0.748]pretrain GVLS (production, M=4):   9%|▉         | 18/200 [04:14<42:36, 14.05s/it, loss=4.94, val_f1=0.748]pretrain GVLS (production, M=4):  10%|▉         | 19/200 [04:14<41:43, 13.83s/it, loss=4.94, val_f1=0.748]pretrain GVLS (production, M=4):  10%|▉         | 19/200 [04:27<41:43, 13.83s/it, loss=4.92, val_f1=0.746]pretrain GVLS (production, M=4):  10%|█         | 20/200 [04:27<40:47, 13.60s/it, loss=4.92, val_f1=0.746]pretrain GVLS (production, M=4):  10%|█         | 20/200 [04:41<40:47, 13.60s/it, loss=4.9, val_f1=0.748] pretrain GVLS (production, M=4):  10%|█         | 21/200 [04:41<40:09, 13.46s/it, loss=4.9, val_f1=0.748]pretrain GVLS (production, M=4):  10%|█         | 21/200 [04:53<40:09, 13.46s/it, loss=4.89, val_f1=0.742]pretrain GVLS (production, M=4):  11%|█         | 22/200 [04:53<39:26, 13.29s/it, loss=4.89, val_f1=0.742]pretrain GVLS (production, M=4):  11%|█         | 22/200 [05:07<39:26, 13.29s/it, loss=4.91, val_f1=0.744]pretrain GVLS (production, M=4):  12%|█▏        | 23/200 [05:07<39:04, 13.24s/it, loss=4.91, val_f1=0.744]pretrain GVLS (production, M=4):  12%|█▏        | 23/200 [05:20<39:04, 13.24s/it, loss=4.88, val_f1=0.747]pretrain GVLS (production, M=4):  12%|█▏        | 24/200 [05:20<38:53, 13.26s/it, loss=4.88, val_f1=0.747]pretrain GVLS (production, M=4):  12%|█▏        | 24/200 [05:35<38:53, 13.26s/it, loss=4.88, val_f1=0.744]pretrain GVLS (production, M=4):  12%|█▎        | 25/200 [05:35<40:34, 13.91s/it, loss=4.88, val_f1=0.744]pretrain GVLS (production, M=4):  12%|█▎        | 25/200 [05:48<40:34, 13.91s/it, loss=4.87, val_f1=0.744]pretrain GVLS (production, M=4):  13%|█▎        | 26/200 [05:48<39:33, 13.64s/it, loss=4.87, val_f1=0.744]pretrain GVLS (production, M=4):  13%|█▎        | 26/200 [06:04<39:33, 13.64s/it, loss=4.87, val_f1=0.745]pretrain GVLS (production, M=4):  14%|█▎        | 27/200 [06:04<40:49, 14.16s/it, loss=4.87, val_f1=0.745]pretrain GVLS (production, M=4):  14%|█▎        | 27/200 [06:16<40:49, 14.16s/it, loss=4.87, val_f1=0.743]pretrain GVLS (production, M=4):  14%|█▍        | 28/200 [06:16<39:13, 13.68s/it, loss=4.87, val_f1=0.743]pretrain GVLS (production, M=4):  14%|█▍        | 28/200 [06:31<39:13, 13.68s/it, loss=4.86, val_f1=0.744]pretrain GVLS (production, M=4):  14%|█▍        | 29/200 [06:31<40:04, 14.06s/it, loss=4.86, val_f1=0.744]pretrain GVLS (production, M=4):  14%|█▍        | 29/200 [06:44<40:04, 14.06s/it, loss=4.89, val_f1=0.748]pretrain GVLS (production, M=4):  15%|█▌        | 30/200 [06:44<38:36, 13.62s/it, loss=4.89, val_f1=0.748]pretrain GVLS (production, M=4):  15%|█▌        | 30/200 [06:59<38:36, 13.62s/it, loss=4.91, val_f1=0.743]pretrain GVLS (production, M=4):  16%|█▌        | 31/200 [06:59<39:37, 14.07s/it, loss=4.91, val_f1=0.743]pretrain GVLS (production, M=4):  16%|█▌        | 31/200 [07:12<39:37, 14.07s/it, loss=4.87, val_f1=0.743]pretrain GVLS (production, M=4):  16%|█▌        | 32/200 [07:12<38:20, 13.69s/it, loss=4.87, val_f1=0.743]pretrain GVLS (production, M=4):  16%|█▌        | 32/200 [07:26<38:20, 13.69s/it, loss=4.86, val_f1=0.746]pretrain GVLS (production, M=4):  16%|█▋        | 33/200 [07:26<38:52, 13.97s/it, loss=4.86, val_f1=0.746]pretrain GVLS (production, M=4):  16%|█▋        | 33/200 [07:39<38:52, 13.97s/it, loss=4.9, val_f1=0.747] pretrain GVLS (production, M=4):  17%|█▋        | 34/200 [07:39<37:48, 13.66s/it, loss=4.9, val_f1=0.747]pretrain GVLS (production, M=4):  17%|█▋        | 34/200 [07:54<37:48, 13.66s/it, loss=4.88, val_f1=0.745]pretrain GVLS (production, M=4):  18%|█▊        | 35/200 [07:54<38:04, 13.85s/it, loss=4.88, val_f1=0.745]pretrain GVLS (production, M=4):  18%|█▊        | 35/200 [08:06<38:04, 13.85s/it, loss=4.86, val_f1=0.745]pretrain GVLS (production, M=4):  18%|█▊        | 36/200 [08:06<36:58, 13.53s/it, loss=4.86, val_f1=0.745]pretrain GVLS (production, M=4):  18%|█▊        | 36/200 [08:21<36:58, 13.53s/it, loss=4.86, val_f1=0.745]pretrain GVLS (production, M=4):  18%|█▊        | 37/200 [08:21<37:36, 13.84s/it, loss=4.86, val_f1=0.745]pretrain GVLS (production, M=4):  18%|█▊        | 37/200 [08:34<37:36, 13.84s/it, loss=4.87, val_f1=0.747]pretrain GVLS (production, M=4):  19%|█▉        | 38/200 [08:34<36:50, 13.64s/it, loss=4.87, val_f1=0.747]pretrain GVLS (production, M=4):  19%|█▉        | 38/200 [08:49<36:50, 13.64s/it, loss=4.86, val_f1=0.743]pretrain GVLS (production, M=4):  20%|█▉        | 39/200 [08:49<37:24, 13.94s/it, loss=4.86, val_f1=0.743]pretrain GVLS (production, M=4):  20%|█▉        | 39/200 [09:03<37:24, 13.94s/it, loss=4.85, val_f1=0.744]pretrain GVLS (production, M=4):  20%|██        | 40/200 [09:03<37:23, 14.02s/it, loss=4.85, val_f1=0.744]pretrain GVLS (production, M=4):  20%|██        | 40/200 [09:17<37:23, 14.02s/it, loss=4.85, val_f1=0.743]pretrain GVLS (production, M=4):  20%|██        | 41/200 [09:17<37:24, 14.12s/it, loss=4.85, val_f1=0.743]pretrain GVLS (production, M=4):  20%|██        | 41/200 [09:31<37:24, 14.12s/it, loss=4.85, val_f1=0.743]pretrain GVLS (production, M=4):  21%|██        | 42/200 [09:31<36:49, 13.98s/it, loss=4.85, val_f1=0.743]pretrain GVLS (production, M=4):  21%|██        | 42/200 [09:45<36:49, 13.98s/it, loss=4.85, val_f1=0.741]pretrain GVLS (production, M=4):  22%|██▏       | 43/200 [09:45<36:31, 13.96s/it, loss=4.85, val_f1=0.741]pretrain GVLS (production, M=4):  22%|██▏       | 43/200 [09:59<36:31, 13.96s/it, loss=4.86, val_f1=0.742]pretrain GVLS (production, M=4):  22%|██▏       | 44/200 [09:59<36:22, 13.99s/it, loss=4.86, val_f1=0.742]pretrain GVLS (production, M=4):  22%|██▏       | 44/200 [10:12<36:22, 13.99s/it, loss=4.86, val_f1=0.747]pretrain GVLS (production, M=4):  22%|██▎       | 45/200 [10:12<35:49, 13.87s/it, loss=4.86, val_f1=0.747]pretrain GVLS (production, M=4):  22%|██▎       | 45/200 [10:25<35:49, 13.87s/it, loss=4.86, val_f1=0.747]pretrain GVLS (production, M=4):  23%|██▎       | 46/200 [10:25<34:44, 13.53s/it, loss=4.86, val_f1=0.747]pretrain GVLS (production, M=4):  23%|██▎       | 46/200 [10:38<34:44, 13.53s/it, loss=4.85, val_f1=0.74] pretrain GVLS (production, M=4):  24%|██▎       | 47/200 [10:38<33:49, 13.26s/it, loss=4.85, val_f1=0.74]pretrain GVLS (production, M=4):  24%|██▎       | 47/200 [10:50<33:49, 13.26s/it, loss=4.89, val_f1=0.744]pretrain GVLS (production, M=4):  24%|██▍       | 48/200 [10:50<33:07, 13.07s/it, loss=4.89, val_f1=0.744]pretrain GVLS (production, M=4):  24%|██▍       | 48/200 [11:03<33:07, 13.07s/it, loss=4.88, val_f1=0.742]pretrain GVLS (production, M=4):  24%|██▍       | 49/200 [11:03<32:31, 12.92s/it, loss=4.88, val_f1=0.742]pretrain GVLS (production, M=4):  24%|██▍       | 49/200 [11:16<32:31, 12.92s/it, loss=4.84, val_f1=0.743]pretrain GVLS (production, M=4):  25%|██▌       | 50/200 [11:16<32:00, 12.80s/it, loss=4.84, val_f1=0.743]pretrain GVLS (production, M=4):  25%|██▌       | 50/200 [11:28<32:00, 12.80s/it, loss=4.83, val_f1=0.743]pretrain GVLS (production, M=4):  26%|██▌       | 51/200 [11:28<31:38, 12.74s/it, loss=4.83, val_f1=0.743]pretrain GVLS (production, M=4):  26%|██▌       | 51/200 [11:41<31:38, 12.74s/it, loss=4.84, val_f1=0.741]pretrain GVLS (production, M=4):  26%|██▌       | 52/200 [11:41<31:19, 12.70s/it, loss=4.84, val_f1=0.741]pretrain GVLS (production, M=4):  26%|██▌       | 52/200 [11:54<31:19, 12.70s/it, loss=4.83, val_f1=0.743]pretrain GVLS (production, M=4):  26%|██▋       | 53/200 [11:54<31:12, 12.74s/it, loss=4.83, val_f1=0.743]pretrain GVLS (production, M=4):  26%|██▋       | 53/200 [12:06<31:12, 12.74s/it, loss=4.82, val_f1=0.743]pretrain GVLS (production, M=4):  27%|██▋       | 54/200 [12:06<30:56, 12.71s/it, loss=4.82, val_f1=0.743]pretrain GVLS (production, M=4):  27%|██▋       | 54/200 [12:19<30:56, 12.71s/it, loss=4.84, val_f1=0.743]pretrain GVLS (production, M=4):  28%|██▊       | 55/200 [12:19<30:57, 12.81s/it, loss=4.84, val_f1=0.743]pretrain GVLS (production, M=4):  28%|██▊       | 55/200 [12:32<30:57, 12.81s/it, loss=4.86, val_f1=0.745]pretrain GVLS (production, M=4):  28%|██▊       | 56/200 [12:32<30:53, 12.87s/it, loss=4.86, val_f1=0.745]pretrain GVLS (production, M=4):  28%|██▊       | 56/200 [12:45<30:53, 12.87s/it, loss=4.84, val_f1=0.743]pretrain GVLS (production, M=4):  28%|██▊       | 57/200 [12:45<30:41, 12.88s/it, loss=4.84, val_f1=0.743]pretrain GVLS (production, M=4):  28%|██▊       | 57/200 [13:02<30:41, 12.88s/it, loss=4.83, val_f1=0.741]pretrain GVLS (production, M=4):  29%|██▉       | 58/200 [13:02<32:56, 13.92s/it, loss=4.83, val_f1=0.741]pretrain GVLS (production, M=4):  29%|██▉       | 58/200 [13:14<32:56, 13.92s/it, loss=4.83, val_f1=0.745]pretrain GVLS (production, M=4):  30%|██▉       | 59/200 [13:14<31:57, 13.60s/it, loss=4.83, val_f1=0.745]pretrain GVLS (production, M=4):  30%|██▉       | 59/200 [13:27<31:57, 13.60s/it, loss=4.84, val_f1=0.742]pretrain GVLS (production, M=4):  30%|███       | 60/200 [13:27<31:03, 13.31s/it, loss=4.84, val_f1=0.742]pretrain GVLS (production, M=4):  30%|███       | 60/200 [13:40<31:03, 13.31s/it, loss=4.85, val_f1=0.74] pretrain GVLS (production, M=4):  30%|███       | 61/200 [13:40<30:21, 13.11s/it, loss=4.85, val_f1=0.74]pretrain GVLS (production, M=4):  30%|███       | 61/200 [13:54<30:21, 13.11s/it, loss=4.84, val_f1=0.741]pretrain GVLS (production, M=4):  31%|███       | 62/200 [13:54<30:42, 13.35s/it, loss=4.84, val_f1=0.741]pretrain GVLS (production, M=4):  31%|███       | 62/200 [14:11<30:42, 13.35s/it, loss=4.83, val_f1=0.743]pretrain GVLS (production, M=4):  32%|███▏      | 63/200 [14:11<33:26, 14.64s/it, loss=4.83, val_f1=0.743]pretrain GVLS (production, M=4):  32%|███▏      | 63/200 [14:27<33:26, 14.64s/it, loss=4.82, val_f1=0.744]pretrain GVLS (production, M=4):  32%|███▏      | 64/200 [14:27<33:59, 15.00s/it, loss=4.82, val_f1=0.744]pretrain GVLS (production, M=4):  32%|███▏      | 64/200 [14:43<33:59, 15.00s/it, loss=4.82, val_f1=0.745]pretrain GVLS (production, M=4):  32%|███▎      | 65/200 [14:43<34:25, 15.30s/it, loss=4.82, val_f1=0.745]pretrain GVLS (production, M=4):  32%|███▎      | 65/200 [14:57<34:25, 15.30s/it, loss=4.82, val_f1=0.742]pretrain GVLS (production, M=4):  33%|███▎      | 66/200 [14:57<33:28, 14.99s/it, loss=4.82, val_f1=0.742]pretrain GVLS (production, M=4):  33%|███▎      | 66/200 [15:11<33:28, 14.99s/it, loss=4.81, val_f1=0.741]pretrain GVLS (production, M=4):  34%|███▎      | 67/200 [15:11<32:11, 14.52s/it, loss=4.81, val_f1=0.741]pretrain GVLS (production, M=4):  34%|███▎      | 67/200 [15:27<32:11, 14.52s/it, loss=4.82, val_f1=0.742]pretrain GVLS (production, M=4):  34%|███▍      | 68/200 [15:27<32:46, 14.90s/it, loss=4.82, val_f1=0.742]pretrain GVLS (production, M=4):  34%|███▍      | 68/200 [15:40<32:46, 14.90s/it, loss=4.82, val_f1=0.741]pretrain GVLS (production, M=4):  34%|███▍      | 69/200 [15:40<31:28, 14.42s/it, loss=4.82, val_f1=0.741]pretrain GVLS (production, M=4):  34%|███▍      | 69/200 [15:55<31:28, 14.42s/it, loss=4.81, val_f1=0.743]pretrain GVLS (production, M=4):  35%|███▌      | 70/200 [15:55<31:55, 14.74s/it, loss=4.81, val_f1=0.743]pretrain GVLS (production, M=4):  35%|███▌      | 70/200 [16:09<31:55, 14.74s/it, loss=4.81, val_f1=0.742]pretrain GVLS (production, M=4):  36%|███▌      | 71/200 [16:09<30:46, 14.31s/it, loss=4.81, val_f1=0.742]pretrain GVLS (production, M=4):  36%|███▌      | 71/200 [16:23<30:46, 14.31s/it, loss=4.81, val_f1=0.738]pretrain GVLS (production, M=4):  36%|███▌      | 72/200 [16:23<30:28, 14.29s/it, loss=4.81, val_f1=0.738]pretrain GVLS (production, M=4):  36%|███▌      | 72/200 [16:36<30:28, 14.29s/it, loss=4.82, val_f1=0.743]pretrain GVLS (production, M=4):  36%|███▋      | 73/200 [16:36<29:35, 13.98s/it, loss=4.82, val_f1=0.743]pretrain GVLS (production, M=4):  36%|███▋      | 73/200 [16:52<29:35, 13.98s/it, loss=4.8, val_f1=0.742] pretrain GVLS (production, M=4):  37%|███▋      | 74/200 [16:52<30:31, 14.54s/it, loss=4.8, val_f1=0.742]pretrain GVLS (production, M=4):  37%|███▋      | 74/200 [17:05<30:31, 14.54s/it, loss=4.8, val_f1=0.743]pretrain GVLS (production, M=4):  38%|███▊      | 75/200 [17:05<29:39, 14.23s/it, loss=4.8, val_f1=0.743]pretrain GVLS (production, M=4):  38%|███▊      | 75/200 [17:21<29:39, 14.23s/it, loss=4.81, val_f1=0.743]pretrain GVLS (production, M=4):  38%|███▊      | 76/200 [17:21<30:13, 14.62s/it, loss=4.81, val_f1=0.743]pretrain GVLS (production, M=4):  38%|███▊      | 76/200 [17:35<30:13, 14.62s/it, loss=4.82, val_f1=0.742]pretrain GVLS (production, M=4):  38%|███▊      | 77/200 [17:35<29:17, 14.29s/it, loss=4.82, val_f1=0.742]pretrain GVLS (production, M=4):  38%|███▊      | 77/200 [17:50<29:17, 14.29s/it, loss=4.83, val_f1=0.747]pretrain GVLS (production, M=4):  39%|███▉      | 78/200 [17:50<29:36, 14.57s/it, loss=4.83, val_f1=0.747]pretrain GVLS (production, M=4):  39%|███▉      | 78/200 [18:03<29:36, 14.57s/it, loss=4.8, val_f1=0.742] pretrain GVLS (production, M=4):  40%|███▉      | 79/200 [18:03<28:49, 14.29s/it, loss=4.8, val_f1=0.742]pretrain GVLS (production, M=4):  40%|███▉      | 79/200 [18:17<28:49, 14.29s/it, loss=4.8, val_f1=0.741]pretrain GVLS (production, M=4):  40%|████      | 80/200 [18:17<28:05, 14.05s/it, loss=4.8, val_f1=0.741]pretrain GVLS (production, M=4):  40%|████      | 80/200 [18:30<28:05, 14.05s/it, loss=4.8, val_f1=0.742]pretrain GVLS (production, M=4):  40%|████      | 81/200 [18:30<27:26, 13.83s/it, loss=4.8, val_f1=0.742]pretrain GVLS (production, M=4):  40%|████      | 81/200 [18:43<27:26, 13.83s/it, loss=4.81, val_f1=0.742]pretrain GVLS (production, M=4):  41%|████      | 82/200 [18:43<26:42, 13.58s/it, loss=4.81, val_f1=0.742]pretrain GVLS (production, M=4):  41%|████      | 82/200 [18:57<26:42, 13.58s/it, loss=4.8, val_f1=0.743] pretrain GVLS (production, M=4):  42%|████▏     | 83/200 [18:57<26:19, 13.50s/it, loss=4.8, val_f1=0.743]pretrain GVLS (production, M=4):  42%|████▏     | 83/200 [19:10<26:19, 13.50s/it, loss=4.79, val_f1=0.741]pretrain GVLS (production, M=4):  42%|████▏     | 84/200 [19:10<25:49, 13.36s/it, loss=4.79, val_f1=0.741]pretrain GVLS (production, M=4):  42%|████▏     | 84/200 [19:23<25:49, 13.36s/it, loss=4.79, val_f1=0.741]pretrain GVLS (production, M=4):  42%|████▎     | 85/200 [19:23<25:55, 13.52s/it, loss=4.79, val_f1=0.741]pretrain GVLS (production, M=4):  42%|████▎     | 85/200 [19:37<25:55, 13.52s/it, loss=4.8, val_f1=0.744] pretrain GVLS (production, M=4):  43%|████▎     | 86/200 [19:37<25:30, 13.43s/it, loss=4.8, val_f1=0.744]pretrain GVLS (production, M=4):  43%|████▎     | 86/200 [19:50<25:30, 13.43s/it, loss=4.79, val_f1=0.741]pretrain GVLS (production, M=4):  44%|████▎     | 87/200 [19:50<25:13, 13.39s/it, loss=4.79, val_f1=0.741]pretrain GVLS (production, M=4):  44%|████▎     | 87/200 [20:03<25:13, 13.39s/it, loss=4.8, val_f1=0.741] pretrain GVLS (production, M=4):  44%|████▍     | 88/200 [20:03<24:44, 13.25s/it, loss=4.8, val_f1=0.741]pretrain GVLS (production, M=4):  44%|████▍     | 88/200 [20:16<24:44, 13.25s/it, loss=4.78, val_f1=0.744]pretrain GVLS (production, M=4):  44%|████▍     | 89/200 [20:16<24:34, 13.29s/it, loss=4.78, val_f1=0.744]pretrain GVLS (production, M=4):  44%|████▍     | 89/200 [20:29<24:34, 13.29s/it, loss=4.77, val_f1=0.741]pretrain GVLS (production, M=4):  45%|████▌     | 90/200 [20:29<24:08, 13.17s/it, loss=4.77, val_f1=0.741]pretrain GVLS (production, M=4):  45%|████▌     | 90/200 [20:43<24:08, 13.17s/it, loss=4.77, val_f1=0.745]pretrain GVLS (production, M=4):  46%|████▌     | 91/200 [20:43<24:06, 13.27s/it, loss=4.77, val_f1=0.745]pretrain GVLS (production, M=4):  46%|████▌     | 91/200 [20:56<24:06, 13.27s/it, loss=4.76, val_f1=0.741]pretrain GVLS (production, M=4):  46%|████▌     | 92/200 [20:56<23:50, 13.24s/it, loss=4.76, val_f1=0.741]pretrain GVLS (production, M=4):  46%|████▌     | 92/200 [21:10<23:50, 13.24s/it, loss=4.76, val_f1=0.742]pretrain GVLS (production, M=4):  46%|████▋     | 93/200 [21:10<24:18, 13.63s/it, loss=4.76, val_f1=0.742]pretrain GVLS (production, M=4):  46%|████▋     | 93/200 [21:23<24:18, 13.63s/it, loss=4.75, val_f1=0.742]pretrain GVLS (production, M=4):  47%|████▋     | 94/200 [21:23<23:43, 13.43s/it, loss=4.75, val_f1=0.742]pretrain GVLS (production, M=4):  47%|████▋     | 94/200 [21:36<23:43, 13.43s/it, loss=4.76, val_f1=0.741]pretrain GVLS (production, M=4):  48%|████▊     | 95/200 [21:36<23:02, 13.17s/it, loss=4.76, val_f1=0.741]pretrain GVLS (production, M=4):  48%|████▊     | 95/200 [21:48<23:02, 13.17s/it, loss=4.74, val_f1=0.742]pretrain GVLS (production, M=4):  48%|████▊     | 96/200 [21:48<22:27, 12.96s/it, loss=4.74, val_f1=0.742]pretrain GVLS (production, M=4):  48%|████▊     | 96/200 [22:01<22:27, 12.96s/it, loss=4.76, val_f1=0.744]pretrain GVLS (production, M=4):  48%|████▊     | 97/200 [22:01<21:59, 12.81s/it, loss=4.76, val_f1=0.744]pretrain GVLS (production, M=4):  48%|████▊     | 97/200 [22:13<21:59, 12.81s/it, loss=4.77, val_f1=0.742]pretrain GVLS (production, M=4):  49%|████▉     | 98/200 [22:13<21:33, 12.68s/it, loss=4.77, val_f1=0.742]pretrain GVLS (production, M=4):  49%|████▉     | 98/200 [22:26<21:33, 12.68s/it, loss=4.75, val_f1=0.74] pretrain GVLS (production, M=4):  50%|████▉     | 99/200 [22:26<21:13, 12.61s/it, loss=4.75, val_f1=0.74]pretrain GVLS (production, M=4):  50%|████▉     | 99/200 [22:38<21:13, 12.61s/it, loss=4.75, val_f1=0.742]pretrain GVLS (production, M=4):  50%|█████     | 100/200 [22:38<20:56, 12.56s/it, loss=4.75, val_f1=0.742]pretrain GVLS (production, M=4):  50%|█████     | 100/200 [22:51<20:56, 12.56s/it, loss=4.74, val_f1=0.745]pretrain GVLS (production, M=4):  50%|█████     | 101/200 [22:51<20:40, 12.53s/it, loss=4.74, val_f1=0.745]pretrain GVLS (production, M=4):  50%|█████     | 101/200 [23:03<20:40, 12.53s/it, loss=4.75, val_f1=0.741]pretrain GVLS (production, M=4):  51%|█████     | 102/200 [23:03<20:23, 12.49s/it, loss=4.75, val_f1=0.741]pretrain GVLS (production, M=4):  51%|█████     | 102/200 [23:15<20:23, 12.49s/it, loss=4.73, val_f1=0.741]pretrain GVLS (production, M=4):  52%|█████▏    | 103/200 [23:15<20:10, 12.48s/it, loss=4.73, val_f1=0.741]pretrain GVLS (production, M=4):  52%|█████▏    | 103/200 [23:28<20:10, 12.48s/it, loss=4.73, val_f1=0.74] pretrain GVLS (production, M=4):  52%|█████▏    | 104/200 [23:28<20:06, 12.56s/it, loss=4.73, val_f1=0.74]pretrain GVLS (production, M=4):  52%|█████▏    | 104/200 [23:41<20:06, 12.56s/it, loss=4.74, val_f1=0.743]pretrain GVLS (production, M=4):  52%|█████▎    | 105/200 [23:41<20:11, 12.75s/it, loss=4.74, val_f1=0.743]pretrain GVLS (production, M=4):  52%|█████▎    | 105/200 [23:54<20:11, 12.75s/it, loss=4.73, val_f1=0.745]pretrain GVLS (production, M=4):  53%|█████▎    | 106/200 [23:54<19:59, 12.76s/it, loss=4.73, val_f1=0.745]pretrain GVLS (production, M=4):  53%|█████▎    | 106/200 [24:07<19:59, 12.76s/it, loss=4.73, val_f1=0.743]pretrain GVLS (production, M=4):  54%|█████▎    | 107/200 [24:07<19:52, 12.82s/it, loss=4.73, val_f1=0.743]pretrain GVLS (production, M=4):  54%|█████▎    | 107/200 [24:20<19:52, 12.82s/it, loss=4.72, val_f1=0.741]pretrain GVLS (production, M=4):  54%|█████▍    | 108/200 [24:20<19:33, 12.75s/it, loss=4.72, val_f1=0.741]pretrain GVLS (production, M=4):  54%|█████▍    | 108/200 [24:32<19:33, 12.75s/it, loss=4.76, val_f1=0.744]pretrain GVLS (production, M=4):  55%|█████▍    | 109/200 [24:32<19:10, 12.65s/it, loss=4.76, val_f1=0.744]pretrain GVLS (production, M=4):  55%|█████▍    | 109/200 [24:45<19:10, 12.65s/it, loss=4.74, val_f1=0.746]pretrain GVLS (production, M=4):  55%|█████▌    | 110/200 [24:45<18:56, 12.63s/it, loss=4.74, val_f1=0.746]pretrain GVLS (production, M=4):  55%|█████▌    | 110/200 [24:57<18:56, 12.63s/it, loss=4.71, val_f1=0.742]pretrain GVLS (production, M=4):  56%|█████▌    | 111/200 [24:57<18:38, 12.57s/it, loss=4.71, val_f1=0.742]pretrain GVLS (production, M=4):  56%|█████▌    | 111/200 [25:11<18:38, 12.57s/it, loss=4.72, val_f1=0.741]pretrain GVLS (production, M=4):  56%|█████▌    | 112/200 [25:11<19:07, 13.04s/it, loss=4.72, val_f1=0.741]pretrain GVLS (production, M=4):  56%|█████▌    | 112/200 [25:29<19:07, 13.04s/it, loss=4.72, val_f1=0.743]pretrain GVLS (production, M=4):  56%|█████▋    | 113/200 [25:29<21:04, 14.53s/it, loss=4.72, val_f1=0.743]pretrain GVLS (production, M=4):  56%|█████▋    | 113/200 [25:44<21:04, 14.53s/it, loss=4.71, val_f1=0.744]pretrain GVLS (production, M=4):  57%|█████▋    | 114/200 [25:44<20:45, 14.48s/it, loss=4.71, val_f1=0.744]pretrain GVLS (production, M=4):  57%|█████▋    | 114/200 [25:59<20:45, 14.48s/it, loss=4.73, val_f1=0.743]pretrain GVLS (production, M=4):  57%|█████▊    | 115/200 [25:59<20:54, 14.76s/it, loss=4.73, val_f1=0.743]pretrain GVLS (production, M=4):  57%|█████▊    | 115/200 [26:13<20:54, 14.76s/it, loss=4.71, val_f1=0.742]pretrain GVLS (production, M=4):  58%|█████▊    | 116/200 [26:13<20:19, 14.52s/it, loss=4.71, val_f1=0.742]pretrain GVLS (production, M=4):  58%|█████▊    | 116/200 [26:27<20:19, 14.52s/it, loss=4.71, val_f1=0.742]pretrain GVLS (production, M=4):  58%|█████▊    | 117/200 [26:27<19:48, 14.32s/it, loss=4.71, val_f1=0.742]pretrain GVLS (production, M=4):  58%|█████▊    | 117/200 [26:41<19:48, 14.32s/it, loss=4.73, val_f1=0.742]pretrain GVLS (production, M=4):  59%|█████▉    | 118/200 [26:41<19:28, 14.25s/it, loss=4.73, val_f1=0.742]pretrain GVLS (production, M=4):  59%|█████▉    | 118/200 [26:54<19:28, 14.25s/it, loss=4.71, val_f1=0.742]pretrain GVLS (production, M=4):  60%|█████▉    | 119/200 [26:54<18:53, 13.99s/it, loss=4.71, val_f1=0.742]pretrain GVLS (production, M=4):  60%|█████▉    | 119/200 [27:08<18:53, 13.99s/it, loss=4.7, val_f1=0.741] pretrain GVLS (production, M=4):  60%|██████    | 120/200 [27:08<18:33, 13.91s/it, loss=4.7, val_f1=0.741]pretrain GVLS (production, M=4):  60%|██████    | 120/200 [27:22<18:33, 13.91s/it, loss=4.71, val_f1=0.741]pretrain GVLS (production, M=4):  60%|██████    | 121/200 [27:22<18:11, 13.82s/it, loss=4.71, val_f1=0.741]pretrain GVLS (production, M=4):  60%|██████    | 121/200 [27:35<18:11, 13.82s/it, loss=4.7, val_f1=0.746] pretrain GVLS (production, M=4):  61%|██████    | 122/200 [27:35<17:47, 13.68s/it, loss=4.7, val_f1=0.746]pretrain GVLS (production, M=4):  61%|██████    | 122/200 [27:49<17:47, 13.68s/it, loss=4.72, val_f1=0.741]pretrain GVLS (production, M=4):  62%|██████▏   | 123/200 [27:49<17:38, 13.74s/it, loss=4.72, val_f1=0.741]pretrain GVLS (production, M=4):  62%|██████▏   | 123/200 [28:02<17:38, 13.74s/it, loss=4.7, val_f1=0.742] pretrain GVLS (production, M=4):  62%|██████▏   | 124/200 [28:02<17:21, 13.71s/it, loss=4.7, val_f1=0.742]pretrain GVLS (production, M=4):  62%|██████▏   | 124/200 [28:16<17:21, 13.71s/it, loss=4.71, val_f1=0.742]pretrain GVLS (production, M=4):  62%|██████▎   | 125/200 [28:16<17:13, 13.77s/it, loss=4.71, val_f1=0.742]pretrain GVLS (production, M=4):  62%|██████▎   | 125/200 [28:30<17:13, 13.77s/it, loss=4.69, val_f1=0.744]pretrain GVLS (production, M=4):  63%|██████▎   | 126/200 [28:30<16:48, 13.62s/it, loss=4.69, val_f1=0.744]pretrain GVLS (production, M=4):  63%|██████▎   | 126/200 [28:44<16:48, 13.62s/it, loss=4.69, val_f1=0.742]pretrain GVLS (production, M=4):  64%|██████▎   | 127/200 [28:44<16:44, 13.76s/it, loss=4.69, val_f1=0.742]pretrain GVLS (production, M=4):  64%|██████▎   | 127/200 [28:57<16:44, 13.76s/it, loss=4.68, val_f1=0.742]pretrain GVLS (production, M=4):  64%|██████▍   | 128/200 [28:57<16:11, 13.50s/it, loss=4.68, val_f1=0.742]pretrain GVLS (production, M=4):  64%|██████▍   | 128/200 [29:10<16:11, 13.50s/it, loss=4.69, val_f1=0.741]pretrain GVLS (production, M=4):  64%|██████▍   | 129/200 [29:10<15:57, 13.49s/it, loss=4.69, val_f1=0.741]pretrain GVLS (production, M=4):  64%|██████▍   | 129/200 [29:23<15:57, 13.49s/it, loss=4.69, val_f1=0.743]pretrain GVLS (production, M=4):  65%|██████▌   | 130/200 [29:23<15:30, 13.30s/it, loss=4.69, val_f1=0.743]pretrain GVLS (production, M=4):  65%|██████▌   | 130/200 [29:36<15:30, 13.30s/it, loss=4.7, val_f1=0.742] pretrain GVLS (production, M=4):  66%|██████▌   | 131/200 [29:36<15:14, 13.25s/it, loss=4.7, val_f1=0.742]pretrain GVLS (production, M=4):  66%|██████▌   | 131/200 [29:50<15:14, 13.25s/it, loss=4.71, val_f1=0.742]pretrain GVLS (production, M=4):  66%|██████▌   | 132/200 [29:50<15:05, 13.32s/it, loss=4.71, val_f1=0.742]pretrain GVLS (production, M=4):  66%|██████▌   | 132/200 [30:03<15:05, 13.32s/it, loss=4.69, val_f1=0.744]pretrain GVLS (production, M=4):  66%|██████▋   | 133/200 [30:03<14:50, 13.29s/it, loss=4.69, val_f1=0.744]pretrain GVLS (production, M=4):  66%|██████▋   | 133/200 [30:16<14:50, 13.29s/it, loss=4.69, val_f1=0.743]pretrain GVLS (production, M=4):  67%|██████▋   | 134/200 [30:16<14:33, 13.24s/it, loss=4.69, val_f1=0.743]pretrain GVLS (production, M=4):  67%|██████▋   | 134/200 [30:29<14:33, 13.24s/it, loss=4.68, val_f1=0.743]pretrain GVLS (production, M=4):  68%|██████▊   | 135/200 [30:29<14:16, 13.18s/it, loss=4.68, val_f1=0.743]pretrain GVLS (production, M=4):  68%|██████▊   | 135/200 [30:42<14:16, 13.18s/it, loss=4.7, val_f1=0.744] pretrain GVLS (production, M=4):  68%|██████▊   | 136/200 [30:42<14:06, 13.23s/it, loss=4.7, val_f1=0.744]pretrain GVLS (production, M=4):  68%|██████▊   | 136/200 [30:56<14:06, 13.23s/it, loss=4.7, val_f1=0.744]pretrain GVLS (production, M=4):  68%|██████▊   | 137/200 [30:56<13:57, 13.29s/it, loss=4.7, val_f1=0.744]pretrain GVLS (production, M=4):  68%|██████▊   | 137/200 [31:09<13:57, 13.29s/it, loss=4.68, val_f1=0.742]pretrain GVLS (production, M=4):  69%|██████▉   | 138/200 [31:09<13:46, 13.33s/it, loss=4.68, val_f1=0.742]pretrain GVLS (production, M=4):  69%|██████▉   | 138/200 [31:22<13:46, 13.33s/it, loss=4.7, val_f1=0.744] pretrain GVLS (production, M=4):  70%|██████▉   | 139/200 [31:22<13:18, 13.09s/it, loss=4.7, val_f1=0.744]pretrain GVLS (production, M=4):  70%|██████▉   | 139/200 [31:35<13:18, 13.09s/it, loss=4.69, val_f1=0.744]pretrain GVLS (production, M=4):  70%|███████   | 140/200 [31:35<13:10, 13.17s/it, loss=4.69, val_f1=0.744]pretrain GVLS (production, M=4):  70%|███████   | 140/200 [31:48<13:10, 13.17s/it, loss=4.68, val_f1=0.743]pretrain GVLS (production, M=4):  70%|███████   | 141/200 [31:48<12:47, 13.00s/it, loss=4.68, val_f1=0.743]pretrain GVLS (production, M=4):  70%|███████   | 141/200 [32:01<12:47, 13.00s/it, loss=4.7, val_f1=0.743] pretrain GVLS (production, M=4):  71%|███████   | 142/200 [32:01<12:40, 13.11s/it, loss=4.7, val_f1=0.743]pretrain GVLS (production, M=4):  71%|███████   | 142/200 [32:14<12:40, 13.11s/it, loss=4.67, val_f1=0.744]pretrain GVLS (production, M=4):  72%|███████▏  | 143/200 [32:14<12:18, 12.96s/it, loss=4.67, val_f1=0.744]pretrain GVLS (production, M=4):  72%|███████▏  | 143/200 [32:26<12:18, 12.96s/it, loss=4.67, val_f1=0.743]pretrain GVLS (production, M=4):  72%|███████▏  | 144/200 [32:26<11:55, 12.77s/it, loss=4.67, val_f1=0.743]pretrain GVLS (production, M=4):  72%|███████▏  | 144/200 [32:38<11:55, 12.77s/it, loss=4.66, val_f1=0.744]pretrain GVLS (production, M=4):  72%|███████▎  | 145/200 [32:38<11:38, 12.69s/it, loss=4.66, val_f1=0.744]pretrain GVLS (production, M=4):  72%|███████▎  | 145/200 [32:51<11:38, 12.69s/it, loss=4.65, val_f1=0.742]pretrain GVLS (production, M=4):  73%|███████▎  | 146/200 [32:51<11:24, 12.67s/it, loss=4.65, val_f1=0.742]pretrain GVLS (production, M=4):  73%|███████▎  | 146/200 [33:03<11:24, 12.67s/it, loss=4.66, val_f1=0.742]pretrain GVLS (production, M=4):  74%|███████▎  | 147/200 [33:03<11:07, 12.59s/it, loss=4.66, val_f1=0.742]pretrain GVLS (production, M=4):  74%|███████▎  | 147/200 [33:16<11:07, 12.59s/it, loss=4.67, val_f1=0.744]pretrain GVLS (production, M=4):  74%|███████▍  | 148/200 [33:16<10:49, 12.49s/it, loss=4.67, val_f1=0.744]pretrain GVLS (production, M=4):  74%|███████▍  | 148/200 [33:28<10:49, 12.49s/it, loss=4.66, val_f1=0.743]pretrain GVLS (production, M=4):  74%|███████▍  | 149/200 [33:28<10:31, 12.38s/it, loss=4.66, val_f1=0.743]pretrain GVLS (production, M=4):  74%|███████▍  | 149/200 [33:40<10:31, 12.38s/it, loss=4.69, val_f1=0.744]pretrain GVLS (production, M=4):  75%|███████▌  | 150/200 [33:40<10:16, 12.33s/it, loss=4.69, val_f1=0.744]pretrain GVLS (production, M=4):  75%|███████▌  | 150/200 [33:52<10:16, 12.33s/it, loss=4.68, val_f1=0.743]pretrain GVLS (production, M=4):  76%|███████▌  | 151/200 [33:52<10:04, 12.33s/it, loss=4.68, val_f1=0.743]pretrain GVLS (production, M=4):  76%|███████▌  | 151/200 [34:05<10:04, 12.33s/it, loss=4.67, val_f1=0.743]pretrain GVLS (production, M=4):  76%|███████▌  | 152/200 [34:05<09:49, 12.27s/it, loss=4.67, val_f1=0.743]pretrain GVLS (production, M=4):  76%|███████▌  | 152/200 [34:17<09:49, 12.27s/it, loss=4.68, val_f1=0.744]pretrain GVLS (production, M=4):  76%|███████▋  | 153/200 [34:17<09:38, 12.31s/it, loss=4.68, val_f1=0.744]pretrain GVLS (production, M=4):  76%|███████▋  | 153/200 [34:29<09:38, 12.31s/it, loss=4.66, val_f1=0.743]pretrain GVLS (production, M=4):  77%|███████▋  | 154/200 [34:29<09:27, 12.34s/it, loss=4.66, val_f1=0.743]pretrain GVLS (production, M=4):  77%|███████▋  | 154/200 [34:42<09:27, 12.34s/it, loss=4.66, val_f1=0.745]pretrain GVLS (production, M=4):  78%|███████▊  | 155/200 [34:42<09:14, 12.32s/it, loss=4.66, val_f1=0.745]pretrain GVLS (production, M=4):  78%|███████▊  | 155/200 [34:55<09:14, 12.32s/it, loss=4.67, val_f1=0.743]pretrain GVLS (production, M=4):  78%|███████▊  | 156/200 [34:55<09:22, 12.78s/it, loss=4.67, val_f1=0.743]pretrain GVLS (production, M=4):  78%|███████▊  | 156/200 [35:08<09:22, 12.78s/it, loss=4.66, val_f1=0.743]pretrain GVLS (production, M=4):  78%|███████▊  | 157/200 [35:08<09:10, 12.81s/it, loss=4.66, val_f1=0.743]pretrain GVLS (production, M=4):  78%|███████▊  | 157/200 [35:21<09:10, 12.81s/it, loss=4.65, val_f1=0.743]pretrain GVLS (production, M=4):  79%|███████▉  | 158/200 [35:21<08:49, 12.61s/it, loss=4.65, val_f1=0.743]pretrain GVLS (production, M=4):  79%|███████▉  | 158/200 [35:33<08:49, 12.61s/it, loss=4.64, val_f1=0.743]pretrain GVLS (production, M=4):  80%|███████▉  | 159/200 [35:33<08:35, 12.58s/it, loss=4.64, val_f1=0.743]pretrain GVLS (production, M=4):  80%|███████▉  | 159/200 [35:46<08:35, 12.58s/it, loss=4.66, val_f1=0.743]pretrain GVLS (production, M=4):  80%|████████  | 160/200 [35:46<08:23, 12.60s/it, loss=4.66, val_f1=0.743]pretrain GVLS (production, M=4):  80%|████████  | 160/200 [35:59<08:23, 12.60s/it, loss=4.66, val_f1=0.743]pretrain GVLS (production, M=4):  80%|████████  | 161/200 [35:59<08:22, 12.88s/it, loss=4.66, val_f1=0.743]pretrain GVLS (production, M=4):  80%|████████  | 161/200 [36:12<08:22, 12.88s/it, loss=4.64, val_f1=0.743]pretrain GVLS (production, M=4):  81%|████████  | 162/200 [36:12<08:11, 12.94s/it, loss=4.64, val_f1=0.743]pretrain GVLS (production, M=4):  81%|████████  | 162/200 [36:25<08:11, 12.94s/it, loss=4.66, val_f1=0.744]pretrain GVLS (production, M=4):  82%|████████▏ | 163/200 [36:25<07:53, 12.81s/it, loss=4.66, val_f1=0.744]pretrain GVLS (production, M=4):  82%|████████▏ | 163/200 [36:37<07:53, 12.81s/it, loss=4.64, val_f1=0.744]pretrain GVLS (production, M=4):  82%|████████▏ | 164/200 [36:37<07:35, 12.65s/it, loss=4.64, val_f1=0.744]pretrain GVLS (production, M=4):  82%|████████▏ | 164/200 [36:50<07:35, 12.65s/it, loss=4.65, val_f1=0.743]pretrain GVLS (production, M=4):  82%|████████▎ | 165/200 [36:50<07:29, 12.84s/it, loss=4.65, val_f1=0.743]pretrain GVLS (production, M=4):  82%|████████▎ | 165/200 [37:03<07:29, 12.84s/it, loss=4.65, val_f1=0.746]pretrain GVLS (production, M=4):  83%|████████▎ | 166/200 [37:03<07:15, 12.82s/it, loss=4.65, val_f1=0.746]pretrain GVLS (production, M=4):  83%|████████▎ | 166/200 [37:16<07:15, 12.82s/it, loss=4.65, val_f1=0.746]pretrain GVLS (production, M=4):  84%|████████▎ | 167/200 [37:16<07:06, 12.92s/it, loss=4.65, val_f1=0.746]pretrain GVLS (production, M=4):  84%|████████▎ | 167/200 [37:29<07:06, 12.92s/it, loss=4.66, val_f1=0.742]pretrain GVLS (production, M=4):  84%|████████▍ | 168/200 [37:29<06:52, 12.90s/it, loss=4.66, val_f1=0.742]pretrain GVLS (production, M=4):  84%|████████▍ | 168/200 [37:42<06:52, 12.90s/it, loss=4.66, val_f1=0.745]pretrain GVLS (production, M=4):  84%|████████▍ | 169/200 [37:42<06:41, 12.96s/it, loss=4.66, val_f1=0.745]pretrain GVLS (production, M=4):  84%|████████▍ | 169/200 [37:55<06:41, 12.96s/it, loss=4.65, val_f1=0.745]pretrain GVLS (production, M=4):  85%|████████▌ | 170/200 [37:55<06:27, 12.90s/it, loss=4.65, val_f1=0.745]pretrain GVLS (production, M=4):  85%|████████▌ | 170/200 [38:08<06:27, 12.90s/it, loss=4.64, val_f1=0.743]pretrain GVLS (production, M=4):  86%|████████▌ | 171/200 [38:08<06:16, 12.97s/it, loss=4.64, val_f1=0.743]pretrain GVLS (production, M=4):  86%|████████▌ | 171/200 [38:21<06:16, 12.97s/it, loss=4.66, val_f1=0.744]pretrain GVLS (production, M=4):  86%|████████▌ | 172/200 [38:21<06:02, 12.95s/it, loss=4.66, val_f1=0.744]pretrain GVLS (production, M=4):  86%|████████▌ | 172/200 [38:34<06:02, 12.95s/it, loss=4.65, val_f1=0.744]pretrain GVLS (production, M=4):  86%|████████▋ | 173/200 [38:34<05:50, 12.98s/it, loss=4.65, val_f1=0.744]pretrain GVLS (production, M=4):  86%|████████▋ | 173/200 [38:47<05:50, 12.98s/it, loss=4.67, val_f1=0.743]pretrain GVLS (production, M=4):  87%|████████▋ | 174/200 [38:47<05:38, 13.02s/it, loss=4.67, val_f1=0.743]pretrain GVLS (production, M=4):  87%|████████▋ | 174/200 [39:01<05:38, 13.02s/it, loss=4.64, val_f1=0.744]pretrain GVLS (production, M=4):  88%|████████▊ | 175/200 [39:01<05:32, 13.31s/it, loss=4.64, val_f1=0.744]pretrain GVLS (production, M=4):  88%|████████▊ | 175/200 [39:14<05:32, 13.31s/it, loss=4.64, val_f1=0.744]pretrain GVLS (production, M=4):  88%|████████▊ | 176/200 [39:14<05:18, 13.28s/it, loss=4.64, val_f1=0.744]pretrain GVLS (production, M=4):  88%|████████▊ | 176/200 [39:28<05:18, 13.28s/it, loss=4.65, val_f1=0.743]pretrain GVLS (production, M=4):  88%|████████▊ | 177/200 [39:28<05:05, 13.28s/it, loss=4.65, val_f1=0.743]pretrain GVLS (production, M=4):  88%|████████▊ | 177/200 [39:41<05:05, 13.28s/it, loss=4.63, val_f1=0.743]pretrain GVLS (production, M=4):  89%|████████▉ | 178/200 [39:41<04:50, 13.19s/it, loss=4.63, val_f1=0.743]pretrain GVLS (production, M=4):  89%|████████▉ | 178/200 [39:54<04:50, 13.19s/it, loss=4.63, val_f1=0.744]pretrain GVLS (production, M=4):  90%|████████▉ | 179/200 [39:54<04:38, 13.25s/it, loss=4.63, val_f1=0.744]pretrain GVLS (production, M=4):  90%|████████▉ | 179/200 [40:07<04:38, 13.25s/it, loss=4.64, val_f1=0.742]pretrain GVLS (production, M=4):  90%|█████████ | 180/200 [40:07<04:22, 13.13s/it, loss=4.64, val_f1=0.742]pretrain GVLS (production, M=4):  90%|█████████ | 180/200 [40:20<04:22, 13.13s/it, loss=4.68, val_f1=0.74] pretrain GVLS (production, M=4):  90%|█████████ | 181/200 [40:20<04:10, 13.18s/it, loss=4.68, val_f1=0.74]pretrain GVLS (production, M=4):  90%|█████████ | 181/200 [40:33<04:10, 13.18s/it, loss=4.66, val_f1=0.745]pretrain GVLS (production, M=4):  91%|█████████ | 182/200 [40:33<03:55, 13.07s/it, loss=4.66, val_f1=0.745]pretrain GVLS (production, M=4):  91%|█████████ | 182/200 [40:46<03:55, 13.07s/it, loss=4.65, val_f1=0.744]pretrain GVLS (production, M=4):  92%|█████████▏| 183/200 [40:46<03:42, 13.11s/it, loss=4.65, val_f1=0.744]pretrain GVLS (production, M=4):  92%|█████████▏| 183/200 [40:59<03:42, 13.11s/it, loss=4.68, val_f1=0.741]pretrain GVLS (production, M=4):  92%|█████████▏| 184/200 [40:59<03:28, 13.02s/it, loss=4.68, val_f1=0.741]pretrain GVLS (production, M=4):  92%|█████████▏| 184/200 [41:14<03:28, 13.02s/it, loss=4.66, val_f1=0.745]pretrain GVLS (production, M=4):  92%|█████████▎| 185/200 [41:14<03:22, 13.47s/it, loss=4.66, val_f1=0.745]pretrain GVLS (production, M=4):  92%|█████████▎| 185/200 [41:26<03:22, 13.47s/it, loss=4.64, val_f1=0.744]pretrain GVLS (production, M=4):  93%|█████████▎| 186/200 [41:26<03:06, 13.30s/it, loss=4.64, val_f1=0.744]pretrain GVLS (production, M=4):  93%|█████████▎| 186/200 [41:41<03:06, 13.30s/it, loss=4.63, val_f1=0.744]pretrain GVLS (production, M=4):  94%|█████████▎| 187/200 [41:41<02:56, 13.57s/it, loss=4.63, val_f1=0.744]pretrain GVLS (production, M=4):  94%|█████████▎| 187/200 [41:53<02:56, 13.57s/it, loss=4.65, val_f1=0.743]pretrain GVLS (production, M=4):  94%|█████████▍| 188/200 [41:53<02:39, 13.31s/it, loss=4.65, val_f1=0.743]pretrain GVLS (production, M=4):  94%|█████████▍| 188/200 [42:07<02:39, 13.31s/it, loss=4.66, val_f1=0.744]pretrain GVLS (production, M=4):  94%|█████████▍| 189/200 [42:07<02:26, 13.30s/it, loss=4.66, val_f1=0.744]pretrain GVLS (production, M=4):  94%|█████████▍| 189/200 [42:19<02:26, 13.30s/it, loss=4.64, val_f1=0.744]pretrain GVLS (production, M=4):  95%|█████████▌| 190/200 [42:19<02:11, 13.13s/it, loss=4.64, val_f1=0.744]pretrain GVLS (production, M=4):  95%|█████████▌| 190/200 [42:33<02:11, 13.13s/it, loss=4.65, val_f1=0.743]pretrain GVLS (production, M=4):  96%|█████████▌| 191/200 [42:33<01:58, 13.18s/it, loss=4.65, val_f1=0.743]pretrain GVLS (production, M=4):  96%|█████████▌| 191/200 [42:46<01:58, 13.18s/it, loss=4.63, val_f1=0.745]pretrain GVLS (production, M=4):  96%|█████████▌| 192/200 [42:46<01:45, 13.14s/it, loss=4.63, val_f1=0.745]pretrain GVLS (production, M=4):  96%|█████████▌| 192/200 [43:00<01:45, 13.14s/it, loss=4.65, val_f1=0.744]pretrain GVLS (production, M=4):  96%|█████████▋| 193/200 [43:00<01:35, 13.63s/it, loss=4.65, val_f1=0.744]pretrain GVLS (production, M=4):  96%|█████████▋| 193/200 [43:14<01:35, 13.63s/it, loss=4.64, val_f1=0.743]pretrain GVLS (production, M=4):  97%|█████████▋| 194/200 [43:14<01:21, 13.54s/it, loss=4.64, val_f1=0.743]pretrain GVLS (production, M=4):  97%|█████████▋| 194/200 [43:28<01:21, 13.54s/it, loss=4.62, val_f1=0.744]pretrain GVLS (production, M=4):  98%|█████████▊| 195/200 [43:28<01:08, 13.64s/it, loss=4.62, val_f1=0.744]pretrain GVLS (production, M=4):  98%|█████████▊| 195/200 [43:41<01:08, 13.64s/it, loss=4.63, val_f1=0.743]pretrain GVLS (production, M=4):  98%|█████████▊| 196/200 [43:41<00:54, 13.54s/it, loss=4.63, val_f1=0.743]pretrain GVLS (production, M=4):  98%|█████████▊| 196/200 [43:54<00:54, 13.54s/it, loss=4.63, val_f1=0.742]pretrain GVLS (production, M=4):  98%|█████████▊| 197/200 [43:54<00:39, 13.30s/it, loss=4.63, val_f1=0.742]pretrain GVLS (production, M=4):  98%|█████████▊| 197/200 [44:06<00:39, 13.30s/it, loss=4.63, val_f1=0.743]pretrain GVLS (production, M=4):  99%|█████████▉| 198/200 [44:06<00:26, 13.13s/it, loss=4.63, val_f1=0.743]pretrain GVLS (production, M=4):  99%|█████████▉| 198/200 [44:19<00:26, 13.13s/it, loss=4.62, val_f1=0.744]pretrain GVLS (production, M=4): 100%|█████████▉| 199/200 [44:19<00:13, 13.00s/it, loss=4.62, val_f1=0.744]pretrain GVLS (production, M=4): 100%|█████████▉| 199/200 [44:32<00:13, 13.00s/it, loss=4.63, val_f1=0.744]pretrain GVLS (production, M=4): 100%|██████████| 200/200 [44:32<00:00, 12.90s/it, loss=4.63, val_f1=0.744]pretrain GVLS (production, M=4): 100%|██████████| 200/200 [44:32<00:00, 13.36s/it, loss=4.63, val_f1=0.744]
-wandb: uploading artifact gvls-jets-m4; updating run metadata
-wandb: uploading artifact gvls-jets-m4
-wandb: uploading history steps 198-199, summary, console lines 0-3
-wandb: 
-wandb: Run history:
-wandb:                          epoch ▁▁▁▁▂▂▂▂▃▃▃▄▄▄▄▄▅▅▅▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇████
-wandb:                     train_loss █▅▃▃▂▂▂▂▂▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-wandb:          val_avg_bits_per_edge █▇▂▂▂▂▁▃▂▃▄▃▄▂▃▇▂▅▃▇▄▃▃▄▄▅▄▃▄▅▄▅▅▄▃▅▆▃▄▄
-wandb: val_avg_edge_compression_ratio ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-wandb:         val_avg_latent_density ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-wandb: val_avg_node_compression_ratio ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-wandb:        val_avg_num_input_edges ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-wandb:       val_avg_num_latent_edges ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-wandb:              val_avg_num_nodes ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-wandb:      val_avg_reconstruction_f1 ▁▁▇███████▇▇▇█▇▇▇▇▇█▇▇▇██▇▇▇██▇████▇████
-wandb:                             +1 ...
-wandb: 
-wandb: Run summary:
-wandb:                          epoch 199
-wandb:                     train_loss 4.62963
-wandb:          val_avg_bits_per_edge 0.95159
-wandb: val_avg_edge_compression_ratio 0.03018
-wandb:         val_avg_latent_density 0.75
-wandb: val_avg_node_compression_ratio 0.1138
-wandb:        val_avg_num_input_edges 237.3464
-wandb:       val_avg_num_latent_edges 6
-wandb:              val_avg_num_nodes 42.2648
-wandb:      val_avg_reconstruction_f1 0.74357
-wandb:                             +1 ...
-wandb: 
-wandb: 🚀 View run gvls-jets-M4-lorentz800 at: https://wandb.ai/tousi-team/graph-vls/runs/go8w7xgr
-wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
-wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260803_060315-go8w7xgr/logs
-pretrain GVLS (production, M=4): restoring best-val-F1 checkpoint (epoch=29, val_f1=0.7484)
-
-Saved production GVLS checkpoint (M=4) to checkpoints/gvls_jets_m4_lorentz800.pt
-
-=== [2/3] Training QGNN classifier (seed=42, training subset reseeded per trial, optimizer=adamw, gradient_method=spsa) ===
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: setting up run id9ivg3r
-wandb: Tracking run with wandb version 0.28.1
-wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_064812-id9ivg3r
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run qgnn-M4-lorentz800-seed42
-wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
-wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/id9ivg3r
-Device: cuda
-Loading frozen GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
-  M=4  d=8
-Loading qg_jets (protocol=lorentz, seed=42)...
-  train=800  val=1250  test(unused here)=1250
-Extracting frozen (z_tilde, A_z) features (no gradient)...
-QGNN config: M=4 num_layers=1 optimizer=adamw lr=0.001 epochs=50 batch_size=16 gradient_method=spsa
-train QGNN:   0%|          | 0/50 [00:00<?, ?it/s]train QGNN:   0%|          | 0/50 [00:05<?, ?it/s, train_loss=1.9, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:05<04:20,  5.32s/it, train_loss=1.9, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:10<04:20,  5.32s/it, train_loss=1.88, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:10<04:04,  5.10s/it, train_loss=1.88, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:15<04:04,  5.10s/it, train_loss=1.85, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [00:15<03:56,  5.04s/it, train_loss=1.85, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [00:20<03:56,  5.04s/it, train_loss=1.83, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [00:20<03:50,  5.01s/it, train_loss=1.83, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [00:25<03:50,  5.01s/it, train_loss=1.8, val_acc=0.516] train QGNN:  10%|█         | 5/50 [00:25<03:47,  5.06s/it, train_loss=1.8, val_acc=0.516]train QGNN:  10%|█         | 5/50 [00:30<03:47,  5.06s/it, train_loss=1.77, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [00:30<03:44,  5.10s/it, train_loss=1.77, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [00:36<03:44,  5.10s/it, train_loss=1.74, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [00:36<03:51,  5.39s/it, train_loss=1.74, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [00:41<03:51,  5.39s/it, train_loss=1.7, val_acc=0.516] train QGNN:  16%|█▌        | 8/50 [00:41<03:45,  5.37s/it, train_loss=1.7, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [00:47<03:45,  5.37s/it, train_loss=1.67, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [00:47<03:38,  5.34s/it, train_loss=1.67, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [00:52<03:38,  5.34s/it, train_loss=1.63, val_acc=0.516]train QGNN:  20%|██        | 10/50 [00:52<03:32,  5.30s/it, train_loss=1.63, val_acc=0.516]train QGNN:  20%|██        | 10/50 [00:58<03:32,  5.30s/it, train_loss=1.59, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [00:58<03:31,  5.42s/it, train_loss=1.59, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [01:04<03:31,  5.42s/it, train_loss=1.55, val_acc=0.516]train QGNN:  24%|██▍       | 12/50 [01:04<03:39,  5.77s/it, train_loss=1.55, val_acc=0.516]train QGNN:  24%|██▍       | 12/50 [01:10<03:39,  5.77s/it, train_loss=1.5, val_acc=0.516] train QGNN:  26%|██▌       | 13/50 [01:10<03:38,  5.90s/it, train_loss=1.5, val_acc=0.516]train QGNN:  26%|██▌       | 13/50 [01:16<03:38,  5.90s/it, train_loss=1.47, val_acc=0.516]train QGNN:  28%|██▊       | 14/50 [01:16<03:34,  5.97s/it, train_loss=1.47, val_acc=0.516]train QGNN:  28%|██▊       | 14/50 [01:21<03:34,  5.97s/it, train_loss=1.42, val_acc=0.516]train QGNN:  30%|███       | 15/50 [01:21<03:19,  5.70s/it, train_loss=1.42, val_acc=0.516]train QGNN:  30%|███       | 15/50 [01:26<03:19,  5.70s/it, train_loss=1.37, val_acc=0.516]train QGNN:  32%|███▏      | 16/50 [01:26<03:06,  5.47s/it, train_loss=1.37, val_acc=0.516]train QGNN:  32%|███▏      | 16/50 [01:32<03:06,  5.47s/it, train_loss=1.32, val_acc=0.516]train QGNN:  34%|███▍      | 17/50 [01:32<02:57,  5.38s/it, train_loss=1.32, val_acc=0.516]train QGNN:  34%|███▍      | 17/50 [01:37<02:57,  5.38s/it, train_loss=1.27, val_acc=0.516]train QGNN:  36%|███▌      | 18/50 [01:37<02:48,  5.26s/it, train_loss=1.27, val_acc=0.516]train QGNN:  36%|███▌      | 18/50 [01:42<02:48,  5.26s/it, train_loss=1.23, val_acc=0.516]train QGNN:  38%|███▊      | 19/50 [01:42<02:40,  5.17s/it, train_loss=1.23, val_acc=0.516]train QGNN:  38%|███▊      | 19/50 [01:46<02:40,  5.17s/it, train_loss=1.19, val_acc=0.516]train QGNN:  40%|████      | 20/50 [01:46<02:33,  5.11s/it, train_loss=1.19, val_acc=0.516]train QGNN:  40%|████      | 20/50 [01:51<02:33,  5.11s/it, train_loss=1.14, val_acc=0.516]train QGNN:  42%|████▏     | 21/50 [01:51<02:26,  5.07s/it, train_loss=1.14, val_acc=0.516]train QGNN:  42%|████▏     | 21/50 [01:57<02:26,  5.07s/it, train_loss=1.09, val_acc=0.516]train QGNN:  44%|████▍     | 22/50 [01:57<02:22,  5.09s/it, train_loss=1.09, val_acc=0.516]train QGNN:  44%|████▍     | 22/50 [02:03<02:22,  5.09s/it, train_loss=1.05, val_acc=0.516]train QGNN:  46%|████▌     | 23/50 [02:03<02:25,  5.41s/it, train_loss=1.05, val_acc=0.516]train QGNN:  46%|████▌     | 23/50 [02:09<02:25,  5.41s/it, train_loss=1.01, val_acc=0.516]train QGNN:  48%|████▊     | 24/50 [02:09<02:24,  5.56s/it, train_loss=1.01, val_acc=0.516]train QGNN:  48%|████▊     | 24/50 [02:14<02:24,  5.56s/it, train_loss=0.97, val_acc=0.516]train QGNN:  50%|█████     | 25/50 [02:14<02:15,  5.43s/it, train_loss=0.97, val_acc=0.516]train QGNN:  50%|█████     | 25/50 [02:20<02:15,  5.43s/it, train_loss=0.934, val_acc=0.516]train QGNN:  52%|█████▏    | 26/50 [02:20<02:15,  5.63s/it, train_loss=0.934, val_acc=0.516]train QGNN:  52%|█████▏    | 26/50 [02:25<02:15,  5.63s/it, train_loss=0.899, val_acc=0.516]train QGNN:  54%|█████▍    | 27/50 [02:25<02:09,  5.62s/it, train_loss=0.899, val_acc=0.516]train QGNN:  54%|█████▍    | 27/50 [02:30<02:09,  5.62s/it, train_loss=0.869, val_acc=0.516]train QGNN:  56%|█████▌    | 28/50 [02:30<01:59,  5.41s/it, train_loss=0.869, val_acc=0.516]train QGNN:  56%|█████▌    | 28/50 [02:35<01:59,  5.41s/it, train_loss=0.84, val_acc=0.516] train QGNN:  58%|█████▊    | 29/50 [02:35<01:51,  5.30s/it, train_loss=0.84, val_acc=0.516]train QGNN:  58%|█████▊    | 29/50 [02:40<01:51,  5.30s/it, train_loss=0.818, val_acc=0.516]train QGNN:  60%|██████    | 30/50 [02:40<01:43,  5.18s/it, train_loss=0.818, val_acc=0.516]train QGNN:  60%|██████    | 30/50 [02:45<01:43,  5.18s/it, train_loss=0.799, val_acc=0.516]train QGNN:  62%|██████▏   | 31/50 [02:45<01:37,  5.11s/it, train_loss=0.799, val_acc=0.516]train QGNN:  62%|██████▏   | 31/50 [02:51<01:37,  5.11s/it, train_loss=0.781, val_acc=0.516]train QGNN:  64%|██████▍   | 32/50 [02:51<01:32,  5.15s/it, train_loss=0.781, val_acc=0.516]train QGNN:  64%|██████▍   | 32/50 [02:57<01:32,  5.15s/it, train_loss=0.765, val_acc=0.516]train QGNN:  66%|██████▌   | 33/50 [02:57<01:32,  5.43s/it, train_loss=0.765, val_acc=0.516]train QGNN:  66%|██████▌   | 33/50 [03:03<01:32,  5.43s/it, train_loss=0.749, val_acc=0.516]train QGNN:  68%|██████▊   | 34/50 [03:03<01:30,  5.67s/it, train_loss=0.749, val_acc=0.516]train QGNN:  68%|██████▊   | 34/50 [03:09<01:30,  5.67s/it, train_loss=0.732, val_acc=0.516]train QGNN:  70%|███████   | 35/50 [03:09<01:25,  5.73s/it, train_loss=0.732, val_acc=0.516]train QGNN:  70%|███████   | 35/50 [03:14<01:25,  5.73s/it, train_loss=0.716, val_acc=0.516]train QGNN:  72%|███████▏  | 36/50 [03:14<01:19,  5.71s/it, train_loss=0.716, val_acc=0.516]train QGNN:  72%|███████▏  | 36/50 [03:20<01:19,  5.71s/it, train_loss=0.705, val_acc=0.515]train QGNN:  74%|███████▍  | 37/50 [03:20<01:15,  5.83s/it, train_loss=0.705, val_acc=0.515]train QGNN:  74%|███████▍  | 37/50 [03:27<01:15,  5.83s/it, train_loss=0.692, val_acc=0.515]train QGNN:  76%|███████▌  | 38/50 [03:27<01:11,  5.94s/it, train_loss=0.692, val_acc=0.515]train QGNN:  76%|███████▌  | 38/50 [03:33<01:11,  5.94s/it, train_loss=0.684, val_acc=0.516]train QGNN:  78%|███████▊  | 39/50 [03:33<01:05,  5.98s/it, train_loss=0.684, val_acc=0.516]train QGNN:  78%|███████▊  | 39/50 [03:38<01:05,  5.98s/it, train_loss=0.677, val_acc=0.522]train QGNN:  80%|████████  | 40/50 [03:38<00:58,  5.83s/it, train_loss=0.677, val_acc=0.522]train QGNN:  80%|████████  | 40/50 [03:44<00:58,  5.83s/it, train_loss=0.672, val_acc=0.528]train QGNN:  82%|████████▏ | 41/50 [03:44<00:51,  5.73s/it, train_loss=0.672, val_acc=0.528]train QGNN:  82%|████████▏ | 41/50 [03:50<00:51,  5.73s/it, train_loss=0.666, val_acc=0.534]train QGNN:  84%|████████▍ | 42/50 [03:50<00:46,  5.87s/it, train_loss=0.666, val_acc=0.534]train QGNN:  84%|████████▍ | 42/50 [03:56<00:46,  5.87s/it, train_loss=0.661, val_acc=0.546]train QGNN:  86%|████████▌ | 43/50 [03:56<00:42,  6.01s/it, train_loss=0.661, val_acc=0.546]train QGNN:  86%|████████▌ | 43/50 [04:02<00:42,  6.01s/it, train_loss=0.657, val_acc=0.553]train QGNN:  88%|████████▊ | 44/50 [04:02<00:36,  6.00s/it, train_loss=0.657, val_acc=0.553]train QGNN:  88%|████████▊ | 44/50 [04:08<00:36,  6.00s/it, train_loss=0.653, val_acc=0.556]train QGNN:  90%|█████████ | 45/50 [04:08<00:28,  5.79s/it, train_loss=0.653, val_acc=0.556]train QGNN:  90%|█████████ | 45/50 [04:13<00:28,  5.79s/it, train_loss=0.65, val_acc=0.574] train QGNN:  92%|█████████▏| 46/50 [04:13<00:22,  5.74s/it, train_loss=0.65, val_acc=0.574]train QGNN:  92%|█████████▏| 46/50 [04:20<00:22,  5.74s/it, train_loss=0.649, val_acc=0.575]train QGNN:  94%|█████████▍| 47/50 [04:20<00:17,  5.93s/it, train_loss=0.649, val_acc=0.575]train QGNN:  94%|█████████▍| 47/50 [04:26<00:17,  5.93s/it, train_loss=0.648, val_acc=0.583]train QGNN:  96%|█████████▌| 48/50 [04:26<00:12,  6.11s/it, train_loss=0.648, val_acc=0.583]train QGNN:  96%|█████████▌| 48/50 [04:32<00:12,  6.11s/it, train_loss=0.646, val_acc=0.586]train QGNN:  98%|█████████▊| 49/50 [04:32<00:06,  6.02s/it, train_loss=0.646, val_acc=0.586]train QGNN:  98%|█████████▊| 49/50 [04:37<00:06,  6.02s/it, train_loss=0.646, val_acc=0.6]  train QGNN: 100%|██████████| 50/50 [04:37<00:00,  5.87s/it, train_loss=0.646, val_acc=0.6]train QGNN: 100%|██████████| 50/50 [04:37<00:00,  5.56s/it, train_loss=0.646, val_acc=0.6]
-wandb: uploading artifact qgnn-jets-m4; updating run metadata
-wandb: uploading artifact qgnn-jets-m4
-wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
-wandb: 
-wandb: Run history:
-wandb:        accuracy ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▃▄▄▆▆▇█
-wandb:              ap ▁▃▄▆▆▇▇█████████████████████████████████
-wandb:             auc ▁▂▃▄▅▅▅▆▆▆▆▇▇▇▇▇▇▇▇▇████████████████████
-wandb:           epoch ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:        macro_f1 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▃▅▆▇▇█
-wandb:       precision ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▃▄▅▅▆█
-wandb:          recall █████████████████████████████████▇▇▅▄▃▂▁
-wandb:  train_accuracy ▁
-wandb:      train_loss ████▇▇▇▇▇▆▆▆▅▅▅▄▄▄▃▃▃▃▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁
-wandb: training_time_s ▁
-wandb: 
-wandb: Run summary:
-wandb:        accuracy 0.6
-wandb:              ap 0.75173
-wandb:             auc 0.70196
-wandb:           epoch 49
-wandb:        macro_f1 0.58521
-wandb:       precision 0.58621
-wandb:          recall 0.76434
-wandb:  train_accuracy 0.5925
-wandb:      train_loss 0.64561
-wandb: training_time_s 278.1422
-wandb: 
-wandb: 🚀 View run qgnn-M4-lorentz800-seed42 at: https://wandb.ai/tousi-team/graph-vls/runs/id9ivg3r
-wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
-wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260803_064812-id9ivg3r/logs
-
-Best epoch=49  val_accuracy=0.6000  val_auc=0.7020  val_macro_f1=0.5852
-train_accuracy=0.5925  training_time_s=278.14
-Saved best QGNN checkpoint to checkpoints/qgnn_jets_m4_lorentz800_seed42.pt
-
-=== [3/3] Evaluating QGNN on held-out test jets (seed=42, same fixed test set every trial) ===
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: Tracking run with wandb version 0.28.1
-wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_065314-ee2l4its
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run qgnn-eval-M4-lorentz800-seed42
-wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
-wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/ee2l4its
-wandb: updating run metadata; uploading artifact qgnn-jets-m4-test-metrics
-wandb: uploading artifact qgnn-jets-m4-test-metrics; uploading wandb-metadata.json; uploading requirements.txt; uploading output.log; uploading wandb-summary.json
-wandb: uploading artifact qgnn-jets-m4-test-metrics
-wandb: uploading config.yaml
-wandb: uploading history steps 0-2, summary, console lines 0-20
-wandb: 
-wandb: Run history:
-wandb: inference_time_s ▁
-wandb:    test_accuracy ▁
-wandb:          test_ap ▁
-wandb:         test_auc ▁
-wandb:    test_macro_f1 ▁
-wandb:   test_precision ▁
-wandb:      test_recall ▁
-wandb:   train_accuracy ▁
-wandb:  training_time_s ▁
-wandb: 
-wandb: Run summary:
-wandb: inference_time_s 0.39759
-wandb:    test_accuracy 0.612
-wandb:          test_ap 0.73358
-wandb:         test_auc 0.69427
-wandb:    test_macro_f1 0.6004
-wandb:   test_precision 0.59634
-wandb:      test_recall 0.7605
-wandb:   train_accuracy 0.5925
-wandb:  training_time_s 278.1422
-wandb: 
-wandb: 🚀 View run qgnn-eval-M4-lorentz800-seed42 at: https://wandb.ai/tousi-team/graph-vls/runs/ee2l4its
-wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
-wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260803_065314-ee2l4its/logs
-Device: cuda
-Loading GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
-Loading QGNN checkpoint from checkpoints/qgnn_jets_m4_lorentz800_seed42.pt...
-  GVLS M=4  QGNN M=4  num_layers=1
-Loading qg_jets (protocol=lorentz, seed=42)...
-Evaluating on 1250 held-out test jets (untouched by training)...
-
-Test-set metrics:
-  accuracy    : 0.6120
-  auc         : 0.6943
-  ap          : 0.7336
-  macro_f1    : 0.6004
-  precision   : 0.5963
-  recall      : 0.7605
-  confusion_matrix (rows=true, cols=pred, label 0=quark/1=gluon): [[276, 331], [154, 489]]
-  qubit_count (M): 4
-  circuit_depth (num_layers): 1
-  optimizer: adamw
-  train_accuracy: 0.5925
-  training_time_s: 278.14
-  inference_time_s: 0.40  (1250 test jets)
-
-NOTE (NFR-5): wall-clock timing above is measured on this run's own hardware, not matched to sota-table.png's Table II hardware -- directional comparison only.
-
-NOTE: no literature QGNN comparison number is included here -- that search (plan.md T4.6) has not been done yet. Comparison target identified 2026-07-30 (Lorentz-EQGNN, sota-table.png Table II) -- see plan.md Design Decision 12.
-
-Results written to results/qgnn/qg_jets_metrics_lorentz800_seed42.json
-
-=== [2/3] Training QGNN classifier (seed=43, training subset reseeded per trial, optimizer=adamw, gradient_method=spsa) ===
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: setting up run 3nhia6l3
-wandb: Tracking run with wandb version 0.28.1
-wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_065346-3nhia6l3
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run qgnn-M4-lorentz800-seed43
-wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
-wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/3nhia6l3
-Device: cuda
-Loading frozen GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
-  M=4  d=8
-Loading qg_jets (protocol=lorentz, seed=42)...
-  train=800  val=1250  test(unused here)=1250
-Extracting frozen (z_tilde, A_z) features (no gradient)...
-QGNN config: M=4 num_layers=1 optimizer=adamw lr=0.001 epochs=50 batch_size=16 gradient_method=spsa
-train QGNN:   0%|          | 0/50 [00:00<?, ?it/s]train QGNN:   0%|          | 0/50 [00:06<?, ?it/s, train_loss=1.85, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:06<05:15,  6.44s/it, train_loss=1.85, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:13<05:15,  6.44s/it, train_loss=1.82, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:13<05:12,  6.51s/it, train_loss=1.82, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:18<05:12,  6.51s/it, train_loss=1.8, val_acc=0.516] train QGNN:   6%|▌         | 3/50 [00:18<04:52,  6.23s/it, train_loss=1.8, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [00:24<04:52,  6.23s/it, train_loss=1.77, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [00:24<04:28,  5.85s/it, train_loss=1.77, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [00:30<04:28,  5.85s/it, train_loss=1.74, val_acc=0.516]train QGNN:  10%|█         | 5/50 [00:30<04:29,  5.99s/it, train_loss=1.74, val_acc=0.516]train QGNN:  10%|█         | 5/50 [00:37<04:29,  5.99s/it, train_loss=1.71, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [00:37<04:35,  6.27s/it, train_loss=1.71, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [00:43<04:35,  6.27s/it, train_loss=1.67, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [00:43<04:28,  6.24s/it, train_loss=1.67, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [00:49<04:28,  6.24s/it, train_loss=1.63, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [00:49<04:15,  6.07s/it, train_loss=1.63, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [00:54<04:15,  6.07s/it, train_loss=1.59, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [00:54<04:04,  5.96s/it, train_loss=1.59, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [01:01<04:04,  5.96s/it, train_loss=1.55, val_acc=0.516]train QGNN:  20%|██        | 10/50 [01:01<04:08,  6.21s/it, train_loss=1.55, val_acc=0.516]train QGNN:  20%|██        | 10/50 [01:07<04:08,  6.21s/it, train_loss=1.51, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [01:07<04:02,  6.22s/it, train_loss=1.51, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [01:13<04:02,  6.22s/it, train_loss=1.46, val_acc=0.516]train QGNN:  24%|██▍       | 12/50 [01:13<03:55,  6.19s/it, train_loss=1.46, val_acc=0.516]train QGNN:  24%|██▍       | 12/50 [01:19<03:55,  6.19s/it, train_loss=1.41, val_acc=0.516]train QGNN:  26%|██▌       | 13/50 [01:19<03:38,  5.92s/it, train_loss=1.41, val_acc=0.516]train QGNN:  26%|██▌       | 13/50 [01:25<03:38,  5.92s/it, train_loss=1.36, val_acc=0.516]train QGNN:  28%|██▊       | 14/50 [01:25<03:31,  5.87s/it, train_loss=1.36, val_acc=0.516]train QGNN:  28%|██▊       | 14/50 [01:31<03:31,  5.87s/it, train_loss=1.31, val_acc=0.516]train QGNN:  30%|███       | 15/50 [01:31<03:32,  6.07s/it, train_loss=1.31, val_acc=0.516]train QGNN:  30%|███       | 15/50 [01:37<03:32,  6.07s/it, train_loss=1.27, val_acc=0.516]train QGNN:  32%|███▏      | 16/50 [01:37<03:28,  6.14s/it, train_loss=1.27, val_acc=0.516]train QGNN:  32%|███▏      | 16/50 [01:43<03:28,  6.14s/it, train_loss=1.22, val_acc=0.516]train QGNN:  34%|███▍      | 17/50 [01:43<03:16,  5.94s/it, train_loss=1.22, val_acc=0.516]train QGNN:  34%|███▍      | 17/50 [01:48<03:16,  5.94s/it, train_loss=1.17, val_acc=0.516]train QGNN:  36%|███▌      | 18/50 [01:48<03:05,  5.79s/it, train_loss=1.17, val_acc=0.516]train QGNN:  36%|███▌      | 18/50 [01:54<03:05,  5.79s/it, train_loss=1.12, val_acc=0.516]train QGNN:  38%|███▊      | 19/50 [01:54<03:00,  5.83s/it, train_loss=1.12, val_acc=0.516]train QGNN:  38%|███▊      | 19/50 [02:01<03:00,  5.83s/it, train_loss=1.08, val_acc=0.516]train QGNN:  40%|████      | 20/50 [02:01<02:59,  6.00s/it, train_loss=1.08, val_acc=0.516]train QGNN:  40%|████      | 20/50 [02:07<02:59,  6.00s/it, train_loss=1.03, val_acc=0.516]train QGNN:  42%|████▏     | 21/50 [02:07<02:53,  5.98s/it, train_loss=1.03, val_acc=0.516]train QGNN:  42%|████▏     | 21/50 [02:12<02:53,  5.98s/it, train_loss=0.989, val_acc=0.516]train QGNN:  44%|████▍     | 22/50 [02:12<02:41,  5.78s/it, train_loss=0.989, val_acc=0.516]train QGNN:  44%|████▍     | 22/50 [02:18<02:41,  5.78s/it, train_loss=0.952, val_acc=0.516]train QGNN:  46%|████▌     | 23/50 [02:18<02:35,  5.76s/it, train_loss=0.952, val_acc=0.516]train QGNN:  46%|████▌     | 23/50 [02:24<02:35,  5.76s/it, train_loss=0.916, val_acc=0.516]train QGNN:  48%|████▊     | 24/50 [02:24<02:33,  5.90s/it, train_loss=0.916, val_acc=0.516]train QGNN:  48%|████▊     | 24/50 [02:30<02:33,  5.90s/it, train_loss=0.879, val_acc=0.516]train QGNN:  50%|█████     | 25/50 [02:30<02:32,  6.10s/it, train_loss=0.879, val_acc=0.516]train QGNN:  50%|█████     | 25/50 [02:36<02:32,  6.10s/it, train_loss=0.845, val_acc=0.516]train QGNN:  52%|█████▏    | 26/50 [02:36<02:22,  5.94s/it, train_loss=0.845, val_acc=0.516]train QGNN:  52%|█████▏    | 26/50 [02:41<02:22,  5.94s/it, train_loss=0.813, val_acc=0.516]train QGNN:  54%|█████▍    | 27/50 [02:41<02:12,  5.78s/it, train_loss=0.813, val_acc=0.516]train QGNN:  54%|█████▍    | 27/50 [02:47<02:12,  5.78s/it, train_loss=0.787, val_acc=0.516]train QGNN:  56%|█████▌    | 28/50 [02:47<02:09,  5.89s/it, train_loss=0.787, val_acc=0.516]train QGNN:  56%|█████▌    | 28/50 [02:55<02:09,  5.89s/it, train_loss=0.769, val_acc=0.516]train QGNN:  58%|█████▊    | 29/50 [02:55<02:12,  6.30s/it, train_loss=0.769, val_acc=0.516]train QGNN:  58%|█████▊    | 29/50 [03:01<02:12,  6.30s/it, train_loss=0.748, val_acc=0.515]train QGNN:  60%|██████    | 30/50 [03:01<02:07,  6.39s/it, train_loss=0.748, val_acc=0.515]train QGNN:  60%|██████    | 30/50 [03:07<02:07,  6.39s/it, train_loss=0.732, val_acc=0.515]train QGNN:  62%|██████▏   | 31/50 [03:07<01:56,  6.13s/it, train_loss=0.732, val_acc=0.515]train QGNN:  62%|██████▏   | 31/50 [03:12<01:56,  6.13s/it, train_loss=0.716, val_acc=0.514]train QGNN:  64%|██████▍   | 32/50 [03:12<01:47,  5.96s/it, train_loss=0.716, val_acc=0.514]train QGNN:  64%|██████▍   | 32/50 [03:19<01:47,  5.96s/it, train_loss=0.704, val_acc=0.514]train QGNN:  66%|██████▌   | 33/50 [03:19<01:43,  6.12s/it, train_loss=0.704, val_acc=0.514]train QGNN:  66%|██████▌   | 33/50 [03:26<01:43,  6.12s/it, train_loss=0.691, val_acc=0.514]train QGNN:  68%|██████▊   | 34/50 [03:26<01:40,  6.31s/it, train_loss=0.691, val_acc=0.514]train QGNN:  68%|██████▊   | 34/50 [03:32<01:40,  6.31s/it, train_loss=0.682, val_acc=0.514]train QGNN:  70%|███████   | 35/50 [03:32<01:32,  6.18s/it, train_loss=0.682, val_acc=0.514]train QGNN:  70%|███████   | 35/50 [03:37<01:32,  6.18s/it, train_loss=0.674, val_acc=0.516]train QGNN:  72%|███████▏  | 36/50 [03:37<01:23,  5.98s/it, train_loss=0.674, val_acc=0.516]train QGNN:  72%|███████▏  | 36/50 [03:43<01:23,  5.98s/it, train_loss=0.668, val_acc=0.523]train QGNN:  74%|███████▍  | 37/50 [03:43<01:18,  6.03s/it, train_loss=0.668, val_acc=0.523]train QGNN:  74%|███████▍  | 37/50 [03:50<01:18,  6.03s/it, train_loss=0.661, val_acc=0.527]train QGNN:  76%|███████▌  | 38/50 [03:50<01:15,  6.26s/it, train_loss=0.661, val_acc=0.527]train QGNN:  76%|███████▌  | 38/50 [03:57<01:15,  6.26s/it, train_loss=0.657, val_acc=0.53] train QGNN:  78%|███████▊  | 39/50 [03:57<01:10,  6.41s/it, train_loss=0.657, val_acc=0.53]train QGNN:  78%|███████▊  | 39/50 [04:02<01:10,  6.41s/it, train_loss=0.655, val_acc=0.534]train QGNN:  80%|████████  | 40/50 [04:02<01:01,  6.15s/it, train_loss=0.655, val_acc=0.534]train QGNN:  80%|████████  | 40/50 [04:08<01:01,  6.15s/it, train_loss=0.652, val_acc=0.548]train QGNN:  82%|████████▏ | 41/50 [04:08<00:53,  5.97s/it, train_loss=0.652, val_acc=0.548]train QGNN:  82%|████████▏ | 41/50 [04:13<00:53,  5.97s/it, train_loss=0.65, val_acc=0.552] train QGNN:  84%|████████▍ | 42/50 [04:13<00:45,  5.67s/it, train_loss=0.65, val_acc=0.552]train QGNN:  84%|████████▍ | 42/50 [04:18<00:45,  5.67s/it, train_loss=0.647, val_acc=0.568]train QGNN:  86%|████████▌ | 43/50 [04:18<00:38,  5.48s/it, train_loss=0.647, val_acc=0.568]train QGNN:  86%|████████▌ | 43/50 [04:23<00:38,  5.48s/it, train_loss=0.646, val_acc=0.578]train QGNN:  88%|████████▊ | 44/50 [04:23<00:32,  5.36s/it, train_loss=0.646, val_acc=0.578]train QGNN:  88%|████████▊ | 44/50 [04:28<00:32,  5.36s/it, train_loss=0.644, val_acc=0.582]train QGNN:  90%|█████████ | 45/50 [04:28<00:26,  5.28s/it, train_loss=0.644, val_acc=0.582]train QGNN:  90%|█████████ | 45/50 [04:33<00:26,  5.28s/it, train_loss=0.643, val_acc=0.599]train QGNN:  92%|█████████▏| 46/50 [04:33<00:21,  5.28s/it, train_loss=0.643, val_acc=0.599]train QGNN:  92%|█████████▏| 46/50 [04:38<00:21,  5.28s/it, train_loss=0.642, val_acc=0.618]train QGNN:  94%|█████████▍| 47/50 [04:38<00:15,  5.25s/it, train_loss=0.642, val_acc=0.618]train QGNN:  94%|█████████▍| 47/50 [04:44<00:15,  5.25s/it, train_loss=0.641, val_acc=0.63] train QGNN:  96%|█████████▌| 48/50 [04:44<00:10,  5.22s/it, train_loss=0.641, val_acc=0.63]train QGNN:  96%|█████████▌| 48/50 [04:49<00:10,  5.22s/it, train_loss=0.641, val_acc=0.63]train QGNN:  98%|█████████▊| 49/50 [04:49<00:05,  5.18s/it, train_loss=0.641, val_acc=0.63]train QGNN:  98%|█████████▊| 49/50 [04:54<00:05,  5.18s/it, train_loss=0.64, val_acc=0.642]train QGNN: 100%|██████████| 50/50 [04:54<00:00,  5.15s/it, train_loss=0.64, val_acc=0.642]train QGNN: 100%|██████████| 50/50 [04:54<00:00,  5.89s/it, train_loss=0.64, val_acc=0.642]
-wandb: uploading artifact qgnn-jets-m4; updating run metadata
-wandb: uploading artifact qgnn-jets-m4
-wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
-wandb: 
-wandb: Run history:
-wandb:        accuracy ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▂▃▃▄▅▆▇▇█
-wandb:              ap ▁▂▃▄▄▅▆▆▆▇▇▇▇▇▇█████████████████████████
-wandb:             auc ▁▂▃▃▄▅▅▆▆▆▆▆▇▇▇▇▇▇▇█████████████████████
-wandb:           epoch ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇███
-wandb:        macro_f1 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▃▃▄▄▅▆▆▇██
-wandb:       precision ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▂▃▄▅▆▇█
-wandb:          recall █████████████████████████████▇▆▆▅▅▄▃▃▂▂▁
-wandb:  train_accuracy ▁
-wandb:      train_loss ████▇▇▇▇▆▆▅▅▅▅▄▄▃▃▃▃▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-wandb: training_time_s ▁
-wandb: 
-wandb: Run summary:
-wandb:        accuracy 0.6416
-wandb:              ap 0.75572
-wandb:             auc 0.69669
-wandb:           epoch 49
-wandb:        macro_f1 0.63849
-wandb:       precision 0.63662
-wandb:          recall 0.71163
-wandb:  train_accuracy 0.67625
-wandb:      train_loss 0.63995
-wandb: training_time_s 294.51843
-wandb: 
-wandb: 🚀 View run qgnn-M4-lorentz800-seed43 at: https://wandb.ai/tousi-team/graph-vls/runs/3nhia6l3
-wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
-wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260803_065346-3nhia6l3/logs
-
-Best epoch=49  val_accuracy=0.6416  val_auc=0.6967  val_macro_f1=0.6385
-train_accuracy=0.6763  training_time_s=294.52
-Saved best QGNN checkpoint to checkpoints/qgnn_jets_m4_lorentz800_seed43.pt
-
-=== [3/3] Evaluating QGNN on held-out test jets (seed=43, same fixed test set every trial) ===
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: Tracking run with wandb version 0.28.1
-wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_065902-dj7yaemr
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run qgnn-eval-M4-lorentz800-seed43
-wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
-wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/dj7yaemr
-wandb: updating run metadata; uploading wandb-metadata.json; uploading requirements.txt; uploading artifact qgnn-jets-m4-test-metrics
-wandb: uploading artifact qgnn-jets-m4-test-metrics
-wandb: uploading history steps 0-2, summary, console lines 0-20
-wandb: 
-wandb: Run history:
-wandb: inference_time_s ▁
-wandb:    test_accuracy ▁
-wandb:          test_ap ▁
-wandb:         test_auc ▁
-wandb:    test_macro_f1 ▁
-wandb:   test_precision ▁
-wandb:      test_recall ▁
-wandb:   train_accuracy ▁
-wandb:  training_time_s ▁
-wandb: 
-wandb: Run summary:
-wandb: inference_time_s 0.32607
-wandb:    test_accuracy 0.6184
-wandb:          test_ap 0.7286
-wandb:         test_auc 0.67576
-wandb:    test_macro_f1 0.61599
-wandb:   test_precision 0.61756
-wandb:      test_recall 0.67807
-wandb:   train_accuracy 0.67625
-wandb:  training_time_s 294.51843
-wandb: 
-wandb: 🚀 View run qgnn-eval-M4-lorentz800-seed43 at: https://wandb.ai/tousi-team/graph-vls/runs/dj7yaemr
-wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
-wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260803_065902-dj7yaemr/logs
-Device: cuda
-Loading GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
-Loading QGNN checkpoint from checkpoints/qgnn_jets_m4_lorentz800_seed43.pt...
-  GVLS M=4  QGNN M=4  num_layers=1
-Loading qg_jets (protocol=lorentz, seed=42)...
-Evaluating on 1250 held-out test jets (untouched by training)...
-
-Test-set metrics:
-  accuracy    : 0.6184
-  auc         : 0.6758
-  ap          : 0.7286
-  macro_f1    : 0.6160
-  precision   : 0.6176
-  recall      : 0.6781
-  confusion_matrix (rows=true, cols=pred, label 0=quark/1=gluon): [[337, 270], [207, 436]]
-  qubit_count (M): 4
-  circuit_depth (num_layers): 1
-  optimizer: adamw
-  train_accuracy: 0.6763
-  training_time_s: 294.52
-  inference_time_s: 0.33  (1250 test jets)
-
-NOTE (NFR-5): wall-clock timing above is measured on this run's own hardware, not matched to sota-table.png's Table II hardware -- directional comparison only.
-
-NOTE: no literature QGNN comparison number is included here -- that search (plan.md T4.6) has not been done yet. Comparison target identified 2026-07-30 (Lorentz-EQGNN, sota-table.png Table II) -- see plan.md Design Decision 12.
-
-Results written to results/qgnn/qg_jets_metrics_lorentz800_seed43.json
-
-=== [2/3] Training QGNN classifier (seed=44, training subset reseeded per trial, optimizer=adamw, gradient_method=spsa) ===
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: Tracking run with wandb version 0.28.1
-wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_065929-ig23ar8t
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run qgnn-M4-lorentz800-seed44
-wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
-wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/ig23ar8t
-Device: cuda
-Loading frozen GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
-  M=4  d=8
-Loading qg_jets (protocol=lorentz, seed=42)...
-  train=800  val=1250  test(unused here)=1250
-Extracting frozen (z_tilde, A_z) features (no gradient)...
-QGNN config: M=4 num_layers=1 optimizer=adamw lr=0.001 epochs=50 batch_size=16 gradient_method=spsa
-train QGNN:   0%|          | 0/50 [00:00<?, ?it/s]train QGNN:   0%|          | 0/50 [00:05<?, ?it/s, train_loss=1.86, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:05<04:10,  5.11s/it, train_loss=1.86, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:10<04:10,  5.11s/it, train_loss=1.84, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:10<04:03,  5.07s/it, train_loss=1.84, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:15<04:03,  5.07s/it, train_loss=1.81, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [00:15<04:06,  5.25s/it, train_loss=1.81, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [00:21<04:06,  5.25s/it, train_loss=1.79, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [00:21<04:13,  5.52s/it, train_loss=1.79, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [00:27<04:13,  5.52s/it, train_loss=1.76, val_acc=0.516]train QGNN:  10%|█         | 5/50 [00:27<04:08,  5.52s/it, train_loss=1.76, val_acc=0.516]train QGNN:  10%|█         | 5/50 [00:32<04:08,  5.52s/it, train_loss=1.73, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [00:32<04:00,  5.48s/it, train_loss=1.73, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [00:37<04:00,  5.48s/it, train_loss=1.7, val_acc=0.516] train QGNN:  14%|█▍        | 7/50 [00:37<03:50,  5.36s/it, train_loss=1.7, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [00:43<03:50,  5.36s/it, train_loss=1.66, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [00:43<03:45,  5.38s/it, train_loss=1.66, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [00:48<03:45,  5.38s/it, train_loss=1.63, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [00:48<03:44,  5.48s/it, train_loss=1.63, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [00:54<03:44,  5.48s/it, train_loss=1.6, val_acc=0.516] train QGNN:  20%|██        | 10/50 [00:54<03:48,  5.71s/it, train_loss=1.6, val_acc=0.516]train QGNN:  20%|██        | 10/50 [01:01<03:48,  5.71s/it, train_loss=1.56, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [01:01<03:49,  5.88s/it, train_loss=1.56, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [01:07<03:49,  5.88s/it, train_loss=1.52, val_acc=0.516]train QGNN:  24%|██▍       | 12/50 [01:07<03:45,  5.93s/it, train_loss=1.52, val_acc=0.516]train QGNN:  24%|██▍       | 12/50 [01:12<03:45,  5.93s/it, train_loss=1.48, val_acc=0.516]train QGNN:  26%|██▌       | 13/50 [01:12<03:28,  5.64s/it, train_loss=1.48, val_acc=0.516]train QGNN:  26%|██▌       | 13/50 [01:17<03:28,  5.64s/it, train_loss=1.44, val_acc=0.516]train QGNN:  28%|██▊       | 14/50 [01:17<03:16,  5.45s/it, train_loss=1.44, val_acc=0.516]train QGNN:  28%|██▊       | 14/50 [01:22<03:16,  5.45s/it, train_loss=1.4, val_acc=0.516] train QGNN:  30%|███       | 15/50 [01:22<03:05,  5.30s/it, train_loss=1.4, val_acc=0.516]train QGNN:  30%|███       | 15/50 [01:27<03:05,  5.30s/it, train_loss=1.36, val_acc=0.516]train QGNN:  32%|███▏      | 16/50 [01:27<02:56,  5.20s/it, train_loss=1.36, val_acc=0.516]train QGNN:  32%|███▏      | 16/50 [01:32<02:56,  5.20s/it, train_loss=1.32, val_acc=0.516]train QGNN:  34%|███▍      | 17/50 [01:32<02:50,  5.16s/it, train_loss=1.32, val_acc=0.516]train QGNN:  34%|███▍      | 17/50 [01:37<02:50,  5.16s/it, train_loss=1.28, val_acc=0.516]train QGNN:  36%|███▌      | 18/50 [01:37<02:42,  5.09s/it, train_loss=1.28, val_acc=0.516]train QGNN:  36%|███▌      | 18/50 [01:42<02:42,  5.09s/it, train_loss=1.24, val_acc=0.516]train QGNN:  38%|███▊      | 19/50 [01:42<02:36,  5.04s/it, train_loss=1.24, val_acc=0.516]train QGNN:  38%|███▊      | 19/50 [01:47<02:36,  5.04s/it, train_loss=1.21, val_acc=0.516]train QGNN:  40%|████      | 20/50 [01:47<02:32,  5.10s/it, train_loss=1.21, val_acc=0.516]train QGNN:  40%|████      | 20/50 [01:53<02:32,  5.10s/it, train_loss=1.17, val_acc=0.516]train QGNN:  42%|████▏     | 21/50 [01:53<02:35,  5.37s/it, train_loss=1.17, val_acc=0.516]train QGNN:  42%|████▏     | 21/50 [01:59<02:35,  5.37s/it, train_loss=1.13, val_acc=0.516]train QGNN:  44%|████▍     | 22/50 [01:59<02:34,  5.53s/it, train_loss=1.13, val_acc=0.516]train QGNN:  44%|████▍     | 22/50 [02:04<02:34,  5.53s/it, train_loss=1.1, val_acc=0.516] train QGNN:  46%|████▌     | 23/50 [02:04<02:26,  5.43s/it, train_loss=1.1, val_acc=0.516]train QGNN:  46%|████▌     | 23/50 [02:10<02:26,  5.43s/it, train_loss=1.06, val_acc=0.516]train QGNN:  48%|████▊     | 24/50 [02:10<02:26,  5.63s/it, train_loss=1.06, val_acc=0.516]train QGNN:  48%|████▊     | 24/50 [02:16<02:26,  5.63s/it, train_loss=1.03, val_acc=0.516]train QGNN:  50%|█████     | 25/50 [02:16<02:21,  5.66s/it, train_loss=1.03, val_acc=0.516]train QGNN:  50%|█████     | 25/50 [02:21<02:21,  5.66s/it, train_loss=1, val_acc=0.516]   train QGNN:  52%|█████▏    | 26/50 [02:21<02:10,  5.43s/it, train_loss=1, val_acc=0.516]train QGNN:  52%|█████▏    | 26/50 [02:26<02:10,  5.43s/it, train_loss=0.97, val_acc=0.516]train QGNN:  54%|█████▍    | 27/50 [02:26<02:01,  5.27s/it, train_loss=0.97, val_acc=0.516]train QGNN:  54%|█████▍    | 27/50 [02:30<02:01,  5.27s/it, train_loss=0.939, val_acc=0.516]train QGNN:  56%|█████▌    | 28/50 [02:30<01:53,  5.16s/it, train_loss=0.939, val_acc=0.516]train QGNN:  56%|█████▌    | 28/50 [02:36<01:53,  5.16s/it, train_loss=0.912, val_acc=0.516]train QGNN:  58%|█████▊    | 29/50 [02:36<01:48,  5.15s/it, train_loss=0.912, val_acc=0.516]train QGNN:  58%|█████▊    | 29/50 [02:41<01:48,  5.15s/it, train_loss=0.889, val_acc=0.516]train QGNN:  60%|██████    | 30/50 [02:41<01:45,  5.30s/it, train_loss=0.889, val_acc=0.516]train QGNN:  60%|██████    | 30/50 [02:47<01:45,  5.30s/it, train_loss=0.867, val_acc=0.516]train QGNN:  62%|██████▏   | 31/50 [02:47<01:45,  5.57s/it, train_loss=0.867, val_acc=0.516]train QGNN:  62%|██████▏   | 31/50 [02:53<01:45,  5.57s/it, train_loss=0.846, val_acc=0.516]train QGNN:  64%|██████▍   | 32/50 [02:53<01:40,  5.59s/it, train_loss=0.846, val_acc=0.516]train QGNN:  64%|██████▍   | 32/50 [02:59<01:40,  5.59s/it, train_loss=0.826, val_acc=0.516]train QGNN:  66%|██████▌   | 33/50 [02:59<01:35,  5.59s/it, train_loss=0.826, val_acc=0.516]train QGNN:  66%|██████▌   | 33/50 [03:04<01:35,  5.59s/it, train_loss=0.807, val_acc=0.516]train QGNN:  68%|██████▊   | 34/50 [03:04<01:30,  5.66s/it, train_loss=0.807, val_acc=0.516]train QGNN:  68%|██████▊   | 34/50 [03:10<01:30,  5.66s/it, train_loss=0.791, val_acc=0.516]train QGNN:  70%|███████   | 35/50 [03:10<01:25,  5.72s/it, train_loss=0.791, val_acc=0.516]train QGNN:  70%|███████   | 35/50 [03:17<01:25,  5.72s/it, train_loss=0.776, val_acc=0.516]train QGNN:  72%|███████▏  | 36/50 [03:17<01:22,  5.89s/it, train_loss=0.776, val_acc=0.516]train QGNN:  72%|███████▏  | 36/50 [03:22<01:22,  5.89s/it, train_loss=0.763, val_acc=0.516]train QGNN:  74%|███████▍  | 37/50 [03:22<01:15,  5.80s/it, train_loss=0.763, val_acc=0.516]train QGNN:  74%|███████▍  | 37/50 [03:27<01:15,  5.80s/it, train_loss=0.75, val_acc=0.516] train QGNN:  76%|███████▌  | 38/50 [03:27<01:07,  5.65s/it, train_loss=0.75, val_acc=0.516]train QGNN:  76%|███████▌  | 38/50 [03:33<01:07,  5.65s/it, train_loss=0.737, val_acc=0.516]train QGNN:  78%|███████▊  | 39/50 [03:33<01:01,  5.64s/it, train_loss=0.737, val_acc=0.516]train QGNN:  78%|███████▊  | 39/50 [03:39<01:01,  5.64s/it, train_loss=0.726, val_acc=0.516]train QGNN:  80%|████████  | 40/50 [03:39<00:57,  5.77s/it, train_loss=0.726, val_acc=0.516]train QGNN:  80%|████████  | 40/50 [03:46<00:57,  5.77s/it, train_loss=0.717, val_acc=0.516]train QGNN:  82%|████████▏ | 41/50 [03:46<00:53,  6.00s/it, train_loss=0.717, val_acc=0.516]train QGNN:  82%|████████▏ | 41/50 [03:52<00:53,  6.00s/it, train_loss=0.708, val_acc=0.516]train QGNN:  84%|████████▍ | 42/50 [03:52<00:47,  5.99s/it, train_loss=0.708, val_acc=0.516]train QGNN:  84%|████████▍ | 42/50 [03:57<00:47,  5.99s/it, train_loss=0.7, val_acc=0.515]  train QGNN:  86%|████████▌ | 43/50 [03:57<00:40,  5.81s/it, train_loss=0.7, val_acc=0.515]train QGNN:  86%|████████▌ | 43/50 [04:03<00:40,  5.81s/it, train_loss=0.694, val_acc=0.515]train QGNN:  88%|████████▊ | 44/50 [04:03<00:34,  5.78s/it, train_loss=0.694, val_acc=0.515]train QGNN:  88%|████████▊ | 44/50 [04:09<00:34,  5.78s/it, train_loss=0.688, val_acc=0.514]train QGNN:  90%|█████████ | 45/50 [04:09<00:29,  5.89s/it, train_loss=0.688, val_acc=0.514]train QGNN:  90%|█████████ | 45/50 [04:15<00:29,  5.89s/it, train_loss=0.681, val_acc=0.514]train QGNN:  92%|█████████▏| 46/50 [04:15<00:24,  6.02s/it, train_loss=0.681, val_acc=0.514]train QGNN:  92%|█████████▏| 46/50 [04:21<00:24,  6.02s/it, train_loss=0.675, val_acc=0.517]train QGNN:  94%|█████████▍| 47/50 [04:21<00:17,  5.91s/it, train_loss=0.675, val_acc=0.517]train QGNN:  94%|█████████▍| 47/50 [04:27<00:17,  5.91s/it, train_loss=0.67, val_acc=0.522] train QGNN:  96%|█████████▌| 48/50 [04:27<00:11,  5.82s/it, train_loss=0.67, val_acc=0.522]train QGNN:  96%|█████████▌| 48/50 [04:32<00:11,  5.82s/it, train_loss=0.666, val_acc=0.529]train QGNN:  98%|█████████▊| 49/50 [04:32<00:05,  5.86s/it, train_loss=0.666, val_acc=0.529]train QGNN:  98%|█████████▊| 49/50 [04:39<00:05,  5.86s/it, train_loss=0.664, val_acc=0.537]train QGNN: 100%|██████████| 50/50 [04:39<00:00,  6.05s/it, train_loss=0.664, val_acc=0.537]train QGNN: 100%|██████████| 50/50 [04:39<00:00,  5.59s/it, train_loss=0.664, val_acc=0.537]
-wandb: uploading artifact qgnn-jets-m4; updating run metadata
-wandb: uploading artifact qgnn-jets-m4
-wandb: uploading history steps 47-49, summary, console lines 0-4
-wandb: 
-wandb: Run history:
-wandb:        accuracy ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▄█
-wandb:              ap ▁▂▃▄▄▆▆▇▇▇▇▇▇▇██████████████████████████
-wandb:             auc ▁▂▃▃▃▄▅▅▅▅▅▆▆▆▆▆▆▆▇▇▇▇▇▇▇▇▇▇████████████
-wandb:           epoch ▁▁▁▁▂▂▂▂▃▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇▇███
-wandb:        macro_f1 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▄█
-wandb:       precision ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▃█
-wandb:          recall ███████████████████████████████████▇▇▆▅▁
-wandb:  train_accuracy ▁
-wandb:      train_loss ████▇▇▇▇▆▆▆▆▅▅▅▄▄▄▄▄▃▃▃▃▂▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁
-wandb: training_time_s ▁
-wandb: 
-wandb: Run summary:
-wandb:        accuracy 0.5368
-wandb:              ap 0.75503
-wandb:             auc 0.70252
-wandb:           epoch 49
-wandb:        macro_f1 0.41027
-wandb:       precision 0.52787
-wandb:          recall 0.96899
-wandb:  train_accuracy 0.5075
-wandb:      train_loss 0.6637
-wandb: training_time_s 279.73224
-wandb: 
-wandb: 🚀 View run qgnn-M4-lorentz800-seed44 at: https://wandb.ai/tousi-team/graph-vls/runs/ig23ar8t
-wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
-wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260803_065929-ig23ar8t/logs
-
-Best epoch=49  val_accuracy=0.5368  val_auc=0.7025  val_macro_f1=0.4103
-train_accuracy=0.5075  training_time_s=279.73
-Saved best QGNN checkpoint to checkpoints/qgnn_jets_m4_lorentz800_seed44.pt
-
-=== [3/3] Evaluating QGNN on held-out test jets (seed=44, same fixed test set every trial) ===
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: setting up run ukk4hvgi
-wandb: Tracking run with wandb version 0.28.1
-wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_070430-ukk4hvgi
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run qgnn-eval-M4-lorentz800-seed44
-wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
-wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/ukk4hvgi
-wandb: uploading wandb-metadata.json; uploading requirements.txt; uploading artifact qgnn-jets-m4-test-metrics; updating run metadata
-wandb: uploading wandb-metadata.json; uploading requirements.txt; uploading artifact qgnn-jets-m4-test-metrics
-wandb: uploading artifact qgnn-jets-m4-test-metrics
-wandb: uploading history steps 0-2, summary, console lines 0-20
-wandb: 
-wandb: Run history:
-wandb: inference_time_s ▁
-wandb:    test_accuracy ▁
-wandb:          test_ap ▁
-wandb:         test_auc ▁
-wandb:    test_macro_f1 ▁
-wandb:   test_precision ▁
-wandb:      test_recall ▁
-wandb:   train_accuracy ▁
-wandb:  training_time_s ▁
-wandb: 
-wandb: Run summary:
-wandb: inference_time_s 0.34669
-wandb:    test_accuracy 0.528
-wandb:          test_ap 0.73338
-wandb:         test_auc 0.69014
-wandb:    test_macro_f1 0.40076
-wandb:   test_precision 0.5224
-wandb:      test_recall 0.96112
-wandb:   train_accuracy 0.5075
-wandb:  training_time_s 279.73224
-wandb: 
-wandb: 🚀 View run qgnn-eval-M4-lorentz800-seed44 at: https://wandb.ai/tousi-team/graph-vls/runs/ukk4hvgi
-wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
-wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260803_070430-ukk4hvgi/logs
-Device: cuda
-Loading GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
-Loading QGNN checkpoint from checkpoints/qgnn_jets_m4_lorentz800_seed44.pt...
-  GVLS M=4  QGNN M=4  num_layers=1
-Loading qg_jets (protocol=lorentz, seed=42)...
-Evaluating on 1250 held-out test jets (untouched by training)...
-
-Test-set metrics:
-  accuracy    : 0.5280
-  auc         : 0.6901
-  ap          : 0.7334
-  macro_f1    : 0.4008
-  precision   : 0.5224
-  recall      : 0.9611
-  confusion_matrix (rows=true, cols=pred, label 0=quark/1=gluon): [[42, 565], [25, 618]]
-  qubit_count (M): 4
-  circuit_depth (num_layers): 1
-  optimizer: adamw
-  train_accuracy: 0.5075
-  training_time_s: 279.73
-  inference_time_s: 0.35  (1250 test jets)
-
-NOTE (NFR-5): wall-clock timing above is measured on this run's own hardware, not matched to sota-table.png's Table II hardware -- directional comparison only.
-
-NOTE: no literature QGNN comparison number is included here -- that search (plan.md T4.6) has not been done yet. Comparison target identified 2026-07-30 (Lorentz-EQGNN, sota-table.png Table II) -- see plan.md Design Decision 12.
-
-Results written to results/qgnn/qg_jets_metrics_lorentz800_seed44.json
-
-=== [2/3] Training QGNN classifier (seed=45, training subset reseeded per trial, optimizer=adamw, gradient_method=spsa) ===
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: Tracking run with wandb version 0.28.1
-wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_070500-6g5kufxj
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run qgnn-M4-lorentz800-seed45
-wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
-wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/6g5kufxj
-Device: cuda
-Loading frozen GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
-  M=4  d=8
-Loading qg_jets (protocol=lorentz, seed=42)...
-  train=800  val=1250  test(unused here)=1250
-Extracting frozen (z_tilde, A_z) features (no gradient)...
-QGNN config: M=4 num_layers=1 optimizer=adamw lr=0.001 epochs=50 batch_size=16 gradient_method=spsa
-train QGNN:   0%|          | 0/50 [00:00<?, ?it/s]train QGNN:   0%|          | 0/50 [00:05<?, ?it/s, train_loss=1.88, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:05<04:48,  5.88s/it, train_loss=1.88, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:11<04:48,  5.88s/it, train_loss=1.85, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:11<04:29,  5.62s/it, train_loss=1.85, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:17<04:29,  5.62s/it, train_loss=1.83, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [00:17<04:27,  5.69s/it, train_loss=1.83, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [00:23<04:27,  5.69s/it, train_loss=1.81, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [00:23<04:32,  5.93s/it, train_loss=1.81, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [00:30<04:32,  5.93s/it, train_loss=1.78, val_acc=0.516]train QGNN:  10%|█         | 5/50 [00:30<04:38,  6.20s/it, train_loss=1.78, val_acc=0.516]train QGNN:  10%|█         | 5/50 [00:35<04:38,  6.20s/it, train_loss=1.75, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [00:35<04:23,  5.98s/it, train_loss=1.75, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [00:40<04:23,  5.98s/it, train_loss=1.72, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [00:40<04:07,  5.76s/it, train_loss=1.72, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [00:46<04:07,  5.76s/it, train_loss=1.68, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [00:46<04:04,  5.83s/it, train_loss=1.68, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [00:53<04:04,  5.83s/it, train_loss=1.64, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [00:53<04:05,  5.98s/it, train_loss=1.64, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [00:59<04:05,  5.98s/it, train_loss=1.6, val_acc=0.516] train QGNN:  20%|██        | 10/50 [00:59<04:02,  6.07s/it, train_loss=1.6, val_acc=0.516]train QGNN:  20%|██        | 10/50 [01:05<04:02,  6.07s/it, train_loss=1.56, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [01:05<03:52,  5.96s/it, train_loss=1.56, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [01:10<03:52,  5.96s/it, train_loss=1.52, val_acc=0.516]train QGNN:  24%|██▍       | 12/50 [01:10<03:42,  5.86s/it, train_loss=1.52, val_acc=0.516]train QGNN:  24%|██▍       | 12/50 [01:17<03:42,  5.86s/it, train_loss=1.47, val_acc=0.516]train QGNN:  26%|██▌       | 13/50 [01:17<03:40,  5.96s/it, train_loss=1.47, val_acc=0.516]train QGNN:  26%|██▌       | 13/50 [01:23<03:40,  5.96s/it, train_loss=1.43, val_acc=0.516]train QGNN:  28%|██▊       | 14/50 [01:23<03:43,  6.22s/it, train_loss=1.43, val_acc=0.516]train QGNN:  28%|██▊       | 14/50 [01:29<03:43,  6.22s/it, train_loss=1.39, val_acc=0.516]train QGNN:  30%|███       | 15/50 [01:29<03:33,  6.11s/it, train_loss=1.39, val_acc=0.516]train QGNN:  30%|███       | 15/50 [01:35<03:33,  6.11s/it, train_loss=1.34, val_acc=0.516]train QGNN:  32%|███▏      | 16/50 [01:35<03:21,  5.92s/it, train_loss=1.34, val_acc=0.516]train QGNN:  32%|███▏      | 16/50 [01:41<03:21,  5.92s/it, train_loss=1.29, val_acc=0.516]train QGNN:  34%|███▍      | 17/50 [01:41<03:17,  5.99s/it, train_loss=1.29, val_acc=0.516]train QGNN:  34%|███▍      | 17/50 [01:47<03:17,  5.99s/it, train_loss=1.24, val_acc=0.516]train QGNN:  36%|███▌      | 18/50 [01:47<03:12,  6.02s/it, train_loss=1.24, val_acc=0.516]train QGNN:  36%|███▌      | 18/50 [01:53<03:12,  6.02s/it, train_loss=1.2, val_acc=0.516] train QGNN:  38%|███▊      | 19/50 [01:53<03:04,  5.94s/it, train_loss=1.2, val_acc=0.516]train QGNN:  38%|███▊      | 19/50 [01:58<03:04,  5.94s/it, train_loss=1.15, val_acc=0.516]train QGNN:  40%|████      | 20/50 [01:58<02:54,  5.81s/it, train_loss=1.15, val_acc=0.516]train QGNN:  40%|████      | 20/50 [02:04<02:54,  5.81s/it, train_loss=1.11, val_acc=0.516]train QGNN:  42%|████▏     | 21/50 [02:04<02:48,  5.82s/it, train_loss=1.11, val_acc=0.516]train QGNN:  42%|████▏     | 21/50 [02:10<02:48,  5.82s/it, train_loss=1.07, val_acc=0.516]train QGNN:  44%|████▍     | 22/50 [02:10<02:46,  5.94s/it, train_loss=1.07, val_acc=0.516]train QGNN:  44%|████▍     | 22/50 [02:17<02:46,  5.94s/it, train_loss=1.03, val_acc=0.516]train QGNN:  46%|████▌     | 23/50 [02:17<02:49,  6.27s/it, train_loss=1.03, val_acc=0.516]train QGNN:  46%|████▌     | 23/50 [02:23<02:49,  6.27s/it, train_loss=0.992, val_acc=0.516]train QGNN:  48%|████▊     | 24/50 [02:23<02:39,  6.14s/it, train_loss=0.992, val_acc=0.516]train QGNN:  48%|████▊     | 24/50 [02:29<02:39,  6.14s/it, train_loss=0.957, val_acc=0.516]train QGNN:  50%|█████     | 25/50 [02:29<02:28,  5.93s/it, train_loss=0.957, val_acc=0.516]train QGNN:  50%|█████     | 25/50 [02:35<02:28,  5.93s/it, train_loss=0.924, val_acc=0.516]train QGNN:  52%|█████▏    | 26/50 [02:35<02:23,  5.98s/it, train_loss=0.924, val_acc=0.516]train QGNN:  52%|█████▏    | 26/50 [02:41<02:23,  5.98s/it, train_loss=0.899, val_acc=0.516]train QGNN:  54%|█████▍    | 27/50 [02:41<02:18,  6.01s/it, train_loss=0.899, val_acc=0.516]train QGNN:  54%|█████▍    | 27/50 [02:47<02:18,  6.01s/it, train_loss=0.873, val_acc=0.516]train QGNN:  56%|█████▌    | 28/50 [02:47<02:11,  5.99s/it, train_loss=0.873, val_acc=0.516]train QGNN:  56%|█████▌    | 28/50 [02:52<02:11,  5.99s/it, train_loss=0.845, val_acc=0.516]train QGNN:  58%|█████▊    | 29/50 [02:52<02:02,  5.85s/it, train_loss=0.845, val_acc=0.516]train QGNN:  58%|█████▊    | 29/50 [02:58<02:02,  5.85s/it, train_loss=0.82, val_acc=0.516] train QGNN:  60%|██████    | 30/50 [02:58<01:55,  5.76s/it, train_loss=0.82, val_acc=0.516]train QGNN:  60%|██████    | 30/50 [03:04<01:55,  5.76s/it, train_loss=0.797, val_acc=0.516]train QGNN:  62%|██████▏   | 31/50 [03:04<01:49,  5.78s/it, train_loss=0.797, val_acc=0.516]train QGNN:  62%|██████▏   | 31/50 [03:10<01:49,  5.78s/it, train_loss=0.778, val_acc=0.516]train QGNN:  64%|██████▍   | 32/50 [03:10<01:46,  5.93s/it, train_loss=0.778, val_acc=0.516]train QGNN:  64%|██████▍   | 32/50 [03:16<01:46,  5.93s/it, train_loss=0.762, val_acc=0.516]train QGNN:  66%|██████▌   | 33/50 [03:16<01:40,  5.93s/it, train_loss=0.762, val_acc=0.516]train QGNN:  66%|██████▌   | 33/50 [03:21<01:40,  5.93s/it, train_loss=0.746, val_acc=0.516]train QGNN:  68%|██████▊   | 34/50 [03:21<01:33,  5.81s/it, train_loss=0.746, val_acc=0.516]train QGNN:  68%|██████▊   | 34/50 [03:27<01:33,  5.81s/it, train_loss=0.733, val_acc=0.515]train QGNN:  70%|███████   | 35/50 [03:27<01:27,  5.80s/it, train_loss=0.733, val_acc=0.515]train QGNN:  70%|███████   | 35/50 [03:33<01:27,  5.80s/it, train_loss=0.721, val_acc=0.515]train QGNN:  72%|███████▏  | 36/50 [03:33<01:23,  5.96s/it, train_loss=0.721, val_acc=0.515]train QGNN:  72%|███████▏  | 36/50 [03:39<01:23,  5.96s/it, train_loss=0.712, val_acc=0.515]train QGNN:  74%|███████▍  | 37/50 [03:39<01:17,  5.98s/it, train_loss=0.712, val_acc=0.515]train QGNN:  74%|███████▍  | 37/50 [03:45<01:17,  5.98s/it, train_loss=0.702, val_acc=0.514]train QGNN:  76%|███████▌  | 38/50 [03:45<01:10,  5.86s/it, train_loss=0.702, val_acc=0.514]train QGNN:  76%|███████▌  | 38/50 [03:51<01:10,  5.86s/it, train_loss=0.694, val_acc=0.514]train QGNN:  78%|███████▊  | 39/50 [03:51<01:03,  5.79s/it, train_loss=0.694, val_acc=0.514]train QGNN:  78%|███████▊  | 39/50 [03:56<01:03,  5.79s/it, train_loss=0.688, val_acc=0.514]train QGNN:  80%|████████  | 40/50 [03:56<00:56,  5.65s/it, train_loss=0.688, val_acc=0.514]train QGNN:  80%|████████  | 40/50 [04:01<00:56,  5.65s/it, train_loss=0.683, val_acc=0.518]train QGNN:  82%|████████▏ | 41/50 [04:01<00:49,  5.48s/it, train_loss=0.683, val_acc=0.518]train QGNN:  82%|████████▏ | 41/50 [04:06<00:49,  5.48s/it, train_loss=0.678, val_acc=0.519]train QGNN:  84%|████████▍ | 42/50 [04:06<00:42,  5.32s/it, train_loss=0.678, val_acc=0.519]train QGNN:  84%|████████▍ | 42/50 [04:11<00:42,  5.32s/it, train_loss=0.673, val_acc=0.53] train QGNN:  86%|████████▌ | 43/50 [04:11<00:36,  5.21s/it, train_loss=0.673, val_acc=0.53]train QGNN:  86%|████████▌ | 43/50 [04:16<00:36,  5.21s/it, train_loss=0.668, val_acc=0.532]train QGNN:  88%|████████▊ | 44/50 [04:16<00:31,  5.22s/it, train_loss=0.668, val_acc=0.532]train QGNN:  88%|████████▊ | 44/50 [04:22<00:31,  5.22s/it, train_loss=0.665, val_acc=0.534]train QGNN:  90%|█████████ | 45/50 [04:22<00:26,  5.29s/it, train_loss=0.665, val_acc=0.534]train QGNN:  90%|█████████ | 45/50 [04:27<00:26,  5.29s/it, train_loss=0.661, val_acc=0.546]train QGNN:  92%|█████████▏| 46/50 [04:27<00:20,  5.21s/it, train_loss=0.661, val_acc=0.546]train QGNN:  92%|█████████▏| 46/50 [04:32<00:20,  5.21s/it, train_loss=0.66, val_acc=0.545] train QGNN:  94%|█████████▍| 47/50 [04:32<00:15,  5.13s/it, train_loss=0.66, val_acc=0.545]train QGNN:  94%|█████████▍| 47/50 [04:37<00:15,  5.13s/it, train_loss=0.658, val_acc=0.546]train QGNN:  96%|█████████▌| 48/50 [04:37<00:10,  5.06s/it, train_loss=0.658, val_acc=0.546]train QGNN:  96%|█████████▌| 48/50 [04:41<00:10,  5.06s/it, train_loss=0.656, val_acc=0.558]train QGNN:  98%|█████████▊| 49/50 [04:41<00:05,  5.03s/it, train_loss=0.656, val_acc=0.558]train QGNN:  98%|█████████▊| 49/50 [04:46<00:05,  5.03s/it, train_loss=0.654, val_acc=0.572]train QGNN: 100%|██████████| 50/50 [04:46<00:00,  5.01s/it, train_loss=0.654, val_acc=0.572]train QGNN: 100%|██████████| 50/50 [04:46<00:00,  5.74s/it, train_loss=0.654, val_acc=0.572]
-wandb: uploading artifact qgnn-jets-m4; updating run metadata
-wandb: uploading artifact qgnn-jets-m4
-wandb: uploading config.yaml; uploading output.log; uploading wandb-summary.json
-wandb: 
-wandb: Run history:
-wandb:        accuracy ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▃▃▅▅█
-wandb:              ap ▁▃▄▅▅▆▇▇▇▇██████████████████████████████
-wandb:             auc ▁▂▃▃▄▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇▇▇▇▇████████████████
-wandb:           epoch ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:        macro_f1 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▄▅▆▆█
-wandb:       precision ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▃▄▄▅█
-wandb:          recall ██████████████████████████████████▇▆▅▄▄▁
-wandb:  train_accuracy ▁
-wandb:      train_loss ████▇▇▇▇▆▆▅▅▅▅▄▄▄▃▃▃▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁
-wandb: training_time_s ▁
-wandb: 
-wandb: Run summary:
-wandb:        accuracy 0.572
-wandb:              ap 0.75522
-wandb:             auc 0.70168
-wandb:           epoch 49
-wandb:        macro_f1 0.53016
-wandb:       precision 0.55624
-wandb:          recall 0.84341
-wandb:  train_accuracy 0.57
-wandb:      train_loss 0.65374
-wandb: training_time_s 287.17215
-wandb: 
-wandb: 🚀 View run qgnn-M4-lorentz800-seed45 at: https://wandb.ai/tousi-team/graph-vls/runs/6g5kufxj
-wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
-wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260803_070500-6g5kufxj/logs
-
-Best epoch=49  val_accuracy=0.5720  val_auc=0.7017  val_macro_f1=0.5302
-train_accuracy=0.5700  training_time_s=287.17
-Saved best QGNN checkpoint to checkpoints/qgnn_jets_m4_lorentz800_seed45.pt
-
-=== [3/3] Evaluating QGNN on held-out test jets (seed=45, same fixed test set every trial) ===
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: Tracking run with wandb version 0.28.1
-wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_071008-vd4r30rw
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run qgnn-eval-M4-lorentz800-seed45
-wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
-wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/vd4r30rw
-wandb: uploading wandb-metadata.json; uploading requirements.txt; uploading artifact qgnn-jets-m4-test-metrics; updating run metadata
-wandb: uploading artifact qgnn-jets-m4-test-metrics
-wandb: uploading history steps 0-2, summary, console lines 0-20
-wandb: 
-wandb: Run history:
-wandb: inference_time_s ▁
-wandb:    test_accuracy ▁
-wandb:          test_ap ▁
-wandb:         test_auc ▁
-wandb:    test_macro_f1 ▁
-wandb:   test_precision ▁
-wandb:      test_recall ▁
-wandb:   train_accuracy ▁
-wandb:  training_time_s ▁
-wandb: 
-wandb: Run summary:
-wandb: inference_time_s 0.41765
-wandb:    test_accuracy 0.572
-wandb:          test_ap 0.73208
-wandb:         test_auc 0.68647
-wandb:    test_macro_f1 0.53536
-wandb:   test_precision 0.55637
-wandb:      test_recall 0.82893
-wandb:   train_accuracy 0.57
-wandb:  training_time_s 287.17215
-wandb: 
-wandb: 🚀 View run qgnn-eval-M4-lorentz800-seed45 at: https://wandb.ai/tousi-team/graph-vls/runs/vd4r30rw
-wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
-wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260803_071008-vd4r30rw/logs
-Device: cuda
-Loading GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
-Loading QGNN checkpoint from checkpoints/qgnn_jets_m4_lorentz800_seed45.pt...
-  GVLS M=4  QGNN M=4  num_layers=1
-Loading qg_jets (protocol=lorentz, seed=42)...
-Evaluating on 1250 held-out test jets (untouched by training)...
-
-Test-set metrics:
-  accuracy    : 0.5720
-  auc         : 0.6865
-  ap          : 0.7321
-  macro_f1    : 0.5354
-  precision   : 0.5564
-  recall      : 0.8289
-  confusion_matrix (rows=true, cols=pred, label 0=quark/1=gluon): [[182, 425], [110, 533]]
-  qubit_count (M): 4
-  circuit_depth (num_layers): 1
-  optimizer: adamw
-  train_accuracy: 0.5700
-  training_time_s: 287.17
-  inference_time_s: 0.42  (1250 test jets)
-
-NOTE (NFR-5): wall-clock timing above is measured on this run's own hardware, not matched to sota-table.png's Table II hardware -- directional comparison only.
-
-NOTE: no literature QGNN comparison number is included here -- that search (plan.md T4.6) has not been done yet. Comparison target identified 2026-07-30 (Lorentz-EQGNN, sota-table.png Table II) -- see plan.md Design Decision 12.
-
-Results written to results/qgnn/qg_jets_metrics_lorentz800_seed45.json
-
-=== [2/3] Training QGNN classifier (seed=46, training subset reseeded per trial, optimizer=adamw, gradient_method=spsa) ===
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: setting up run s0xi6tj4
-wandb: Tracking run with wandb version 0.28.1
-wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_071036-s0xi6tj4
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run qgnn-M4-lorentz800-seed46
-wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
-wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/s0xi6tj4
-Device: cuda
-Loading frozen GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
-  M=4  d=8
-Loading qg_jets (protocol=lorentz, seed=42)...
-  train=800  val=1250  test(unused here)=1250
-Extracting frozen (z_tilde, A_z) features (no gradient)...
-QGNN config: M=4 num_layers=1 optimizer=adamw lr=0.001 epochs=50 batch_size=16 gradient_method=spsa
-train QGNN:   0%|          | 0/50 [00:00<?, ?it/s]train QGNN:   0%|          | 0/50 [00:04<?, ?it/s, train_loss=1.88, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:04<04:02,  4.95s/it, train_loss=1.88, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:10<04:02,  4.95s/it, train_loss=1.86, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:10<04:23,  5.48s/it, train_loss=1.86, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:16<04:23,  5.48s/it, train_loss=1.83, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [00:16<04:15,  5.43s/it, train_loss=1.83, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [00:21<04:15,  5.43s/it, train_loss=1.8, val_acc=0.516] train QGNN:   8%|▊         | 4/50 [00:21<04:08,  5.40s/it, train_loss=1.8, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [00:27<04:08,  5.40s/it, train_loss=1.77, val_acc=0.516]train QGNN:  10%|█         | 5/50 [00:27<04:05,  5.46s/it, train_loss=1.77, val_acc=0.516]train QGNN:  10%|█         | 5/50 [00:32<04:05,  5.46s/it, train_loss=1.74, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [00:32<03:53,  5.30s/it, train_loss=1.74, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [00:38<03:53,  5.30s/it, train_loss=1.71, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [00:38<03:58,  5.55s/it, train_loss=1.71, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [00:44<03:58,  5.55s/it, train_loss=1.67, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [00:44<04:06,  5.87s/it, train_loss=1.67, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [00:51<04:06,  5.87s/it, train_loss=1.63, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [00:51<04:08,  6.07s/it, train_loss=1.63, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [00:57<04:08,  6.07s/it, train_loss=1.59, val_acc=0.516]train QGNN:  20%|██        | 10/50 [00:57<04:01,  6.03s/it, train_loss=1.59, val_acc=0.516]train QGNN:  20%|██        | 10/50 [01:02<04:01,  6.03s/it, train_loss=1.55, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [01:02<03:45,  5.78s/it, train_loss=1.55, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [01:07<03:45,  5.78s/it, train_loss=1.5, val_acc=0.516] train QGNN:  24%|██▍       | 12/50 [01:07<03:30,  5.54s/it, train_loss=1.5, val_acc=0.516]train QGNN:  24%|██▍       | 12/50 [01:12<03:30,  5.54s/it, train_loss=1.45, val_acc=0.516]train QGNN:  26%|██▌       | 13/50 [01:12<03:18,  5.36s/it, train_loss=1.45, val_acc=0.516]train QGNN:  26%|██▌       | 13/50 [01:17<03:18,  5.36s/it, train_loss=1.4, val_acc=0.516] train QGNN:  28%|██▊       | 14/50 [01:17<03:08,  5.24s/it, train_loss=1.4, val_acc=0.516]train QGNN:  28%|██▊       | 14/50 [01:22<03:08,  5.24s/it, train_loss=1.35, val_acc=0.516]train QGNN:  30%|███       | 15/50 [01:22<03:00,  5.15s/it, train_loss=1.35, val_acc=0.516]train QGNN:  30%|███       | 15/50 [01:27<03:00,  5.15s/it, train_loss=1.3, val_acc=0.516] train QGNN:  32%|███▏      | 16/50 [01:27<02:52,  5.09s/it, train_loss=1.3, val_acc=0.516]train QGNN:  32%|███▏      | 16/50 [01:32<02:52,  5.09s/it, train_loss=1.25, val_acc=0.516]train QGNN:  34%|███▍      | 17/50 [01:32<02:47,  5.08s/it, train_loss=1.25, val_acc=0.516]train QGNN:  34%|███▍      | 17/50 [01:37<02:47,  5.08s/it, train_loss=1.2, val_acc=0.516] train QGNN:  36%|███▌      | 18/50 [01:37<02:44,  5.13s/it, train_loss=1.2, val_acc=0.516]train QGNN:  36%|███▌      | 18/50 [01:43<02:44,  5.13s/it, train_loss=1.15, val_acc=0.516]train QGNN:  38%|███▊      | 19/50 [01:43<02:49,  5.45s/it, train_loss=1.15, val_acc=0.516]train QGNN:  38%|███▊      | 19/50 [01:49<02:49,  5.45s/it, train_loss=1.1, val_acc=0.516] train QGNN:  40%|████      | 20/50 [01:49<02:45,  5.53s/it, train_loss=1.1, val_acc=0.516]train QGNN:  40%|████      | 20/50 [01:54<02:45,  5.53s/it, train_loss=1.05, val_acc=0.516]train QGNN:  42%|████▏     | 21/50 [01:54<02:39,  5.50s/it, train_loss=1.05, val_acc=0.516]train QGNN:  42%|████▏     | 21/50 [02:01<02:39,  5.50s/it, train_loss=1.01, val_acc=0.516]train QGNN:  44%|████▍     | 22/50 [02:01<02:40,  5.72s/it, train_loss=1.01, val_acc=0.516]train QGNN:  44%|████▍     | 22/50 [02:06<02:40,  5.72s/it, train_loss=0.962, val_acc=0.516]train QGNN:  46%|████▌     | 23/50 [02:06<02:31,  5.60s/it, train_loss=0.962, val_acc=0.516]train QGNN:  46%|████▌     | 23/50 [02:11<02:31,  5.60s/it, train_loss=0.922, val_acc=0.516]train QGNN:  48%|████▊     | 24/50 [02:11<02:20,  5.40s/it, train_loss=0.922, val_acc=0.516]train QGNN:  48%|████▊     | 24/50 [02:16<02:20,  5.40s/it, train_loss=0.885, val_acc=0.516]train QGNN:  50%|█████     | 25/50 [02:16<02:12,  5.29s/it, train_loss=0.885, val_acc=0.516]train QGNN:  50%|█████     | 25/50 [02:21<02:12,  5.29s/it, train_loss=0.853, val_acc=0.516]train QGNN:  52%|█████▏    | 26/50 [02:21<02:06,  5.29s/it, train_loss=0.853, val_acc=0.516]train QGNN:  52%|█████▏    | 26/50 [02:26<02:06,  5.29s/it, train_loss=0.825, val_acc=0.516]train QGNN:  54%|█████▍    | 27/50 [02:26<02:02,  5.32s/it, train_loss=0.825, val_acc=0.516]train QGNN:  54%|█████▍    | 27/50 [02:32<02:02,  5.32s/it, train_loss=0.797, val_acc=0.516]train QGNN:  56%|█████▌    | 28/50 [02:32<02:00,  5.48s/it, train_loss=0.797, val_acc=0.516]train QGNN:  56%|█████▌    | 28/50 [02:40<02:00,  5.48s/it, train_loss=0.772, val_acc=0.515]train QGNN:  58%|█████▊    | 29/50 [02:40<02:09,  6.15s/it, train_loss=0.772, val_acc=0.515]train QGNN:  58%|█████▊    | 29/50 [02:47<02:09,  6.15s/it, train_loss=0.75, val_acc=0.515] train QGNN:  60%|██████    | 30/50 [02:47<02:06,  6.31s/it, train_loss=0.75, val_acc=0.515]train QGNN:  60%|██████    | 30/50 [02:53<02:06,  6.31s/it, train_loss=0.732, val_acc=0.514]train QGNN:  62%|██████▏   | 31/50 [02:53<01:57,  6.16s/it, train_loss=0.732, val_acc=0.514]train QGNN:  62%|██████▏   | 31/50 [02:59<01:57,  6.16s/it, train_loss=0.719, val_acc=0.514]train QGNN:  64%|██████▍   | 32/50 [02:59<01:52,  6.22s/it, train_loss=0.719, val_acc=0.514]train QGNN:  64%|██████▍   | 32/50 [03:05<01:52,  6.22s/it, train_loss=0.705, val_acc=0.514]train QGNN:  66%|██████▌   | 33/50 [03:05<01:44,  6.15s/it, train_loss=0.705, val_acc=0.514]train QGNN:  66%|██████▌   | 33/50 [03:11<01:44,  6.15s/it, train_loss=0.695, val_acc=0.514]train QGNN:  68%|██████▊   | 34/50 [03:11<01:39,  6.21s/it, train_loss=0.695, val_acc=0.514]train QGNN:  68%|██████▊   | 34/50 [03:17<01:39,  6.21s/it, train_loss=0.686, val_acc=0.516]train QGNN:  70%|███████   | 35/50 [03:17<01:33,  6.21s/it, train_loss=0.686, val_acc=0.516]train QGNN:  70%|███████   | 35/50 [03:23<01:33,  6.21s/it, train_loss=0.678, val_acc=0.521]train QGNN:  72%|███████▏  | 36/50 [03:23<01:24,  6.03s/it, train_loss=0.678, val_acc=0.521]train QGNN:  72%|███████▏  | 36/50 [03:29<01:24,  6.03s/it, train_loss=0.673, val_acc=0.525]train QGNN:  74%|███████▍  | 37/50 [03:29<01:17,  5.98s/it, train_loss=0.673, val_acc=0.525]train QGNN:  74%|███████▍  | 37/50 [03:35<01:17,  5.98s/it, train_loss=0.667, val_acc=0.53] train QGNN:  76%|███████▌  | 38/50 [03:35<01:12,  6.02s/it, train_loss=0.667, val_acc=0.53]train QGNN:  76%|███████▌  | 38/50 [03:41<01:12,  6.02s/it, train_loss=0.663, val_acc=0.545]train QGNN:  78%|███████▊  | 39/50 [03:41<01:05,  5.94s/it, train_loss=0.663, val_acc=0.545]train QGNN:  78%|███████▊  | 39/50 [03:46<01:05,  5.94s/it, train_loss=0.659, val_acc=0.553]train QGNN:  80%|████████  | 40/50 [03:46<00:57,  5.79s/it, train_loss=0.659, val_acc=0.553]train QGNN:  80%|████████  | 40/50 [03:52<00:57,  5.79s/it, train_loss=0.655, val_acc=0.577]train QGNN:  82%|████████▏ | 41/50 [03:52<00:52,  5.81s/it, train_loss=0.655, val_acc=0.577]train QGNN:  82%|████████▏ | 41/50 [03:58<00:52,  5.81s/it, train_loss=0.652, val_acc=0.58] train QGNN:  84%|████████▍ | 42/50 [03:58<00:47,  5.89s/it, train_loss=0.652, val_acc=0.58]train QGNN:  84%|████████▍ | 42/50 [04:04<00:47,  5.89s/it, train_loss=0.65, val_acc=0.602]train QGNN:  86%|████████▌ | 43/50 [04:04<00:41,  5.96s/it, train_loss=0.65, val_acc=0.602]train QGNN:  86%|████████▌ | 43/50 [04:10<00:41,  5.96s/it, train_loss=0.649, val_acc=0.618]train QGNN:  88%|████████▊ | 44/50 [04:10<00:35,  5.87s/it, train_loss=0.649, val_acc=0.618]train QGNN:  88%|████████▊ | 44/50 [04:15<00:35,  5.87s/it, train_loss=0.647, val_acc=0.641]train QGNN:  90%|█████████ | 45/50 [04:15<00:28,  5.70s/it, train_loss=0.647, val_acc=0.641]train QGNN:  90%|█████████ | 45/50 [04:21<00:28,  5.70s/it, train_loss=0.645, val_acc=0.645]train QGNN:  92%|█████████▏| 46/50 [04:21<00:23,  5.77s/it, train_loss=0.645, val_acc=0.645]train QGNN:  92%|█████████▏| 46/50 [04:27<00:23,  5.77s/it, train_loss=0.645, val_acc=0.646]train QGNN:  94%|█████████▍| 47/50 [04:27<00:17,  5.93s/it, train_loss=0.645, val_acc=0.646]train QGNN:  94%|█████████▍| 47/50 [04:33<00:17,  5.93s/it, train_loss=0.645, val_acc=0.648]train QGNN:  96%|█████████▌| 48/50 [04:33<00:11,  5.82s/it, train_loss=0.645, val_acc=0.648]train QGNN:  96%|█████████▌| 48/50 [04:39<00:11,  5.82s/it, train_loss=0.645, val_acc=0.646]train QGNN:  98%|█████████▊| 49/50 [04:39<00:05,  5.72s/it, train_loss=0.645, val_acc=0.646]train QGNN:  98%|█████████▊| 49/50 [04:44<00:05,  5.72s/it, train_loss=0.645, val_acc=0.646]train QGNN: 100%|██████████| 50/50 [04:44<00:00,  5.70s/it, train_loss=0.645, val_acc=0.646]train QGNN: 100%|██████████| 50/50 [04:44<00:00,  5.69s/it, train_loss=0.645, val_acc=0.646]
-wandb: uploading artifact qgnn-jets-m4; updating run metadata
-wandb: uploading artifact qgnn-jets-m4
-wandb: uploading summary
-wandb: 
-wandb: Run history:
-wandb:        accuracy ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▃▃▄▄▆█████
-wandb:              ap ▁▂▃▄▅▆▆▆▇▇▇▇▇███████████████████████████
-wandb:             auc ▁▂▃▄▄▅▅▆▆▆▆▇▇▇▇▇▇███████████████████████
-wandb:           epoch ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
-wandb:        macro_f1 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▄▄▆▆▇█████
-wandb:       precision ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▂▃▄▆▇███
-wandb:          recall █████████████████████████████▇▆▅▄▄▃▂▂▁▁▁
-wandb:  train_accuracy ▁
-wandb:      train_loss ████▇▇▆▆▆▆▅▅▄▄▄▃▃▃▃▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
-wandb: training_time_s ▁
-wandb: 
-wandb: Run summary:
-wandb:        accuracy 0.6456
-wandb:              ap 0.75529
-wandb:             auc 0.69579
-wandb:           epoch 49
-wandb:        macro_f1 0.64432
-wandb:       precision 0.64853
-wandb:          recall 0.68372
-wandb:  train_accuracy 0.64125
-wandb:      train_loss 0.64478
-wandb: training_time_s 284.92911
-wandb: 
-wandb: 🚀 View run qgnn-M4-lorentz800-seed46 at: https://wandb.ai/tousi-team/graph-vls/runs/s0xi6tj4
-wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
-wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260803_071036-s0xi6tj4/logs
-
-Best epoch=47  val_accuracy=0.6480  val_auc=0.6958  val_macro_f1=0.6471
-train_accuracy=0.6412  training_time_s=284.93
-Saved best QGNN checkpoint to checkpoints/qgnn_jets_m4_lorentz800_seed46.pt
-
-=== [3/3] Evaluating QGNN on held-out test jets (seed=46, same fixed test set every trial) ===
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: Tracking run with wandb version 0.28.1
-wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_071543-clyesrxq
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run qgnn-eval-M4-lorentz800-seed46
-wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
-wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/clyesrxq
-wandb: uploading requirements.txt; uploading wandb-metadata.json; uploading artifact qgnn-jets-m4-test-metrics; updating run metadata
-wandb: uploading artifact qgnn-jets-m4-test-metrics
-wandb: uploading wandb-summary.json; uploading config.yaml; uploading output.log
-wandb: 
-wandb: Run history:
-wandb: inference_time_s ▁
-wandb:    test_accuracy ▁
-wandb:          test_ap ▁
-wandb:         test_auc ▁
-wandb:    test_macro_f1 ▁
-wandb:   test_precision ▁
-wandb:      test_recall ▁
-wandb:   train_accuracy ▁
-wandb:  training_time_s ▁
-wandb: 
-wandb: Run summary:
-wandb: inference_time_s 0.37373
-wandb:    test_accuracy 0.6256
-wandb:          test_ap 0.72812
-wandb:         test_auc 0.67466
-wandb:    test_macro_f1 0.62509
-wandb:   test_precision 0.634
-wandb:      test_recall 0.64386
-wandb:   train_accuracy 0.64125
-wandb:  training_time_s 284.92911
-wandb: 
-wandb: 🚀 View run qgnn-eval-M4-lorentz800-seed46 at: https://wandb.ai/tousi-team/graph-vls/runs/clyesrxq
-wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
-wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260803_071543-clyesrxq/logs
-Device: cuda
-Loading GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
-Loading QGNN checkpoint from checkpoints/qgnn_jets_m4_lorentz800_seed46.pt...
-  GVLS M=4  QGNN M=4  num_layers=1
-Loading qg_jets (protocol=lorentz, seed=42)...
-Evaluating on 1250 held-out test jets (untouched by training)...
-
-Test-set metrics:
-  accuracy    : 0.6256
-  auc         : 0.6747
-  ap          : 0.7281
-  macro_f1    : 0.6251
-  precision   : 0.6340
-  recall      : 0.6439
-  confusion_matrix (rows=true, cols=pred, label 0=quark/1=gluon): [[368, 239], [229, 414]]
-  qubit_count (M): 4
-  circuit_depth (num_layers): 1
-  optimizer: adamw
-  train_accuracy: 0.6412
-  training_time_s: 284.93
-  inference_time_s: 0.37  (1250 test jets)
-
-NOTE (NFR-5): wall-clock timing above is measured on this run's own hardware, not matched to sota-table.png's Table II hardware -- directional comparison only.
-
-NOTE: no literature QGNN comparison number is included here -- that search (plan.md T4.6) has not been done yet. Comparison target identified 2026-07-30 (Lorentz-EQGNN, sota-table.png Table II) -- see plan.md Design Decision 12.
-
-Results written to results/qgnn/qg_jets_metrics_lorentz800_seed46.json
-
-=== Aggregating 5 repeats into mean +/- std ===
-wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
-wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
-wandb: Tracking run with wandb version 0.28.1
-wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_071555-brhdp3kh
-wandb: Run `wandb offline` to turn off syncing.
-wandb: Syncing run qgnn-M4-lorentz800-summary
-wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
-wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/brhdp3kh
-wandb: updating run metadata; uploading summary; uploading artifact qgnn-repeats-summary
-wandb: uploading summary; uploading artifact qgnn-repeats-summary
-wandb: uploading summary; uploading wandb-summary.json; uploading config.yaml; uploading wandb-metadata.json; uploading requirements.txt
-wandb: uploading summary
-wandb: uploading history steps 0-1, summary
-wandb: 
-wandb: Run history:
-wandb:                         ap_mean ▁
-wandb:                          ap_std ▁
-wandb:                        auc_mean ▁
-wandb:                         auc_std ▁
-wandb:           inference_time_s_mean ▁
-wandb:            inference_time_s_std ▁
-wandb:     lorentz_eqgnn_test_accuracy ▁
-wandb: lorentz_eqgnn_test_accuracy_std ▁
-wandb:                   macro_f1_mean ▁
-wandb:                    macro_f1_std ▁
-wandb:                             +11 ...
-wandb: 
-wandb: Run summary:
-wandb:                         ap_mean 0.73115
-wandb:                          ap_std 0.00262
-wandb:                        auc_mean 0.68426
-wandb:                         auc_std 0.00872
-wandb:           inference_time_s_mean 0.37235
-wandb:            inference_time_s_std 0.03705
-wandb:     lorentz_eqgnn_test_accuracy 0.74
-wandb: lorentz_eqgnn_test_accuracy_std 0.0026
-wandb:                   macro_f1_mean 0.55552
-wandb:                    macro_f1_std 0.09337
-wandb:                             +11 ...
-wandb: 
-wandb: 🚀 View run qgnn-M4-lorentz800-summary at: https://wandb.ai/tousi-team/graph-vls/runs/brhdp3kh
-wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
-wandb: Synced 4 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
-wandb: Find logs at: ./wandb/run-20260803_071555-brhdp3kh/logs
-Aggregating 5 runs:
-  results/qgnn/qg_jets_metrics_lorentz800_seed42.json
-  results/qgnn/qg_jets_metrics_lorentz800_seed43.json
-  results/qgnn/qg_jets_metrics_lorentz800_seed44.json
-  results/qgnn/qg_jets_metrics_lorentz800_seed45.json
-  results/qgnn/qg_jets_metrics_lorentz800_seed46.json
-
-Test accuracy: 0.5912 +/- 0.0410  (n=5)
-Lorentz-EQGNN (literature): 0.7400 +/- 0.0026  (sota-table.png Table II, Quark-Gluon, 4 qubits)
-Written to results/qgnn/qg_jets_metrics_lorentz800_summary.json

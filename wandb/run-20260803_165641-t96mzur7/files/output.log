@@ -1,0 +1,4 @@
+pretrain GVLS (production, M=4): 100%|██████████| 200/200 [4:21:52<00:00, 78.56s/it, loss=4.65, val_f1=0.751]  
+pretrain GVLS (production, M=4): restoring best-val-F1 checkpoint (epoch=161, val_f1=0.7522)
+
+Saved production GVLS checkpoint (M=4) to checkpoints/gvls_jets_m4_lorentz800.pt

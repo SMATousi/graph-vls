@@ -1,0 +1,24 @@
+2026-08-03 21:31:25,546 INFO    MainThread:97051 [wandb_setup.py:_flush():81] Current SDK version is 0.28.1
+2026-08-03 21:31:25,546 INFO    MainThread:97051 [wandb_setup.py:_flush():81] Configure stats pid to 97051
+2026-08-03 21:31:25,546 INFO    MainThread:97051 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-08-03 21:31:25,546 INFO    MainThread:97051 [wandb_init.py:setup_run_log_directory():729] Logging user logs to /root/home/graph-vls/wandb/run-20260803_213125-rmhmuqnu/logs/debug.log
+2026-08-03 21:31:25,547 INFO    MainThread:97051 [wandb_init.py:setup_run_log_directory():730] Logging internal logs to /root/home/graph-vls/wandb/run-20260803_213125-rmhmuqnu/logs/debug-internal.log
+2026-08-03 21:31:25,547 INFO    MainThread:97051 [wandb_init.py:init():772] calling init triggers
+2026-08-03 21:31:25,547 INFO    MainThread:97051 [wandb_init.py:init():777] wandb.init called with sweep_config: {}
+config: {'m': 4, 'd': 8, 'data': {'name': 'qg_jets', 'protocol': 'lorentz', 'k_graph_cap': 8, 'seed': 42, 'num_train': 10000, 'num_val': 1250, 'num_test': 1250, 'min_particles': 10, 'train_subset': 800, 'train_subset_seed': 44, 'train_subset_balanced': True}, 'num_layers': 1, 'optimizer': 'adamw', 'lr': 0.001, 'epochs': 50, 'batch_size': 16, 'seed': 44, 'gradient_method': 'spsa', 'spsa_epsilon': 1e-06, 'spsa_batch_size': 1, '_wandb': {}}
+2026-08-03 21:31:25,547 INFO    MainThread:97051 [wandb_init.py:init():820] starting backend
+2026-08-03 21:31:25,547 INFO    MainThread:97051 [wandb_init.py:init():835] sending inform_init request
+2026-08-03 21:31:25,699 INFO    MainThread:97051 [wandb_init.py:init():840] backend started and connected
+2026-08-03 21:31:25,702 INFO    MainThread:97051 [wandb_init.py:init():910] updated telemetry
+2026-08-03 21:31:25,711 INFO    MainThread:97051 [wandb_init.py:init():933] communicating run to backend with 90.0 second timeout
+2026-08-03 21:31:26,485 INFO    MainThread:97051 [wandb_init.py:init():978] starting run threads in backend
+2026-08-03 21:31:26,605 INFO    MainThread:97051 [wandb_run.py:_console_start():2621] atexit reg
+2026-08-03 21:31:26,605 INFO    MainThread:97051 [wandb_run.py:_redirect():2471] redirect: wrap_raw
+2026-08-03 21:31:26,605 INFO    MainThread:97051 [wandb_run.py:_redirect():2540] Wrapping output streams.
+2026-08-03 21:31:26,605 INFO    MainThread:97051 [wandb_run.py:_redirect():2563] Redirects installed.
+2026-08-03 21:31:26,608 INFO    MainThread:97051 [wandb_init.py:init():1016] run started, returning control to user process
+2026-08-03 21:36:07,131 INFO    MainThread:97051 [wandb_run.py:_finish():2383] finishing run tousi-team/graph-vls/rmhmuqnu
+2026-08-03 21:36:07,132 INFO    MainThread:97051 [wandb_run.py:_atexit_cleanup():2588] got exitcode: 0
+2026-08-03 21:36:07,132 INFO    MainThread:97051 [wandb_run.py:_restore():2570] restore
+2026-08-03 21:36:07,132 INFO    MainThread:97051 [wandb_run.py:_restore():2576] restore done
+2026-08-03 21:36:20,397 INFO    MainThread:97051 [wandb_run.py:_footer_sync_info():3993] logging synced files
