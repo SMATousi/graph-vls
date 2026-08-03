@@ -1,17 +1,28 @@
 #!/usr/bin/env bash
 # T4.10 (plan.md Design Decision 12): dedicated Lorentz-EQGNN literature-
 # comparability run -- GVLS pretraining (once) -> QGNN training + evaluation
-# (repeated across several seeds) -- with the dataset protocol matched to
-# arXiv:2411.01641 Section IV.A.1 exactly (configs/data/qg_jets_lorentz.yaml)
-# and optimizer/lr/batch_size/epochs realigned to sota-table.png Table II
-# (Quark-Gluon dataset, 4 qubits -- our M=4's own architectural choice, not a
-# claim of matching theirs; see the discussion in validation.md V-10).
+# (repeated across several seeds) -- with the QGNN classifier's dataset
+# protocol matched to arXiv:2411.01641 Section IV.A.1 exactly
+# (configs/data/qg_jets_lorentz.yaml) and optimizer/lr/batch_size/epochs
+# realigned to sota-table.png Table II (Quark-Gluon dataset, 4 qubits -- our
+# M=4's own architectural choice, not a claim of matching theirs; see the
+# discussion in validation.md V-10).
 #
 # Only the QGNN classifier is retrained per repeat. GVLS pretraining is
 # skipped after the first run because it is a deterministic, frozen upstream
 # feature extractor (Design Decision 8: no gradient updates to GVLS after
 # pretraining; extract_latent_features has no gradient) -- repeating it would
 # not add any variance the repeats are meant to sample, only cost.
+#
+# GVLS's own pretraining set size (T4.10 followup, validation.md V-11,
+# user-directed) is decoupled from the QGNN's 800-jet comparability subset:
+# GVLS trains on the full NUM_TRAIN-jet pool (see GVLS_TRAIN_SUBSET below),
+# since the paper's 800-jet constraint is about ITS classifier's own
+# training budget -- it has no unsupervised pretraining stage to be fair to.
+# A same-800-jets-everywhere run had produced only ~59% mean test accuracy
+# (vs. Lorentz-EQGNN's 74.00%), and a starved upstream feature extractor was
+# one of two suspected causes alongside an uncalibrated decision threshold
+# (see evaluate_qgnn.py).
 #
 # Each of the 5 trials draws a *different* class-balanced (400/400) 800-jet
 # training subset from the same fixed 10000-jet training pool (user-directed,
@@ -56,11 +67,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # then-ratio-split. DATA_SEED seeds *this* outer partition and is fixed (not
 # swept) across all trials, so every trial shares the exact same val/test.
 #
-# TRAIN_SUBSET(_BALANCED) then draws each trial's 800-jet training subset
-# from the fixed NUM_TRAIN-jet pool -- 400/400 class-balanced (user-
+# TRAIN_SUBSET(_BALANCED) then draws each QGNN trial's 800-jet training
+# subset from the fixed NUM_TRAIN-jet pool -- 400/400 class-balanced (user-
 # directed), reseeded per trial in the loop below via train_subset_seed
 # (distinct from DATA_SEED, see load_split_from_config), so each trial trains
-# on a different 800 jets while val/test never change.
+# on a different 800 jets while val/test never change. This applies to
+# STAGE2/3 (the QGNN classifier) ONLY -- see GVLS_TRAIN_SUBSET below for why
+# stage 1 does not inherit it.
 K_GRAPH_CAP=8
 NUM_TRAIN=10000
 NUM_VAL=1250
@@ -69,6 +82,17 @@ MIN_PARTICLES=10
 TRAIN_SUBSET=800
 TRAIN_SUBSET_BALANCED=true
 DATA_SEED=42
+
+# T4.10 followup (validation.md V-11, user-directed): Lorentz-EQGNN's
+# 800-jet row constrains ITS end-to-end classifier's training budget -- it
+# has no unsupervised pretraining stage at all, so nothing about comparability
+# requires OUR upstream GVLS feature extractor to also be capped at 800
+# jets. GVLS_TRAIN_SUBSET=null means stage 1 pretrains on the full
+# NUM_TRAIN-jet pool instead (better (z_tilde, A_z) for every downstream
+# QGNN trial, at zero cost to the comparability claim); set back to 800 to
+# restore the original matched-budget behavior if ever needed for an
+# apples-to-apples ablation against this change.
+GVLS_TRAIN_SUBSET=null
 
 # --- W&B ---
 WANDB_MODE=online   # offline | online
@@ -130,7 +154,6 @@ DATA_ARGS=(
     "data.num_val=${NUM_VAL}"
     "data.num_test=${NUM_TEST}"
     "data.min_particles=${MIN_PARTICLES}"
-    "data.train_subset=${TRAIN_SUBSET}"
     "data.seed=${DATA_SEED}"
 )
 WANDB_ONLINE_ARGS=()
@@ -138,9 +161,10 @@ if [[ "$WANDB_MODE" == "online" ]]; then
     WANDB_ONLINE_ARGS+=(--online)
 fi
 
-echo "=== [1/3] Pretraining production GVLS checkpoint (M=${GVLS_M}, train_subset=${TRAIN_SUBSET}) -- once, reused across all ${#QGNN_SEEDS[@]} QGNN repeats ==="
+echo "=== [1/3] Pretraining production GVLS checkpoint (M=${GVLS_M}, train_subset=${GVLS_TRAIN_SUBSET} i.e. full ${NUM_TRAIN}-jet pool) -- once, reused across all ${#QGNN_SEEDS[@]} QGNN repeats ==="
 STAGE1_ARGS=(
     "${DATA_ARGS[@]}"
+    "data.train_subset=${GVLS_TRAIN_SUBSET}"
     "${WANDB_ONLINE_ARGS[@]}"
     "train.hidden_dim=${GVLS_HIDDEN_DIM}"
     "train.latent_dim=${GVLS_LATENT_DIM}"
@@ -170,6 +194,7 @@ for SEED in "${QGNN_SEEDS[@]}"; do
     echo "=== [2/3] Training QGNN classifier (seed=${SEED}, training subset reseeded per trial, optimizer=${QGNN_OPTIMIZER}, gradient_method=${QGNN_GRADIENT_METHOD}) ==="
     STAGE2_ARGS=(
         "${DATA_ARGS[@]}"
+        "data.train_subset=${TRAIN_SUBSET}"
         "data.train_subset_balanced=${TRAIN_SUBSET_BALANCED}"
         "data.train_subset_seed=${SEED}"
         "${WANDB_ONLINE_ARGS[@]}"
@@ -194,6 +219,7 @@ for SEED in "${QGNN_SEEDS[@]}"; do
     echo "=== [3/3] Evaluating QGNN on held-out test jets (seed=${SEED}, same fixed test set every trial) ==="
     STAGE3_ARGS=(
         "${DATA_ARGS[@]}"
+        "data.train_subset=${TRAIN_SUBSET}"
         "data.train_subset_balanced=${TRAIN_SUBSET_BALANCED}"
         "data.train_subset_seed=${SEED}"
         "${WANDB_ONLINE_ARGS[@]}"

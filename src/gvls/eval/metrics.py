@@ -112,3 +112,53 @@ def classification_metrics(
         "recall": float(recall_score(yt, y_pred, zero_division=0)),
         "confusion_matrix": cm.tolist(),
     }
+
+
+def select_best_threshold(
+    y_true: ArrayLike, y_logits: ArrayLike, metric: str = "accuracy"
+) -> float:
+    """Pick the probability threshold that maximizes `metric` on a held-out split.
+
+    `classification_metrics`'s default `threshold=0.5` assumes the raw
+    logits are already well-calibrated around a 0.5 decision boundary --
+    not guaranteed for a classifier trained via SPSA/parameter-shift on a
+    small, noisy dataset (a real observation, not hypothetical: a 5-seed
+    QGNN jet-classification repeat sweep saw AUC/AP -- threshold-independent
+    ranking metrics -- stay tight across seeds (e.g. AUC 0.684 +/- 0.009)
+    while fixed-0.5 accuracy/macro-F1/recall swung far more (recall alone
+    ranged 0.644-0.961) -- the signature of a threshold-calibration problem,
+    not a ranking-quality one; see specs/phase4/validation.md V-11).
+
+    Only ever call this on a validation split, never on the split whose
+    score you intend to report -- tuning the threshold against the test set
+    would be leakage.
+
+    Candidates are every distinct predicted probability (plus 0.0 and 1.0):
+    accuracy/F1/etc. as a function of threshold is a step function that only
+    changes value at these points, so this is an exact search over all
+    achievable operating points, not an approximate grid. Ties are broken by
+    the candidate closest to 0.5 -- the least aggressive departure from the
+    un-tuned default among equally-good options.
+    """
+    if metric not in ("accuracy", "macro_f1"):
+        raise ValueError(f"unsupported metric {metric!r}, expected 'accuracy' or 'macro_f1'")
+
+    yt = _to_numpy(y_true).ravel().astype(np.int64)
+    yl = _to_numpy(y_logits).ravel().astype(np.float64)
+    probs = 1.0 / (1.0 + np.exp(-yl))
+
+    candidates = np.unique(np.concatenate([probs, [0.0, 1.0]]))
+    best_threshold = 0.5
+    best_score = -1.0
+    for candidate in candidates:
+        y_pred = (probs > candidate).astype(np.int64)
+        if metric == "accuracy":
+            score = float((yt == y_pred).mean())
+        else:
+            score = float(f1_score(yt, y_pred, average="macro", zero_division=0))
+        if score > best_score or (
+            score == best_score and abs(candidate - 0.5) < abs(best_threshold - 0.5)
+        ):
+            best_score = score
+            best_threshold = float(candidate)
+    return best_threshold

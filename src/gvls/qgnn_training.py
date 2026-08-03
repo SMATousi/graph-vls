@@ -21,7 +21,7 @@ from torch import Tensor
 from tqdm.auto import tqdm
 
 from gvls.data.jets import JetGraph
-from gvls.eval.metrics import classification_metrics
+from gvls.eval.metrics import classification_metrics, select_best_threshold
 from gvls.models.pooling import PooledGVLS
 from gvls.models.qgnn import QGNNClassifier
 
@@ -94,18 +94,14 @@ def qgnn_batch_loss(
 
 
 @torch.no_grad()
-def evaluate_qgnn_classifier(
-    model: QGNNClassifier,
-    features: list[JetFeatures],
-    device: torch.device,
-    batch_size: int = 256,
-) -> dict[str, Any]:
-    """Full classification metrics (accuracy, AUC, AP, macro-F1, precision,
-    recall, confusion matrix) for a QGNNClassifier over a set of jets.
+def compute_qgnn_logits(
+    model: QGNNClassifier, features: list[JetFeatures], device: torch.device, batch_size: int = 256
+) -> tuple[Tensor, Tensor]:
+    """Raw (pre-sigmoid) logits + labels for a QGNNClassifier over a set of jets.
 
-    Batched (T4.8): evaluates `batch_size` jets per circuit call instead of
-    one call per jet, bounding a single Estimator job's size (chunked rather
-    than one call for the whole split, per `plan.md` Design Decision 10).
+    Factored out of `evaluate_qgnn_classifier` (T4.10 followup, validation.md
+    V-11) so `select_best_threshold`'s validation-only threshold search can
+    reuse the same batched forward pass without duplicating it.
     """
     model.eval()
     all_logits: list[Tensor] = []
@@ -115,7 +111,32 @@ def evaluate_qgnn_classifier(
         all_logits.append(model(z_tildes.to(device), a_zs.to(device)).cpu())
     logits = torch.cat(all_logits)
     labels = torch.tensor([f.label for f in features], dtype=torch.float32)
-    return classification_metrics(labels, logits)
+    return logits, labels
+
+
+@torch.no_grad()
+def evaluate_qgnn_classifier(
+    model: QGNNClassifier,
+    features: list[JetFeatures],
+    device: torch.device,
+    batch_size: int = 256,
+    threshold: float = 0.5,
+) -> dict[str, Any]:
+    """Full classification metrics (accuracy, AUC, AP, macro-F1, precision,
+    recall, confusion matrix) for a QGNNClassifier over a set of jets.
+
+    Batched (T4.8): evaluates `batch_size` jets per circuit call instead of
+    one call per jet, bounding a single Estimator job's size (chunked rather
+    than one call for the whole split, per `plan.md` Design Decision 10).
+
+    `threshold` (T4.10 followup, validation.md V-11) defaults to 0.5 for
+    backward compatibility -- pass a validation-selected threshold
+    (`select_best_threshold`) when scoring a held-out test set instead, so a
+    miscalibrated (not necessarily poorly-ranked) classifier isn't penalized
+    by an arbitrary cutoff.
+    """
+    logits, labels = compute_qgnn_logits(model, features, device, batch_size)
+    return classification_metrics(labels, logits, threshold=threshold)
 
 
 _OPTIMIZERS: dict[str, type[torch.optim.Optimizer]] = {
@@ -147,6 +168,7 @@ class QGNNTrainingResult:
     best_val_metrics: dict[str, Any]
     history: list[dict[str, Any]] = field(default_factory=list)
     best_train_metrics: dict[str, Any] = field(default_factory=dict)
+    best_threshold: float = 0.5
 
 
 def train_qgnn_classifier(
@@ -186,7 +208,22 @@ def train_qgnn_classifier(
     re-examining whether the constraint actually applied. See `plan.md`
     Design Decision 10 for the full diagnosis.
     Tracks train/val loss and the full metric suite each epoch; returns the
-    state dict from whichever epoch had the best validation accuracy.
+    state dict from whichever epoch had the best validation accuracy (always
+    judged at the fixed `threshold=0.5` `best_val_metrics` already used, so
+    epoch selection is unaffected by the threshold tuning below).
+
+    `result.best_threshold` (T4.10 followup, validation.md V-11) is a
+    validation-selected decision threshold (`select_best_threshold`,
+    `metric="accuracy"`) computed once from the best epoch's own val logits
+    -- report/apply this at test time (`evaluate_qgnn_classifier`'s
+    `threshold` argument) instead of the default 0.5, since a small,
+    SPSA/parameter-shift-trained classifier's raw logits aren't guaranteed
+    to be well-calibrated around 0.5 even when their ranking (AUC/AP) is
+    good. `best_train_metrics` is computed at this tuned threshold (not
+    0.5) so it's reported on the same basis as the eventual tuned test
+    accuracy; `best_val_metrics` stays at 0.5 -- it's the per-epoch
+    selection criterion's own record, not a number this function tunes
+    against itself.
 
     `on_epoch_end`, if given, is called once per epoch as
     `on_epoch_end(epoch, metrics)` with that epoch's `{"epoch", "train_loss",
@@ -258,7 +295,18 @@ def train_qgnn_classifier(
     # of reporting both -- computed once, on the best-val-accuracy weights,
     # not re-derived from the (val-only) per-epoch history.
     model.load_state_dict(best_state_dict)
-    best_train_metrics = evaluate_qgnn_classifier(model, train_features, device)
+
+    # T4.10 followup (validation.md V-11): select a validation-only decision
+    # threshold from the best epoch's own val logits (never the test set --
+    # that would be leakage), then report train metrics on that same
+    # calibrated basis rather than the raw 0.5 default.
+    val_logits, val_labels = compute_qgnn_logits(model, val_features, device)
+    best_threshold = select_best_threshold(val_labels, val_logits, metric="accuracy")
+
+    train_logits, train_labels = compute_qgnn_logits(model, train_features, device)
+    best_train_metrics = classification_metrics(
+        train_labels, train_logits, threshold=best_threshold
+    )
 
     return QGNNTrainingResult(
         best_state_dict=best_state_dict,
@@ -266,6 +314,7 @@ def train_qgnn_classifier(
         best_val_metrics=best_val_metrics,
         history=history,
         best_train_metrics=best_train_metrics,
+        best_threshold=best_threshold,
     )
 
 

@@ -23,6 +23,17 @@ matched to the literature table's -- reported plainly, not implying parity.
 Checkpoints saved before T4.10 lack the two training-side fields; this script
 reports them as unavailable rather than fabricating a number.
 
+T4.10 followup (validation.md V-11): the primary reported test metrics now
+use the validation-selected decision threshold persisted in the QGNN
+checkpoint's config (`train_qgnn_classifier`'s `best_threshold`) instead of
+the fixed 0.5 default -- a 5-seed repeat sweep found accuracy/macro-F1/
+recall swinging far more across seeds than the threshold-independent AUC/AP
+did, the signature of a miscalibrated cutoff rather than a poorly-ranked
+classifier. The fixed-0.5 accuracy is still computed and reported alongside
+(as `test_accuracy_fixed_threshold_0.5`) so the size of that effect is
+visible, not hidden. Checkpoints saved before this change lack a persisted
+threshold and fall back to 0.5 (both numbers then coincide).
+
 Usage:
     python experiments/evaluate_qgnn.py
     python experiments/evaluate_qgnn.py gvls_checkpoint_path=checkpoints/gvls_jets_m6.pt \
@@ -40,8 +51,9 @@ from omegaconf import DictConfig, OmegaConf
 import wandb
 from gvls.compression.jet_sweep import load_gvls_checkpoint
 from gvls.data.jets import load_split_from_config
+from gvls.eval.metrics import classification_metrics
 from gvls.qgnn_training import (
-    evaluate_qgnn_classifier,
+    compute_qgnn_logits,
     extract_latent_features,
     load_qgnn_checkpoint,
 )
@@ -85,9 +97,24 @@ def main(cfg: DictConfig) -> None:
     )
 
     test_features = extract_latent_features(gvls_model, split.test, device)
+
+    # T4.10 followup (validation.md V-11): validation-selected threshold,
+    # persisted by train_qgnn.py -- falls back to 0.5 for checkpoints saved
+    # before this change (in which case both metrics dicts below coincide).
+    threshold = qgnn_config.get("threshold")
+    if threshold is None:
+        threshold = 0.5
+        threshold_source = "default (checkpoint predates threshold tuning)"
+    else:
+        threshold = float(threshold)
+        threshold_source = "validation-selected (train_qgnn.py)"
+
     inference_start = time.perf_counter()
-    metrics = evaluate_qgnn_classifier(qgnn_model, test_features, device)
+    test_logits, test_labels = compute_qgnn_logits(qgnn_model, test_features, device)
     inference_time_s = time.perf_counter() - inference_start
+
+    metrics = classification_metrics(test_labels, test_logits, threshold=threshold)
+    metrics_fixed = classification_metrics(test_labels, test_logits, threshold=0.5)
 
     # T4.10: read back what train_qgnn.py measured/persisted at training time.
     # `.get(...)` defaults to None for checkpoints saved before T4.10 --
@@ -97,16 +124,27 @@ def main(cfg: DictConfig) -> None:
     training_time_s = qgnn_config.get("training_time_s")
 
     wandb.log({f"test_{key}": val for key, val in metrics.items() if key != "confusion_matrix"})
-    wandb.log({"inference_time_s": inference_time_s})
+    wandb.log(
+        {
+            "inference_time_s": inference_time_s,
+            "test_accuracy_fixed_threshold_0.5": metrics_fixed["accuracy"],
+            "threshold": threshold,
+        }
+    )
     if train_accuracy is not None:
         wandb.log({"train_accuracy": train_accuracy, "training_time_s": training_time_s})
 
-    print("\nTest-set metrics:")
+    print("\nTest-set metrics (at the validation-selected threshold):")
     for key in ("accuracy", "auc", "ap", "macro_f1", "precision", "recall"):
         print(f"  {key:12s}: {metrics[key]:.4f}")
     print(
         "  confusion_matrix (rows=true, cols=pred, label 0=quark/1=gluon): "
         f"{metrics['confusion_matrix']}"
+    )
+    print(f"  threshold used: {threshold:.4f} ({threshold_source})")
+    print(
+        f"  accuracy at fixed threshold=0.5 (for comparison): {metrics_fixed['accuracy']:.4f}  "
+        f"(delta: {metrics['accuracy'] - metrics_fixed['accuracy']:+.4f})"
     )
     def _fmt(val: float | str | None, spec: str = "") -> str:
         # checkpoints saved before T4.10 lack train_accuracy/training_time_s
@@ -135,6 +173,8 @@ def main(cfg: DictConfig) -> None:
         "num_test_jets": len(split.test),
         "train_accuracy": train_accuracy,
         "test_accuracy": metrics["accuracy"],
+        "test_accuracy_fixed_threshold_0.5": metrics_fixed["accuracy"],
+        "threshold": threshold,
         "training_time_s": training_time_s,
         "inference_time_s": inference_time_s,
         **metrics,

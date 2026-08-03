@@ -105,9 +105,20 @@ def main(cfg: DictConfig) -> None:
         f"val_auc={best['auc']:.4f}  val_macro_f1={best['macro_f1']:.4f}"
     )
     print(f"train_accuracy={train_accuracy:.4f}  training_time_s={training_time_s:.2f}")
+    # T4.10 followup (validation.md V-11): validation-selected decision
+    # threshold (see train_qgnn_classifier's docstring) -- persisted below so
+    # evaluate_qgnn.py applies the same calibrated cutoff to the test set
+    # instead of defaulting to 0.5.
+    print(f"threshold (val-selected)={result.best_threshold:.4f}")
     # NFR-5 (T4.10): this wall-clock number is our own hardware's, not
     # matched to the literature table's -- report plainly, don't imply parity.
-    wandb.log({"train_accuracy": train_accuracy, "training_time_s": training_time_s})
+    wandb.log(
+        {
+            "train_accuracy": train_accuracy,
+            "training_time_s": training_time_s,
+            "threshold": result.best_threshold,
+        }
+    )
 
     config = {
         "m": m,
@@ -117,6 +128,7 @@ def main(cfg: DictConfig) -> None:
         "optimizer": optimizer_name,
         "train_accuracy": train_accuracy,
         "training_time_s": training_time_s,
+        "threshold": result.best_threshold,
     }
     save_qgnn_checkpoint(result.best_state_dict, config, str(cfg.qgnn_checkpoint_path))
     print(f"Saved best QGNN checkpoint to {cfg.qgnn_checkpoint_path}")

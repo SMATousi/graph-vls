@@ -32,6 +32,8 @@ import wandb
 
 NUMERIC_KEYS = [
     "test_accuracy",
+    "test_accuracy_fixed_threshold_0.5",  # T4.10 followup, validation.md V-11
+    "threshold",
     "auc",
     "ap",
     "macro_f1",
@@ -93,6 +95,16 @@ def main() -> None:
             f"Lorentz-EQGNN (literature): {LORENTZ_EQGNN_TEST_ACCURACY:.4f} +/- "
             f"{LORENTZ_EQGNN_TEST_ACCURACY_STD:.4f}  "
             "(sota-table.png Table II, Quark-Gluon, 4 qubits)"
+        )
+    if "test_accuracy_fixed_threshold_0.5_mean" in summary:
+        # T4.10 followup (validation.md V-11): how much validation-selected
+        # threshold tuning moved the reported number, averaged across trials.
+        fixed_mean = summary["test_accuracy_fixed_threshold_0.5_mean"]
+        delta = summary["test_accuracy_mean"] - fixed_mean
+        print(
+            f"Fixed threshold=0.5 accuracy (for comparison): {fixed_mean:.4f} +/- "
+            f"{summary['test_accuracy_fixed_threshold_0.5_std']:.4f}  "
+            f"(delta from tuned: {delta:+.4f})"
         )
     print(f"Written to {out_path}")
 

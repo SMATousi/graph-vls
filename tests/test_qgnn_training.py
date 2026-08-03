@@ -2,6 +2,7 @@ import tempfile
 from pathlib import Path
 
 import numpy as np
+import pytest
 import torch
 
 from gvls.compression.jet_sweep import (
@@ -10,9 +11,11 @@ from gvls.compression.jet_sweep import (
     save_gvls_checkpoint,
 )
 from gvls.data.jets import NUM_FEATURES, PDGIDS, build_jet_graph
+from gvls.eval.metrics import classification_metrics
 from gvls.qgnn_training import (
     JetFeatures,
     collate_jet_features,
+    compute_qgnn_logits,
     evaluate_qgnn_classifier,
     extract_latent_features,
     load_qgnn_checkpoint,
@@ -214,6 +217,31 @@ def test_train_qgnn_classifier_result_includes_best_train_metrics() -> None:
 
     assert "accuracy" in result.best_train_metrics
     assert 0.0 <= result.best_train_metrics["accuracy"] <= 1.0
+
+
+def test_train_qgnn_classifier_result_includes_best_threshold() -> None:
+    """T4.10 followup (validation.md V-11): a validation-selected decision
+    threshold is computed once at the end of training, rather than assuming
+    the raw logits are calibrated around the fixed 0.5 default."""
+    train_features = _tiny_features(6, seed_offset=0)
+    val_features = _tiny_features(4, seed_offset=100)
+
+    result = train_qgnn_classifier(
+        train_features, val_features, m=M, d=LATENT_DIM, num_layers=1,
+        lr=0.1, epochs=2, seed=42, device=DEVICE, batch_size=3, show_progress=False,
+    )
+
+    assert 0.0 <= result.best_threshold <= 1.0
+    # best_train_metrics must be reported at that same tuned threshold, not
+    # the raw 0.5 default, so train/test accuracy are on the same basis.
+    from gvls.models.qgnn import QGNNClassifier
+
+    model = QGNNClassifier(m=M, d=LATENT_DIM, num_layers=1, seed=0).to(DEVICE)
+    model.load_state_dict(result.best_state_dict)
+    model.eval()
+    train_logits, train_labels = compute_qgnn_logits(model, train_features, DEVICE)
+    expected = classification_metrics(train_labels, train_logits, threshold=result.best_threshold)
+    assert result.best_train_metrics["accuracy"] == pytest.approx(expected["accuracy"])
 
 
 def test_train_qgnn_classifier_handles_ragged_final_minibatch() -> None:

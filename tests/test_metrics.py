@@ -2,7 +2,13 @@ import numpy as np
 import pytest
 import torch
 
-from gvls.eval.metrics import auc_ap, bits_per_edge, classification_metrics, node_accuracy
+from gvls.eval.metrics import (
+    auc_ap,
+    bits_per_edge,
+    classification_metrics,
+    node_accuracy,
+    select_best_threshold,
+)
 
 # ── auc_ap ────────────────────────────────────────────────────────────────────
 
@@ -158,3 +164,39 @@ def test_classification_metrics_threshold_affects_predictions() -> None:
     lower_threshold = classification_metrics(y_true, logits, threshold=0.45)
     assert default_threshold["accuracy"] == pytest.approx(0.75)
     assert lower_threshold["accuracy"] == pytest.approx(1.0)
+
+
+# ── select_best_threshold ────────────────────────────────────────────────────
+
+def test_select_best_threshold_finds_perfect_threshold_when_available() -> None:
+    # Same scenario as test_classification_metrics_threshold_affects_predictions:
+    # the fixed 0.5 default misses a perfect-accuracy threshold that exists
+    # among the data's own probabilities.
+    y_true = np.array([1, 1, 1, 0])
+    logits = np.array([0.3, 0.1, -0.05, -0.3])
+    threshold = select_best_threshold(y_true, logits, metric="accuracy")
+    tuned = classification_metrics(y_true, logits, threshold=threshold)
+    assert tuned["accuracy"] == pytest.approx(1.0)
+
+
+def test_select_best_threshold_never_worse_than_default() -> None:
+    rng = np.random.default_rng(3)
+    y_true = rng.integers(0, 2, size=50)
+    logits = rng.standard_normal(50)
+    threshold = select_best_threshold(y_true, logits, metric="accuracy")
+    tuned_acc = classification_metrics(y_true, logits, threshold=threshold)["accuracy"]
+    default_acc = classification_metrics(y_true, logits, threshold=0.5)["accuracy"]
+    assert tuned_acc >= default_acc
+
+
+def test_select_best_threshold_supports_macro_f1() -> None:
+    rng = np.random.default_rng(4)
+    y_true = rng.integers(0, 2, size=50)
+    logits = rng.standard_normal(50)
+    threshold = select_best_threshold(y_true, logits, metric="macro_f1")
+    assert 0.0 <= threshold <= 1.0
+
+
+def test_select_best_threshold_rejects_unknown_metric() -> None:
+    with pytest.raises(ValueError):
+        select_best_threshold(np.array([1, 0]), np.array([1.0, -1.0]), metric="bogus")
