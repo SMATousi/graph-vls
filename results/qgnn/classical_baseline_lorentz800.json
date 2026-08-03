@@ -1,0 +1,22 @@
+{
+  "num_trials": 5,
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "logreg_accuracy_mean": 0.69072,
+  "logreg_accuracy_std": 0.008189749690924631,
+  "logreg_auc_mean": 0.758122064765399,
+  "logreg_auc_std": 0.009836099880574722,
+  "logreg_macro_f1_mean": 0.6893758128657214,
+  "logreg_macro_f1_std": 0.008647416379304579,
+  "mlp_accuracy_mean": 0.6948799999999999,
+  "mlp_accuracy_std": 0.010860570887388944,
+  "mlp_auc_mean": 0.7611889285448922,
+  "mlp_auc_std": 0.006944747424798461,
+  "mlp_macro_f1_mean": 0.6944001982129974,
+  "mlp_macro_f1_std": 0.011179172444816133
+}
