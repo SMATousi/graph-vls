@@ -115,10 +115,27 @@ GVLS_EPOCHS=200
 GVLS_BATCH_SIZE=32
 GVLS_SEED=42
 GVLS_CHECKPOINT_PATH="checkpoints/gvls_jets_m${GVLS_M}_lorentz800.pt"
+# T4.10 followup (validation.md V-11, user-directed): re-running this script
+# (e.g. to pick up the QGNN_NUM_LAYERS re-uploading fix below) must NOT
+# retrain GVLS from scratch if a checkpoint from a prior run already exists
+# at GVLS_CHECKPOINT_PATH -- pretraining is the expensive, unrelated-to-this-
+# fix stage 1, and the whole point is to reuse its already-trained output.
+# Set to false to force a fresh GVLS pretraining run regardless.
+SKIP_GVLS_PRETRAIN_IF_CHECKPOINT_EXISTS=true
 
 # --- Stage 2/3: QGNN training + evaluation, repeated per seed --
 #     configs/train/qgnn_classifier.yaml ---
-QGNN_NUM_LAYERS=1
+# T4.10 followup (validation.md V-11, user-directed): QGNNClassifier.encode_input
+# re-uploads z_tilde dimension `layer % d` at each layer -- at the old
+# num_layers=1 default, every jet's circuit only ever saw dimension 0 of
+# GVLS's 8-dim z_tilde, discarding the other 7 before the circuit ever saw
+# them (the classical-baseline diagnostic used the full 32-dim z_tilde and
+# beat the QGNN by ~2.6 points on the same features). Setting
+# QGNN_NUM_LAYERS=GVLS_LATENT_DIM re-uploads every dimension exactly once
+# across the circuit's layers, closing that gap structurally. Must track
+# GVLS_LATENT_DIM, not a fixed number, or re-uploading coverage silently
+# regresses if GVLS_LATENT_DIM ever changes.
+QGNN_NUM_LAYERS=${GVLS_LATENT_DIM}
 # T4.10 (plan.md Design Decision 12): realigned to the Lorentz-EQGNN
 # literature baseline for direct comparability.
 QGNN_OPTIMIZER=adamw
@@ -161,30 +178,34 @@ if [[ "$WANDB_MODE" == "online" ]]; then
     WANDB_ONLINE_ARGS+=(--online)
 fi
 
-echo "=== [1/3] Pretraining production GVLS checkpoint (M=${GVLS_M}, train_subset=${GVLS_TRAIN_SUBSET} i.e. full ${NUM_TRAIN}-jet pool) -- once, reused across all ${#QGNN_SEEDS[@]} QGNN repeats ==="
-STAGE1_ARGS=(
-    "${DATA_ARGS[@]}"
-    "data.train_subset=${GVLS_TRAIN_SUBSET}"
-    "${WANDB_ONLINE_ARGS[@]}"
-    "train.hidden_dim=${GVLS_HIDDEN_DIM}"
-    "train.latent_dim=${GVLS_LATENT_DIM}"
-    "train.k=${GVLS_K}"
-    "train.m=${GVLS_M}"
-    "train.graph_method=${GVLS_GRAPH_METHOD}"
-    "train.prior=${GVLS_PRIOR}"
-    "train.mp_rounds=${GVLS_MP_ROUNDS}"
-    "train.lr=${GVLS_LR}"
-    "train.beta=${GVLS_BETA}"
-    "train.lambda_=${GVLS_LAMBDA}"
-    "train.epochs=${GVLS_EPOCHS}"
-    "train.batch_size=${GVLS_BATCH_SIZE}"
-    "train.seed=${GVLS_SEED}"
-    "checkpoint_path=${GVLS_CHECKPOINT_PATH}"
-    "wandb.name=gvls-jets-M${GVLS_M}-lorentz800"
-    "wandb.group=${WANDB_GROUP}"
-    "wandb.tags=${WANDB_TAGS}"
-)
-"${SCRIPT_DIR}/run_pretrain_gvls_jets_final.sh" "${STAGE1_ARGS[@]}"
+if [[ "$SKIP_GVLS_PRETRAIN_IF_CHECKPOINT_EXISTS" == "true" && -f "$GVLS_CHECKPOINT_PATH" ]]; then
+    echo "=== [1/3] GVLS checkpoint already exists at ${GVLS_CHECKPOINT_PATH} -- skipping pretraining, reusing it as-is ==="
+else
+    echo "=== [1/3] Pretraining production GVLS checkpoint (M=${GVLS_M}, train_subset=${GVLS_TRAIN_SUBSET} i.e. full ${NUM_TRAIN}-jet pool) -- once, reused across all ${#QGNN_SEEDS[@]} QGNN repeats ==="
+    STAGE1_ARGS=(
+        "${DATA_ARGS[@]}"
+        "data.train_subset=${GVLS_TRAIN_SUBSET}"
+        "${WANDB_ONLINE_ARGS[@]}"
+        "train.hidden_dim=${GVLS_HIDDEN_DIM}"
+        "train.latent_dim=${GVLS_LATENT_DIM}"
+        "train.k=${GVLS_K}"
+        "train.m=${GVLS_M}"
+        "train.graph_method=${GVLS_GRAPH_METHOD}"
+        "train.prior=${GVLS_PRIOR}"
+        "train.mp_rounds=${GVLS_MP_ROUNDS}"
+        "train.lr=${GVLS_LR}"
+        "train.beta=${GVLS_BETA}"
+        "train.lambda_=${GVLS_LAMBDA}"
+        "train.epochs=${GVLS_EPOCHS}"
+        "train.batch_size=${GVLS_BATCH_SIZE}"
+        "train.seed=${GVLS_SEED}"
+        "checkpoint_path=${GVLS_CHECKPOINT_PATH}"
+        "wandb.name=gvls-jets-M${GVLS_M}-lorentz800"
+        "wandb.group=${WANDB_GROUP}"
+        "wandb.tags=${WANDB_TAGS}"
+    )
+    "${SCRIPT_DIR}/run_pretrain_gvls_jets_final.sh" "${STAGE1_ARGS[@]}"
+fi
 
 for SEED in "${QGNN_SEEDS[@]}"; do
     QGNN_CHECKPOINT_PATH="checkpoints/qgnn_jets_m${GVLS_M}_lorentz800_seed${SEED}.pt"
