@@ -1,5 +1,6 @@
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -231,6 +232,57 @@ def test_no_eval_jets_means_no_val_metrics_and_no_crash() -> None:
     )
     for metrics in calls:
         assert not any(key.startswith("val_") for key in metrics)
+
+
+def test_best_val_f1_checkpoint_is_restored_not_last_epoch() -> None:
+    # F1 peaks at epoch 1, not the final epoch (2) -- the returned model must
+    # carry epoch 1's weights, not whatever epoch 2 ended up at.
+    train_jets = _jet_set(6, seed_offset=0)
+    eval_jets = _jet_set(4, seed_offset=500)
+    f1_sequence = [0.5, 0.9, 0.6]
+    snapshots: list[dict] = []
+
+    real_evaluate = evaluate_pooled_gvls_on_jets
+
+    def fake_evaluate(model, *args, **kwargs):
+        snapshots.append({name: t.clone() for name, t in model.state_dict().items()})
+        metrics = real_evaluate(model, *args, **kwargs)
+        metrics["avg_reconstruction_f1"] = f1_sequence[len(snapshots) - 1]
+        return metrics
+
+    with patch(
+        "gvls.compression.jet_sweep.evaluate_pooled_gvls_on_jets", side_effect=fake_evaluate
+    ):
+        model = train_pooled_gvls_on_jets(
+            train_jets, in_channels=IN_CHANNELS, latent_dim=LATENT_DIM, k=K, num_clusters=M,
+            base_cfg=_base_cfg(), epochs=3, seed=42, device=torch.device("cpu"), batch_size=3,
+            eval_jets=eval_jets, eval_every=1,
+        )
+
+    assert len(snapshots) == 3
+    best_snapshot, last_snapshot = snapshots[1], snapshots[2]
+    returned = model.state_dict()
+    for name, tensor in best_snapshot.items():
+        assert torch.allclose(returned[name], tensor)
+    assert any(
+        not torch.allclose(returned[name], last_snapshot[name]) for name in last_snapshot
+    )
+
+
+def test_no_eval_jets_still_returns_last_epoch_model() -> None:
+    # No validation signal exists to select a "best" epoch from -- behavior
+    # must stay exactly what it was before best-val-F1 tracking existed.
+    jets = [_synthetic_jet(20 + i, seed=i) for i in range(6)]
+    torch.manual_seed(123)
+    model = train_pooled_gvls_on_jets(
+        jets, in_channels=IN_CHANNELS, latent_dim=LATENT_DIM, k=K, num_clusters=M,
+        base_cfg=_base_cfg(), epochs=2, seed=42, device=torch.device("cpu"), batch_size=3,
+    )
+    model.eval()
+    with torch.no_grad():
+        for jet in jets:
+            *_, recon_logits = model(jet.x, jet.edge_index)
+            assert not torch.isnan(recon_logits).any()
 
 
 def test_jet_pos_weight_matches_formula() -> None:

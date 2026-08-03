@@ -190,11 +190,28 @@ def train_pooled_gvls_on_jets(
     eval_jets was given and this was an eval epoch)}` -- the natural hook for
     live per-epoch logging (e.g. `wandb.log`) without coupling this reusable
     training function to any specific logging backend.
+
+    Whenever `eval_jets` is given, the returned model's weights are the
+    best-val-`avg_reconstruction_f1` snapshot seen across eval epochs, not
+    necessarily the final epoch's -- mirrors `train_qgnn_classifier`'s
+    best-val-accuracy checkpointing (`src/gvls/qgnn_training.py`), which this
+    function lacked until now (specs/phase4/validation.md V-10: GVLS
+    pretraining was returning the last-epoch model unconditionally, even
+    when a later epoch had drifted to worse validation fidelity than an
+    earlier one). If `eval_jets` is `None`, no validation signal exists to
+    select a "best" epoch from, so behavior is unchanged: the last-epoch
+    model is returned. The return type stays `PooledGVLS` either way (the
+    best weights are loaded into `model` in place before returning) so every
+    existing caller works unmodified.
     """
     torch.manual_seed(seed)
     model = build_pooled_gvls(in_channels, latent_dim, k, num_clusters, base_cfg).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=float(base_cfg["lr"]))
     shuffle_generator = torch.Generator().manual_seed(seed)
+
+    best_val_f1 = -1.0
+    best_epoch = -1
+    best_state_dict: dict[str, Tensor] | None = None
 
     epoch_iter = tqdm(range(epochs), desc=progress_desc, disable=not show_progress)
     for epoch in epoch_iter:
@@ -238,12 +255,24 @@ def train_pooled_gvls_on_jets(
                     if key not in _STATIC_EVAL_KEYS
                 }
             )
-            postfix["val_f1"] = eval_metrics["avg_reconstruction_f1"]
+            val_f1 = eval_metrics["avg_reconstruction_f1"]
+            postfix["val_f1"] = val_f1
+            if val_f1 > best_val_f1:
+                best_val_f1 = val_f1
+                best_epoch = epoch
+                best_state_dict = {name: t.clone() for name, t in model.state_dict().items()}
         epoch_iter.set_postfix(**postfix)
 
         if on_epoch_end is not None:
             on_epoch_end(epoch, epoch_metrics)
 
+    if best_state_dict is not None:
+        model.load_state_dict(best_state_dict)
+        if show_progress:
+            tqdm.write(
+                f"{progress_desc}: restoring best-val-F1 checkpoint "
+                f"(epoch={best_epoch}, val_f1={best_val_f1:.4f})"
+            )
     model.eval()
     return model
 
