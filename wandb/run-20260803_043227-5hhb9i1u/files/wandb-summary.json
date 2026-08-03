@@ -1,0 +1,1 @@
+{"test_auc":0.6595422507244408,"test_recall":0.7013996889580093,"_timestamp":1.7857315534575543e+09,"_step":2,"inference_time_s":0.8622067220276222,"_runtime":6,"training_time_s":586.433325826074,"_wandb":{"runtime":6},"test_macro_f1":0.5805125859256841,"test_ap":0.6969293462965096,"train_accuracy":0.5925,"test_precision":0.582687338501292,"test_accuracy":0.588}

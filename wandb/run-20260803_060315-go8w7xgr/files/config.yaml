@@ -1,0 +1,127 @@
+_wandb:
+    value:
+        cli_version: 0.28.1
+        e:
+            k1grz3jgg7bb49wkw1cquu0pvbxbb9gg:
+                args:
+                    - data=qg_jets_lorentz
+                    - data.k_graph_cap=8
+                    - data.num_train=10000
+                    - data.num_val=1250
+                    - data.num_test=1250
+                    - data.min_particles=10
+                    - data.train_subset=800
+                    - data.seed=42
+                    - wandb.mode=online
+                    - train.hidden_dim=32
+                    - train.latent_dim=8
+                    - train.k=3
+                    - train.m=4
+                    - train.graph_method=attention
+                    - train.prior=isotropic
+                    - train.mp_rounds=1
+                    - train.lr=0.01
+                    - train.beta=0.001
+                    - train.lambda_=1.0
+                    - train.epochs=200
+                    - train.batch_size=32
+                    - train.seed=42
+                    - checkpoint_path=checkpoints/gvls_jets_m4_lorentz800.pt
+                    - wandb.name=gvls-jets-M4-lorentz800
+                    - wandb.group=qgnn-jet-classification-lorentz800
+                    - wandb.tags=[lorentz-comparability,qg-jets-800]
+                codePath: experiments/pretrain_gvls_jets_final.py
+                codePathLocal: experiments/pretrain_gvls_jets_final.py
+                cpu_count: 128
+                cpu_count_logical: 256
+                cudaVersion: "13.2"
+                disk:
+                    /:
+                        total: "1599929212928"
+                        used: "1037045346304"
+                email: stmmc@umsystem.edu
+                executable: /opt/conda/envs/graph-vls/bin/python
+                git:
+                    commit: b54aa3b9552f97fa48b5549ee1ce7a1ca42855c3
+                    remote: git@github.com:SMATousi/graph-vls.git
+                gpu: NVIDIA A100-SXM4-80GB
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ampere
+                      cudaCores: 6912
+                      memoryTotal: "85899345920"
+                      name: NVIDIA A100-SXM4-80GB
+                      uuid: GPU-6d639b10-70fe-303c-3580-1e02f54673d7
+                host: 2-ali-100-dep-vigir-575d848757-fv66n
+                memory:
+                    total: "1081702211584"
+                os: Linux-6.8.0-136-generic-x86_64-with-glibc2.35
+                program: /root/home/graph-vls/experiments/pretrain_gvls_jets_final.py
+                python: CPython 3.11.15
+                root: /root/home/graph-vls
+                startedAt: "2026-08-03T06:03:15.417192Z"
+                writerId: k1grz3jgg7bb49wkw1cquu0pvbxbb9gg
+        m: []
+        python_version: 3.11.15
+        t:
+            "1":
+                - 1
+                - 5
+                - 50
+                - 53
+                - 77
+            "2":
+                - 1
+                - 5
+                - 50
+                - 53
+                - 77
+            "3":
+                - 2
+                - 13
+                - 15
+                - 16
+                - 61
+            "4": 3.11.15
+            "5": 0.28.1
+            "12": 0.28.1
+            "13": linux-x86_64
+batch_size:
+    value: 32
+beta:
+    value: 0.001
+data:
+    value:
+        k_graph_cap: 8
+        min_particles: 10
+        name: qg_jets
+        num_test: 1250
+        num_train: 10000
+        num_val: 1250
+        protocol: lorentz
+        seed: 42
+        train_subset: 800
+        train_subset_balanced: false
+        train_subset_seed: null
+epochs:
+    value: 200
+graph_method:
+    value: attention
+hidden_dim:
+    value: 32
+k:
+    value: 3
+lambda_:
+    value: 1
+latent_dim:
+    value: 8
+lr:
+    value: 0.01
+m:
+    value: 4
+mp_rounds:
+    value: 1
+prior:
+    value: isotropic
+seed:
+    value: 42

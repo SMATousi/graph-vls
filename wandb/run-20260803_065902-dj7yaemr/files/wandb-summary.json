@@ -1,0 +1,1 @@
+{"_timestamp":1.7857403464699764e+09,"inference_time_s":0.32607127097435296,"train_accuracy":0.67625,"training_time_s":294.5184325390728,"_runtime":5,"test_precision":0.6175637393767706,"_step":2,"test_macro_f1":0.6159912513629493,"test_recall":0.6780715396578538,"test_accuracy":0.6184,"test_ap":0.7285976593411936,"_wandb":{"runtime":5},"test_auc":0.6757605027914353}

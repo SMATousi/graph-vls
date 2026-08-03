@@ -1,0 +1,51 @@
+{
+  "os":  "Linux-6.8.0-136-generic-x86_64-with-glibc2.35",
+  "python":  "CPython 3.11.15",
+  "startedAt":  "2026-08-03T05:15:13.294166Z",
+  "args":  [
+    "results/qgnn/qg_jets_metrics_lorentz800_seed*.json",
+    "--output",
+    "results/qgnn/qg_jets_metrics_lorentz800_summary.json",
+    "--wandb-mode",
+    "online",
+    "--wandb-group",
+    "qgnn-jet-classification-lorentz800",
+    "--wandb-name",
+    "qgnn-M8-lorentz800-summary"
+  ],
+  "program":  "/root/home/graph-vls/experiments/aggregate_qgnn_repeats.py",
+  "codePath":  "experiments/aggregate_qgnn_repeats.py",
+  "codePathLocal":  "experiments/aggregate_qgnn_repeats.py",
+  "git":  {
+    "remote":  "git@github.com:SMATousi/graph-vls.git",
+    "commit":  "0e830cab043400e39fb274d32ce926d5c49835c4"
+  },
+  "email":  "stmmc@umsystem.edu",
+  "root":  "/root/home/graph-vls",
+  "host":  "2-ali-100-dep-vigir-575d848757-fv66n",
+  "executable":  "/opt/conda/envs/graph-vls/bin/python",
+  "cpu_count":  128,
+  "cpu_count_logical":  256,
+  "gpu":  "NVIDIA A100-SXM4-80GB",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "1599929212928",
+      "used":  "1034156802048"
+    }
+  },
+  "memory":  {
+    "total":  "1081702211584"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA A100-SXM4-80GB",
+      "memoryTotal":  "85899345920",
+      "cudaCores":  6912,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-6d639b10-70fe-303c-3580-1e02f54673d7"
+    }
+  ],
+  "cudaVersion":  "13.2",
+  "writerId":  "81kmebge7nlxtanhu5fvltn3izwutof0"
+}

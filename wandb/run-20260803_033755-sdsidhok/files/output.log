@@ -1,0 +1,3 @@
+pretrain GVLS (production, M=8): 100%|██████████| 200/200 [43:58<00:00, 13.19s/it, loss=4.75, val_f1=0.732]
+
+Saved production GVLS checkpoint (M=8) to checkpoints/gvls_jets_m8_lorentz800.pt

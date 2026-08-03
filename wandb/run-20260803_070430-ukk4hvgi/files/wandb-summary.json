@@ -1,0 +1,1 @@
+{"test_macro_f1":0.4007592279016254,"inference_time_s":0.34669250599108636,"train_accuracy":0.5075,"test_precision":0.5224006762468301,"test_accuracy":0.528,"training_time_s":279.73224411706906,"test_recall":0.9611197511664075,"test_ap":0.7333793171525282,"_step":2,"_runtime":5,"_timestamp":1.7857406756143682e+09,"_wandb":{"runtime":5},"test_auc":0.6901365868906306}

@@ -1,0 +1,26 @@
+{
+  "m": 4,
+  "num_layers": 1,
+  "optimizer": "adamw",
+  "num_test_jets": 1250,
+  "train_accuracy": 0.5925,
+  "test_accuracy": 0.612,
+  "training_time_s": 278.14220131898765,
+  "inference_time_s": 0.3975926690036431,
+  "accuracy": 0.612,
+  "auc": 0.6942667325986867,
+  "ap": 0.7335767620487899,
+  "macro_f1": 0.6003970652501334,
+  "precision": 0.5963414634146341,
+  "recall": 0.76049766718507,
+  "confusion_matrix": [
+    [
+      276,
+      331
+    ],
+    [
+      154,
+      489
+    ]
+  ]
+}
