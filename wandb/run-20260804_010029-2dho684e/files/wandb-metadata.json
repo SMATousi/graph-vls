@@ -1,0 +1,67 @@
+{
+  "os":  "Linux-6.8.0-136-generic-x86_64-with-glibc2.35",
+  "python":  "CPython 3.11.15",
+  "startedAt":  "2026-08-04T01:00:29.503412Z",
+  "args":  [
+    "data=qg_jets_lorentz",
+    "data.k_graph_cap=8",
+    "data.num_train=10000",
+    "data.num_val=1250",
+    "data.num_test=1250",
+    "data.min_particles=10",
+    "data.seed=42",
+    "data.train_subset=800",
+    "data.train_subset_balanced=true",
+    "data.train_subset_seed=42",
+    "wandb.mode=online",
+    "train.num_layers=8",
+    "train.optimizer=adamw",
+    "train.lr=0.001",
+    "train.epochs=150",
+    "train.batch_size=16",
+    "train.seed=42",
+    "train.gradient_method=spsa",
+    "train.spsa_epsilon=1e-6",
+    "train.spsa_batch_size=1",
+    "gvls_checkpoint_path=checkpoints/gvls_jets_m4_lorentz800.pt",
+    "qgnn_checkpoint_path=checkpoints/qgnn_jets_m4_lorentz800_seed42.pt",
+    "wandb.name=qgnn-M4-lorentz800-seed42",
+    "wandb.group=qgnn-jet-classification-lorentz800",
+    "wandb.tags=[lorentz-comparability,qg-jets-800]"
+  ],
+  "program":  "/root/home/graph-vls/experiments/train_qgnn.py",
+  "codePath":  "experiments/train_qgnn.py",
+  "codePathLocal":  "experiments/train_qgnn.py",
+  "git":  {
+    "remote":  "git@github.com:SMATousi/graph-vls.git",
+    "commit":  "180d44ab37ae9647ccca615bc255784f0df40164"
+  },
+  "email":  "stmmc@umsystem.edu",
+  "root":  "/root/home/graph-vls",
+  "host":  "2-ali-100-dep-vigir-575d848757-fv66n",
+  "executable":  "/opt/conda/envs/graph-vls/bin/python",
+  "cpu_count":  128,
+  "cpu_count_logical":  256,
+  "gpu":  "NVIDIA A100-SXM4-80GB",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "1599929212928",
+      "used":  "1080654626816"
+    }
+  },
+  "memory":  {
+    "total":  "1081702211584"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA A100-SXM4-80GB",
+      "memoryTotal":  "85899345920",
+      "cudaCores":  6912,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-6d639b10-70fe-303c-3580-1e02f54673d7"
+    }
+  ],
+  "cudaVersion":  "13.2",
+  "writerId":  "uvtilrmm1xv72k2ecuea5gmvxyljrkcf"
+}
