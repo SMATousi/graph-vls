@@ -1,0 +1,14 @@
+=== [1/3] Pretraining production GVLS checkpoint (M=4, train_subset=null i.e. full 10000-jet pool) -- once, reused across all 5 QGNN repeats ===
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.28.1
+wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_222123-jwbkja85
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run gvls-jets-M4-lorentz800
+wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
+wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/jwbkja85
+Device: cuda
+Loading qg_jets (protocol=lorentz, seed=42)...
+  train=10000  val=1250  test=1250
+Production config: M=4 latent_dim=8 k=3 hidden_dim=32 graph_method=attention prior=isotropic epochs=200
+pretrain GVLS (production, M=4):   0%|          | 0/200 [00:00<?, ?it/s]

@@ -1,0 +1,6 @@
+train QGNN: 100%|██████████| 50/50 [14:39<00:00, 17.59s/it, train_loss=0.597, val_acc=0.686]
+
+Best epoch=48  val_accuracy=0.6856  val_auc=0.7337  val_macro_f1=0.6853
+train_accuracy=0.6837  training_time_s=881.31
+threshold (val-selected)=0.5606
+Saved best QGNN checkpoint to checkpoints/qgnn_jets_m4_lorentz800_seed45.pt

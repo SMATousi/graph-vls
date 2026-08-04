@@ -1,0 +1,23 @@
+
+Test-set metrics (at the validation-selected threshold):
+  accuracy    : 0.6440
+  auc         : 0.6819
+  ap          : 0.7310
+  macro_f1    : 0.6409
+  precision   : 0.7020
+  recall      : 0.5350
+  confusion_matrix (rows=true, cols=pred, label 0=quark/1=gluon): [[461, 146], [299, 344]]
+  threshold used: 0.4996 (validation-selected (train_qgnn.py))
+  accuracy at fixed threshold=0.5 (for comparison): 0.6432  (delta: +0.0008)
+  qubit_count (M): 4
+  circuit_depth (num_layers): 8
+  optimizer: adamw
+  train_accuracy: 0.6850
+  training_time_s: 839.65
+  inference_time_s: 1.73  (1250 test jets)
+
+NOTE (NFR-5): wall-clock timing above is measured on this run's own hardware, not matched to sota-table.png's Table II hardware -- directional comparison only.
+
+NOTE: no literature QGNN comparison number is included here -- that search (plan.md T4.6) has not been done yet. Comparison target identified 2026-07-30 (Lorentz-EQGNN, sota-table.png Table II) -- see plan.md Design Decision 12.
+
+Results written to results/qgnn/qg_jets_metrics_lorentz800_seed44.json

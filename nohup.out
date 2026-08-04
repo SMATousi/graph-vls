@@ -1,0 +1,720 @@
+=== [1/3] GVLS checkpoint already exists at checkpoints/gvls_jets_m4_lorentz800.pt -- skipping pretraining, reusing it as-is ===
+
+=== [2/3] Training QGNN classifier (seed=42, training subset reseeded per trial, optimizer=adamw, gradient_method=spsa) ===
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run x1kcl0xd
+wandb: Tracking run with wandb version 0.28.1
+wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_222349-x1kcl0xd
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run qgnn-M4-lorentz800-seed42
+wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
+wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/x1kcl0xd
+Device: cuda
+Loading frozen GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
+  M=4  d=8
+Loading qg_jets (protocol=lorentz, seed=42)...
+  train=800  val=1250  test(unused here)=1250
+Extracting frozen (z_tilde, A_z) features (no gradient)...
+QGNN config: M=4 num_layers=8 optimizer=adamw lr=0.001 epochs=50 batch_size=16 gradient_method=spsa
+train QGNN:   0%|          | 0/50 [00:00<?, ?it/s]train QGNN:   0%|          | 0/50 [00:21<?, ?it/s, train_loss=1.9, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:21<17:32, 21.48s/it, train_loss=1.9, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:38<17:32, 21.48s/it, train_loss=1.79, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:38<14:51, 18.58s/it, train_loss=1.79, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:59<14:51, 18.58s/it, train_loss=1.61, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [00:59<15:25, 19.69s/it, train_loss=1.61, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [01:14<15:25, 19.69s/it, train_loss=1.4, val_acc=0.516] train QGNN:   8%|▊         | 4/50 [01:14<13:46, 17.97s/it, train_loss=1.4, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [01:33<13:46, 17.97s/it, train_loss=1.21, val_acc=0.516]train QGNN:  10%|█         | 5/50 [01:33<13:42, 18.27s/it, train_loss=1.21, val_acc=0.516]train QGNN:  10%|█         | 5/50 [01:49<13:42, 18.27s/it, train_loss=1.07, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [01:49<12:56, 17.64s/it, train_loss=1.07, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [02:04<12:56, 17.64s/it, train_loss=0.966, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [02:04<12:02, 16.81s/it, train_loss=0.966, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [02:18<12:02, 16.81s/it, train_loss=0.896, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [02:18<11:09, 15.93s/it, train_loss=0.896, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [02:33<11:09, 15.93s/it, train_loss=0.841, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [02:33<10:33, 15.44s/it, train_loss=0.841, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [02:47<10:33, 15.44s/it, train_loss=0.805, val_acc=0.516]train QGNN:  20%|██        | 10/50 [02:47<09:59, 14.98s/it, train_loss=0.805, val_acc=0.516]train QGNN:  20%|██        | 10/50 [03:01<09:59, 14.98s/it, train_loss=0.777, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [03:01<09:32, 14.69s/it, train_loss=0.777, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [03:15<09:32, 14.69s/it, train_loss=0.755, val_acc=0.514]train QGNN:  24%|██▍       | 12/50 [03:15<09:12, 14.53s/it, train_loss=0.755, val_acc=0.514]train QGNN:  24%|██▍       | 12/50 [03:29<09:12, 14.53s/it, train_loss=0.739, val_acc=0.513]train QGNN:  26%|██▌       | 13/50 [03:29<08:53, 14.41s/it, train_loss=0.739, val_acc=0.513]train QGNN:  26%|██▌       | 13/50 [03:43<08:53, 14.41s/it, train_loss=0.726, val_acc=0.514]train QGNN:  28%|██▊       | 14/50 [03:43<08:37, 14.39s/it, train_loss=0.726, val_acc=0.514]train QGNN:  28%|██▊       | 14/50 [03:58<08:37, 14.39s/it, train_loss=0.711, val_acc=0.518]train QGNN:  30%|███       | 15/50 [03:58<08:23, 14.38s/it, train_loss=0.711, val_acc=0.518]train QGNN:  30%|███       | 15/50 [04:12<08:23, 14.38s/it, train_loss=0.697, val_acc=0.522]train QGNN:  32%|███▏      | 16/50 [04:12<08:09, 14.39s/it, train_loss=0.697, val_acc=0.522]train QGNN:  32%|███▏      | 16/50 [04:26<08:09, 14.39s/it, train_loss=0.684, val_acc=0.531]train QGNN:  34%|███▍      | 17/50 [04:26<07:50, 14.27s/it, train_loss=0.684, val_acc=0.531]train QGNN:  34%|███▍      | 17/50 [04:40<07:50, 14.27s/it, train_loss=0.675, val_acc=0.542]train QGNN:  36%|███▌      | 18/50 [04:40<07:36, 14.27s/it, train_loss=0.675, val_acc=0.542]train QGNN:  36%|███▌      | 18/50 [04:57<07:36, 14.27s/it, train_loss=0.668, val_acc=0.557]train QGNN:  38%|███▊      | 19/50 [04:57<07:46, 15.03s/it, train_loss=0.668, val_acc=0.557]train QGNN:  38%|███▊      | 19/50 [05:12<07:46, 15.03s/it, train_loss=0.662, val_acc=0.567]train QGNN:  40%|████      | 20/50 [05:12<07:28, 14.96s/it, train_loss=0.662, val_acc=0.567]train QGNN:  40%|████      | 20/50 [05:26<07:28, 14.96s/it, train_loss=0.656, val_acc=0.58] train QGNN:  42%|████▏     | 21/50 [05:26<07:10, 14.85s/it, train_loss=0.656, val_acc=0.58]train QGNN:  42%|████▏     | 21/50 [05:43<07:10, 14.85s/it, train_loss=0.651, val_acc=0.587]train QGNN:  44%|████▍     | 22/50 [05:43<07:12, 15.45s/it, train_loss=0.651, val_acc=0.587]train QGNN:  44%|████▍     | 22/50 [06:02<07:12, 15.45s/it, train_loss=0.648, val_acc=0.599]train QGNN:  46%|████▌     | 23/50 [06:02<07:26, 16.54s/it, train_loss=0.648, val_acc=0.599]train QGNN:  46%|████▌     | 23/50 [06:17<07:26, 16.54s/it, train_loss=0.644, val_acc=0.604]train QGNN:  48%|████▊     | 24/50 [06:17<06:51, 15.81s/it, train_loss=0.644, val_acc=0.604]train QGNN:  48%|████▊     | 24/50 [06:30<06:51, 15.81s/it, train_loss=0.642, val_acc=0.61] train QGNN:  50%|█████     | 25/50 [06:30<06:21, 15.27s/it, train_loss=0.642, val_acc=0.61]train QGNN:  50%|█████     | 25/50 [06:44<06:21, 15.27s/it, train_loss=0.64, val_acc=0.614]train QGNN:  52%|█████▏    | 26/50 [06:44<05:56, 14.87s/it, train_loss=0.64, val_acc=0.614]train QGNN:  52%|█████▏    | 26/50 [06:59<05:56, 14.87s/it, train_loss=0.636, val_acc=0.626]train QGNN:  54%|█████▍    | 27/50 [06:59<05:39, 14.75s/it, train_loss=0.636, val_acc=0.626]train QGNN:  54%|█████▍    | 27/50 [07:19<05:39, 14.75s/it, train_loss=0.633, val_acc=0.631]train QGNN:  56%|█████▌    | 28/50 [07:19<05:58, 16.31s/it, train_loss=0.633, val_acc=0.631]train QGNN:  56%|█████▌    | 28/50 [07:37<05:58, 16.31s/it, train_loss=0.63, val_acc=0.644] train QGNN:  58%|█████▊    | 29/50 [07:37<05:54, 16.86s/it, train_loss=0.63, val_acc=0.644]train QGNN:  58%|█████▊    | 29/50 [07:53<05:54, 16.86s/it, train_loss=0.628, val_acc=0.647]train QGNN:  60%|██████    | 30/50 [07:53<05:31, 16.58s/it, train_loss=0.628, val_acc=0.647]train QGNN:  60%|██████    | 30/50 [08:10<05:31, 16.58s/it, train_loss=0.627, val_acc=0.644]train QGNN:  62%|██████▏   | 31/50 [08:10<05:19, 16.80s/it, train_loss=0.627, val_acc=0.644]train QGNN:  62%|██████▏   | 31/50 [08:30<05:19, 16.80s/it, train_loss=0.625, val_acc=0.649]train QGNN:  64%|██████▍   | 32/50 [08:30<05:20, 17.79s/it, train_loss=0.625, val_acc=0.649]train QGNN:  64%|██████▍   | 32/50 [08:47<05:20, 17.79s/it, train_loss=0.622, val_acc=0.658]train QGNN:  66%|██████▌   | 33/50 [08:47<04:57, 17.49s/it, train_loss=0.622, val_acc=0.658]train QGNN:  66%|██████▌   | 33/50 [09:08<04:57, 17.49s/it, train_loss=0.62, val_acc=0.666] train QGNN:  68%|██████▊   | 34/50 [09:08<04:55, 18.46s/it, train_loss=0.62, val_acc=0.666]train QGNN:  68%|██████▊   | 34/50 [09:27<04:55, 18.46s/it, train_loss=0.617, val_acc=0.669]train QGNN:  70%|███████   | 35/50 [09:27<04:39, 18.65s/it, train_loss=0.617, val_acc=0.669]train QGNN:  70%|███████   | 35/50 [09:47<04:39, 18.65s/it, train_loss=0.615, val_acc=0.67] train QGNN:  72%|███████▏  | 36/50 [09:47<04:25, 18.95s/it, train_loss=0.615, val_acc=0.67]train QGNN:  72%|███████▏  | 36/50 [10:04<04:25, 18.95s/it, train_loss=0.614, val_acc=0.67]train QGNN:  74%|███████▍  | 37/50 [10:04<03:58, 18.34s/it, train_loss=0.614, val_acc=0.67]train QGNN:  74%|███████▍  | 37/50 [10:21<03:58, 18.34s/it, train_loss=0.613, val_acc=0.672]train QGNN:  76%|███████▌  | 38/50 [10:21<03:37, 18.09s/it, train_loss=0.613, val_acc=0.672]train QGNN:  76%|███████▌  | 38/50 [10:39<03:37, 18.09s/it, train_loss=0.611, val_acc=0.675]train QGNN:  78%|███████▊  | 39/50 [10:39<03:18, 18.00s/it, train_loss=0.611, val_acc=0.675]train QGNN:  78%|███████▊  | 39/50 [10:54<03:18, 18.00s/it, train_loss=0.61, val_acc=0.679] train QGNN:  80%|████████  | 40/50 [10:54<02:52, 17.28s/it, train_loss=0.61, val_acc=0.679]train QGNN:  80%|████████  | 40/50 [11:15<02:52, 17.28s/it, train_loss=0.609, val_acc=0.681]train QGNN:  82%|████████▏ | 41/50 [11:15<02:43, 18.15s/it, train_loss=0.609, val_acc=0.681]train QGNN:  82%|████████▏ | 41/50 [11:30<02:43, 18.15s/it, train_loss=0.608, val_acc=0.681]train QGNN:  84%|████████▍ | 42/50 [11:30<02:19, 17.45s/it, train_loss=0.608, val_acc=0.681]train QGNN:  84%|████████▍ | 42/50 [11:51<02:19, 17.45s/it, train_loss=0.607, val_acc=0.681]train QGNN:  86%|████████▌ | 43/50 [11:51<02:08, 18.41s/it, train_loss=0.607, val_acc=0.681]train QGNN:  86%|████████▌ | 43/50 [12:06<02:08, 18.41s/it, train_loss=0.606, val_acc=0.686]train QGNN:  88%|████████▊ | 44/50 [12:06<01:44, 17.45s/it, train_loss=0.606, val_acc=0.686]train QGNN:  88%|████████▊ | 44/50 [12:25<01:44, 17.45s/it, train_loss=0.606, val_acc=0.683]train QGNN:  90%|█████████ | 45/50 [12:25<01:28, 17.76s/it, train_loss=0.606, val_acc=0.683]train QGNN:  90%|█████████ | 45/50 [12:42<01:28, 17.76s/it, train_loss=0.605, val_acc=0.687]train QGNN:  92%|█████████▏| 46/50 [12:42<01:10, 17.70s/it, train_loss=0.605, val_acc=0.687]train QGNN:  92%|█████████▏| 46/50 [13:00<01:10, 17.70s/it, train_loss=0.604, val_acc=0.688]train QGNN:  94%|█████████▍| 47/50 [13:00<00:52, 17.65s/it, train_loss=0.604, val_acc=0.688]train QGNN:  94%|█████████▍| 47/50 [13:17<00:52, 17.65s/it, train_loss=0.604, val_acc=0.689]train QGNN:  96%|█████████▌| 48/50 [13:17<00:35, 17.54s/it, train_loss=0.604, val_acc=0.689]train QGNN:  96%|█████████▌| 48/50 [13:32<00:35, 17.54s/it, train_loss=0.604, val_acc=0.69] train QGNN:  98%|█████████▊| 49/50 [13:32<00:16, 16.84s/it, train_loss=0.604, val_acc=0.69]train QGNN:  98%|█████████▊| 49/50 [13:54<00:16, 16.84s/it, train_loss=0.604, val_acc=0.691]train QGNN: 100%|██████████| 50/50 [13:54<00:00, 18.16s/it, train_loss=0.604, val_acc=0.691]train QGNN: 100%|██████████| 50/50 [13:54<00:00, 16.68s/it, train_loss=0.604, val_acc=0.691]
+wandb: uploading artifact qgnn-jets-m4; updating run metadata
+wandb: uploading artifact qgnn-jets-m4
+wandb: 
+wandb: Run history:
+wandb:       accuracy ▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▃▄▄▄▅▅▅▆▆▆▆▇▇▇▇▇▇████████
+wandb:             ap ▁▇██████████████████████████████████████
+wandb:            auc ▁▅▇█████████████████████████████████████
+wandb:          epoch ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇███
+wandb:       macro_f1 ▁▁▁▁▁▁▁▁▁▁▁▁▂▂▃▄▄▅▅▆▆▆▆▇▇▇▇▇████████████
+wandb:      precision ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▂▃▃▃▄▄▅▅▅▅▆▆▆▆▇▇▇▇▇█████
+wandb:         recall ███████████▇▇▇▆▆▆▅▅▅▅▄▄▄▄▃▃▃▂▂▂▂▂▂▁▁▁▁▁▁
+wandb:      threshold ▁
+wandb: train_accuracy ▁
+wandb:     train_loss █▇▅▄▃▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:             +1 ...
+wandb: 
+wandb: Run summary:
+wandb:       accuracy 0.6912
+wandb:             ap 0.78471
+wandb:            auc 0.73655
+wandb:          epoch 49
+wandb:       macro_f1 0.69091
+wandb:      precision 0.7284
+wandb:         recall 0.64031
+wandb:      threshold 0.52435
+wandb: train_accuracy 0.67875
+wandb:     train_loss 0.60354
+wandb:             +1 ...
+wandb: 
+wandb: 🚀 View run qgnn-M4-lorentz800-seed42 at: https://wandb.ai/tousi-team/graph-vls/runs/x1kcl0xd
+wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
+wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260803_222349-x1kcl0xd/logs
+
+Best epoch=49  val_accuracy=0.6912  val_auc=0.7365  val_macro_f1=0.6909
+train_accuracy=0.6787  training_time_s=836.08
+threshold (val-selected)=0.5243
+Saved best QGNN checkpoint to checkpoints/qgnn_jets_m4_lorentz800_seed42.pt
+
+=== [3/3] Evaluating QGNN on held-out test jets (seed=42, same fixed test set every trial) ===
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run z1s9m2t0
+wandb: Tracking run with wandb version 0.28.1
+wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_223810-z1s9m2t0
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run qgnn-eval-M4-lorentz800-seed42
+wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
+wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/z1s9m2t0
+wandb: uploading artifact qgnn-jets-m4-test-metrics; updating run metadata
+wandb: uploading artifact qgnn-jets-m4-test-metrics
+wandb: 
+wandb: Run history:
+wandb:                  inference_time_s ▁
+wandb:                     test_accuracy ▁
+wandb: test_accuracy_fixed_threshold_0.5 ▁
+wandb:                           test_ap ▁
+wandb:                          test_auc ▁
+wandb:                     test_macro_f1 ▁
+wandb:                    test_precision ▁
+wandb:                       test_recall ▁
+wandb:                         threshold ▁
+wandb:                    train_accuracy ▁
+wandb:                                +1 ...
+wandb: 
+wandb: Run summary:
+wandb:                  inference_time_s 2.11383
+wandb:                     test_accuracy 0.6624
+wandb: test_accuracy_fixed_threshold_0.5 0.6568
+wandb:                           test_ap 0.74162
+wandb:                          test_auc 0.70867
+wandb:                     test_macro_f1 0.66005
+wandb:                    test_precision 0.71968
+wandb:                       test_recall 0.56299
+wandb:                         threshold 0.52435
+wandb:                    train_accuracy 0.67875
+wandb:                                +1 ...
+wandb: 
+wandb: 🚀 View run qgnn-eval-M4-lorentz800-seed42 at: https://wandb.ai/tousi-team/graph-vls/runs/z1s9m2t0
+wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
+wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260803_223810-z1s9m2t0/logs
+Device: cuda
+Loading GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
+Loading QGNN checkpoint from checkpoints/qgnn_jets_m4_lorentz800_seed42.pt...
+  GVLS M=4  QGNN M=4  num_layers=8
+Loading qg_jets (protocol=lorentz, seed=42)...
+Evaluating on 1250 held-out test jets (untouched by training)...
+
+Test-set metrics (at the validation-selected threshold):
+  accuracy    : 0.6624
+  auc         : 0.7087
+  ap          : 0.7416
+  macro_f1    : 0.6600
+  precision   : 0.7197
+  recall      : 0.5630
+  confusion_matrix (rows=true, cols=pred, label 0=quark/1=gluon): [[466, 141], [281, 362]]
+  threshold used: 0.5243 (validation-selected (train_qgnn.py))
+  accuracy at fixed threshold=0.5 (for comparison): 0.6568  (delta: +0.0056)
+  qubit_count (M): 4
+  circuit_depth (num_layers): 8
+  optimizer: adamw
+  train_accuracy: 0.6787
+  training_time_s: 836.08
+  inference_time_s: 2.11  (1250 test jets)
+
+NOTE (NFR-5): wall-clock timing above is measured on this run's own hardware, not matched to sota-table.png's Table II hardware -- directional comparison only.
+
+NOTE: no literature QGNN comparison number is included here -- that search (plan.md T4.6) has not been done yet. Comparison target identified 2026-07-30 (Lorentz-EQGNN, sota-table.png Table II) -- see plan.md Design Decision 12.
+
+Results written to results/qgnn/qg_jets_metrics_lorentz800_seed42.json
+
+=== [2/3] Training QGNN classifier (seed=43, training subset reseeded per trial, optimizer=adamw, gradient_method=spsa) ===
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run emgozlhu
+wandb: Tracking run with wandb version 0.28.1
+wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_223843-emgozlhu
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run qgnn-M4-lorentz800-seed43
+wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
+wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/emgozlhu
+Device: cuda
+Loading frozen GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
+  M=4  d=8
+Loading qg_jets (protocol=lorentz, seed=42)...
+  train=800  val=1250  test(unused here)=1250
+Extracting frozen (z_tilde, A_z) features (no gradient)...
+QGNN config: M=4 num_layers=8 optimizer=adamw lr=0.001 epochs=50 batch_size=16 gradient_method=spsa
+train QGNN:   0%|          | 0/50 [00:00<?, ?it/s]train QGNN:   0%|          | 0/50 [00:19<?, ?it/s, train_loss=1.93, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:19<15:41, 19.22s/it, train_loss=1.93, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:34<15:41, 19.22s/it, train_loss=1.85, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:34<13:30, 16.88s/it, train_loss=1.85, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:55<13:30, 16.88s/it, train_loss=1.68, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [00:55<14:45, 18.85s/it, train_loss=1.68, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [01:11<14:45, 18.85s/it, train_loss=1.46, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [01:11<13:29, 17.59s/it, train_loss=1.46, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [01:32<13:29, 17.59s/it, train_loss=1.24, val_acc=0.516]train QGNN:  10%|█         | 5/50 [01:32<14:14, 18.99s/it, train_loss=1.24, val_acc=0.516]train QGNN:  10%|█         | 5/50 [01:48<14:14, 18.99s/it, train_loss=1.07, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [01:48<13:12, 18.02s/it, train_loss=1.07, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [02:07<13:12, 18.02s/it, train_loss=0.955, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [02:07<13:09, 18.35s/it, train_loss=0.955, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [02:26<13:09, 18.35s/it, train_loss=0.874, val_acc=0.517]train QGNN:  16%|█▌        | 8/50 [02:26<12:52, 18.40s/it, train_loss=0.874, val_acc=0.517]train QGNN:  16%|█▌        | 8/50 [02:41<12:52, 18.40s/it, train_loss=0.823, val_acc=0.517]train QGNN:  18%|█▊        | 9/50 [02:41<11:49, 17.30s/it, train_loss=0.823, val_acc=0.517]train QGNN:  18%|█▊        | 9/50 [02:55<11:49, 17.30s/it, train_loss=0.79, val_acc=0.517] train QGNN:  20%|██        | 10/50 [02:55<10:51, 16.29s/it, train_loss=0.79, val_acc=0.517]train QGNN:  20%|██        | 10/50 [03:09<10:51, 16.29s/it, train_loss=0.765, val_acc=0.514]train QGNN:  22%|██▏       | 11/50 [03:09<10:07, 15.57s/it, train_loss=0.765, val_acc=0.514]train QGNN:  22%|██▏       | 11/50 [03:23<10:07, 15.57s/it, train_loss=0.743, val_acc=0.514]train QGNN:  24%|██▍       | 12/50 [03:23<09:38, 15.21s/it, train_loss=0.743, val_acc=0.514]train QGNN:  24%|██▍       | 12/50 [03:37<09:38, 15.21s/it, train_loss=0.724, val_acc=0.514]train QGNN:  26%|██▌       | 13/50 [03:37<09:09, 14.84s/it, train_loss=0.724, val_acc=0.514]train QGNN:  26%|██▌       | 13/50 [03:52<09:09, 14.84s/it, train_loss=0.713, val_acc=0.514]train QGNN:  28%|██▊       | 14/50 [03:52<08:48, 14.68s/it, train_loss=0.713, val_acc=0.514]train QGNN:  28%|██▊       | 14/50 [04:06<08:48, 14.68s/it, train_loss=0.702, val_acc=0.516]train QGNN:  30%|███       | 15/50 [04:06<08:26, 14.47s/it, train_loss=0.702, val_acc=0.516]train QGNN:  30%|███       | 15/50 [04:20<08:26, 14.47s/it, train_loss=0.692, val_acc=0.526]train QGNN:  32%|███▏      | 16/50 [04:20<08:07, 14.34s/it, train_loss=0.692, val_acc=0.526]train QGNN:  32%|███▏      | 16/50 [04:33<08:07, 14.34s/it, train_loss=0.683, val_acc=0.531]train QGNN:  34%|███▍      | 17/50 [04:33<07:48, 14.20s/it, train_loss=0.683, val_acc=0.531]train QGNN:  34%|███▍      | 17/50 [04:48<07:48, 14.20s/it, train_loss=0.677, val_acc=0.537]train QGNN:  36%|███▌      | 18/50 [04:48<07:40, 14.40s/it, train_loss=0.677, val_acc=0.537]train QGNN:  36%|███▌      | 18/50 [05:03<07:40, 14.40s/it, train_loss=0.67, val_acc=0.55]  train QGNN:  38%|███▊      | 19/50 [05:03<07:25, 14.36s/it, train_loss=0.67, val_acc=0.55]train QGNN:  38%|███▊      | 19/50 [05:17<07:25, 14.36s/it, train_loss=0.663, val_acc=0.562]train QGNN:  40%|████      | 20/50 [05:17<07:10, 14.36s/it, train_loss=0.663, val_acc=0.562]train QGNN:  40%|████      | 20/50 [05:33<07:10, 14.36s/it, train_loss=0.656, val_acc=0.571]train QGNN:  42%|████▏     | 21/50 [05:33<07:07, 14.75s/it, train_loss=0.656, val_acc=0.571]train QGNN:  42%|████▏     | 21/50 [05:48<07:07, 14.75s/it, train_loss=0.651, val_acc=0.589]train QGNN:  44%|████▍     | 22/50 [05:48<06:56, 14.86s/it, train_loss=0.651, val_acc=0.589]train QGNN:  44%|████▍     | 22/50 [06:02<06:56, 14.86s/it, train_loss=0.646, val_acc=0.59] train QGNN:  46%|████▌     | 23/50 [06:02<06:40, 14.83s/it, train_loss=0.646, val_acc=0.59]train QGNN:  46%|████▌     | 23/50 [06:20<06:40, 14.83s/it, train_loss=0.644, val_acc=0.596]train QGNN:  48%|████▊     | 24/50 [06:20<06:48, 15.70s/it, train_loss=0.644, val_acc=0.596]train QGNN:  48%|████▊     | 24/50 [06:41<06:48, 15.70s/it, train_loss=0.641, val_acc=0.607]train QGNN:  50%|█████     | 25/50 [06:41<07:08, 17.15s/it, train_loss=0.641, val_acc=0.607]train QGNN:  50%|█████     | 25/50 [06:56<07:08, 17.15s/it, train_loss=0.638, val_acc=0.618]train QGNN:  52%|█████▏    | 26/50 [06:56<06:38, 16.61s/it, train_loss=0.638, val_acc=0.618]train QGNN:  52%|█████▏    | 26/50 [07:10<06:38, 16.61s/it, train_loss=0.634, val_acc=0.62] train QGNN:  54%|█████▍    | 27/50 [07:10<06:03, 15.80s/it, train_loss=0.634, val_acc=0.62]train QGNN:  54%|█████▍    | 27/50 [07:24<06:03, 15.80s/it, train_loss=0.633, val_acc=0.621]train QGNN:  56%|█████▌    | 28/50 [07:24<05:36, 15.28s/it, train_loss=0.633, val_acc=0.621]train QGNN:  56%|█████▌    | 28/50 [07:38<05:36, 15.28s/it, train_loss=0.631, val_acc=0.63] train QGNN:  58%|█████▊    | 29/50 [07:38<05:12, 14.89s/it, train_loss=0.631, val_acc=0.63]train QGNN:  58%|█████▊    | 29/50 [07:54<05:12, 14.89s/it, train_loss=0.628, val_acc=0.63]train QGNN:  60%|██████    | 30/50 [07:54<05:04, 15.22s/it, train_loss=0.628, val_acc=0.63]train QGNN:  60%|██████    | 30/50 [08:14<05:04, 15.22s/it, train_loss=0.627, val_acc=0.641]train QGNN:  62%|██████▏   | 31/50 [08:14<05:15, 16.63s/it, train_loss=0.627, val_acc=0.641]train QGNN:  62%|██████▏   | 31/50 [08:32<05:15, 16.63s/it, train_loss=0.625, val_acc=0.642]train QGNN:  64%|██████▍   | 32/50 [08:32<05:09, 17.19s/it, train_loss=0.625, val_acc=0.642]train QGNN:  64%|██████▍   | 32/50 [08:46<05:09, 17.19s/it, train_loss=0.624, val_acc=0.643]train QGNN:  66%|██████▌   | 33/50 [08:46<04:36, 16.27s/it, train_loss=0.624, val_acc=0.643]train QGNN:  66%|██████▌   | 33/50 [09:04<04:36, 16.27s/it, train_loss=0.622, val_acc=0.654]train QGNN:  68%|██████▊   | 34/50 [09:04<04:25, 16.58s/it, train_loss=0.622, val_acc=0.654]train QGNN:  68%|██████▊   | 34/50 [09:25<04:25, 16.58s/it, train_loss=0.621, val_acc=0.655]train QGNN:  70%|███████   | 35/50 [09:25<04:30, 18.01s/it, train_loss=0.621, val_acc=0.655]train QGNN:  70%|███████   | 35/50 [09:43<04:30, 18.01s/it, train_loss=0.62, val_acc=0.656] train QGNN:  72%|███████▏  | 36/50 [09:43<04:09, 17.81s/it, train_loss=0.62, val_acc=0.656]train QGNN:  72%|███████▏  | 36/50 [10:03<04:09, 17.81s/it, train_loss=0.619, val_acc=0.657]train QGNN:  74%|███████▍  | 37/50 [10:03<04:01, 18.55s/it, train_loss=0.619, val_acc=0.657]train QGNN:  74%|███████▍  | 37/50 [10:20<04:01, 18.55s/it, train_loss=0.618, val_acc=0.659]train QGNN:  76%|███████▌  | 38/50 [10:20<03:37, 18.15s/it, train_loss=0.618, val_acc=0.659]train QGNN:  76%|███████▌  | 38/50 [10:39<03:37, 18.15s/it, train_loss=0.617, val_acc=0.665]train QGNN:  78%|███████▊  | 39/50 [10:39<03:21, 18.35s/it, train_loss=0.617, val_acc=0.665]train QGNN:  78%|███████▊  | 39/50 [10:57<03:21, 18.35s/it, train_loss=0.616, val_acc=0.666]train QGNN:  80%|████████  | 40/50 [10:57<03:03, 18.39s/it, train_loss=0.616, val_acc=0.666]train QGNN:  80%|████████  | 40/50 [11:15<03:03, 18.39s/it, train_loss=0.616, val_acc=0.667]train QGNN:  82%|████████▏ | 41/50 [11:15<02:44, 18.25s/it, train_loss=0.616, val_acc=0.667]train QGNN:  82%|████████▏ | 41/50 [11:34<02:44, 18.25s/it, train_loss=0.615, val_acc=0.666]train QGNN:  84%|████████▍ | 42/50 [11:34<02:27, 18.48s/it, train_loss=0.615, val_acc=0.666]train QGNN:  84%|████████▍ | 42/50 [11:51<02:27, 18.48s/it, train_loss=0.614, val_acc=0.669]train QGNN:  86%|████████▌ | 43/50 [11:51<02:06, 18.06s/it, train_loss=0.614, val_acc=0.669]train QGNN:  86%|████████▌ | 43/50 [12:10<02:06, 18.06s/it, train_loss=0.614, val_acc=0.672]train QGNN:  88%|████████▊ | 44/50 [12:10<01:50, 18.38s/it, train_loss=0.614, val_acc=0.672]train QGNN:  88%|████████▊ | 44/50 [12:26<01:50, 18.38s/it, train_loss=0.614, val_acc=0.67] train QGNN:  90%|█████████ | 45/50 [12:26<01:26, 17.39s/it, train_loss=0.614, val_acc=0.67]train QGNN:  90%|█████████ | 45/50 [12:44<01:26, 17.39s/it, train_loss=0.612, val_acc=0.67]train QGNN:  92%|█████████▏| 46/50 [12:44<01:11, 17.86s/it, train_loss=0.612, val_acc=0.67]train QGNN:  92%|█████████▏| 46/50 [13:02<01:11, 17.86s/it, train_loss=0.612, val_acc=0.671]train QGNN:  94%|█████████▍| 47/50 [13:02<00:53, 17.67s/it, train_loss=0.612, val_acc=0.671]train QGNN:  94%|█████████▍| 47/50 [13:21<00:53, 17.67s/it, train_loss=0.61, val_acc=0.674] train QGNN:  96%|█████████▌| 48/50 [13:21<00:36, 18.11s/it, train_loss=0.61, val_acc=0.674]train QGNN:  96%|█████████▌| 48/50 [13:38<00:36, 18.11s/it, train_loss=0.609, val_acc=0.68]train QGNN:  98%|█████████▊| 49/50 [13:38<00:17, 17.88s/it, train_loss=0.609, val_acc=0.68]train QGNN:  98%|█████████▊| 49/50 [13:55<00:17, 17.88s/it, train_loss=0.609, val_acc=0.685]train QGNN: 100%|██████████| 50/50 [13:55<00:00, 17.47s/it, train_loss=0.609, val_acc=0.685]train QGNN: 100%|██████████| 50/50 [13:55<00:00, 16.70s/it, train_loss=0.609, val_acc=0.685]
+wandb: uploading artifact qgnn-jets-m4; updating run metadata
+wandb: uploading artifact qgnn-jets-m4
+wandb: uploading summary
+wandb: 
+wandb: Run history:
+wandb:       accuracy ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▃▃▄▄▅▅▅▆▆▆▆▇▇▇▇▇▇▇▇▇▇▇██
+wandb:             ap ▁▅▇█████████████████████████████████████
+wandb:            auc ▁▅▇███████████▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇▇
+wandb:          epoch ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇██
+wandb:       macro_f1 ▁▁▁▁▁▁▁▁▁▁▁▂▂▃▃▄▅▅▅▆▆▆▆▇▇▇▇▇▇▇▇█████████
+wandb:      precision ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▃▃▃▃▄▄▄▄▅▅▆▆▆▆▆▆▆▆▇▇▇▇▇█
+wandb:         recall ████████████▇▇▇▆▆▅▅▅▄▄▄▃▃▃▃▃▂▂▂▂▂▂▂▂▂▁▁▁
+wandb:      threshold ▁
+wandb: train_accuracy ▁
+wandb:     train_loss ██▇▆▄▃▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:             +1 ...
+wandb: 
+wandb: Run summary:
+wandb:       accuracy 0.6848
+wandb:             ap 0.78187
+wandb:            auc 0.73133
+wandb:          epoch 49
+wandb:       macro_f1 0.6847
+wandb:      precision 0.71527
+wandb:         recall 0.64651
+wandb:      threshold 0.55282
+wandb: train_accuracy 0.69625
+wandb:     train_loss 0.60864
+wandb:             +1 ...
+wandb: 
+wandb: 🚀 View run qgnn-M4-lorentz800-seed43 at: https://wandb.ai/tousi-team/graph-vls/runs/emgozlhu
+wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
+wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260803_223843-emgozlhu/logs
+
+Best epoch=49  val_accuracy=0.6848  val_auc=0.7313  val_macro_f1=0.6847
+train_accuracy=0.6963  training_time_s=838.41
+threshold (val-selected)=0.5528
+Saved best QGNN checkpoint to checkpoints/qgnn_jets_m4_lorentz800_seed43.pt
+
+=== [3/3] Evaluating QGNN on held-out test jets (seed=43, same fixed test set every trial) ===
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run 2mf7j2bn
+wandb: Tracking run with wandb version 0.28.1
+wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_225305-2mf7j2bn
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run qgnn-eval-M4-lorentz800-seed43
+wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
+wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/2mf7j2bn
+wandb: uploading artifact qgnn-jets-m4-test-metrics; updating run metadata
+wandb: uploading artifact qgnn-jets-m4-test-metrics
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading history steps 0-2, summary, console lines 0-22
+wandb: 
+wandb: Run history:
+wandb:                  inference_time_s ▁
+wandb:                     test_accuracy ▁
+wandb: test_accuracy_fixed_threshold_0.5 ▁
+wandb:                           test_ap ▁
+wandb:                          test_auc ▁
+wandb:                     test_macro_f1 ▁
+wandb:                    test_precision ▁
+wandb:                       test_recall ▁
+wandb:                         threshold ▁
+wandb:                    train_accuracy ▁
+wandb:                                +1 ...
+wandb: 
+wandb: Run summary:
+wandb:                  inference_time_s 1.04658
+wandb:                     test_accuracy 0.652
+wandb: test_accuracy_fixed_threshold_0.5 0.6536
+wandb:                           test_ap 0.73926
+wandb:                          test_auc 0.70235
+wandb:                     test_macro_f1 0.64712
+wandb:                    test_precision 0.72609
+wandb:                       test_recall 0.51944
+wandb:                         threshold 0.55282
+wandb:                    train_accuracy 0.69625
+wandb:                                +1 ...
+wandb: 
+wandb: 🚀 View run qgnn-eval-M4-lorentz800-seed43 at: https://wandb.ai/tousi-team/graph-vls/runs/2mf7j2bn
+wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
+wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260803_225305-2mf7j2bn/logs
+Device: cuda
+Loading GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
+Loading QGNN checkpoint from checkpoints/qgnn_jets_m4_lorentz800_seed43.pt...
+  GVLS M=4  QGNN M=4  num_layers=8
+Loading qg_jets (protocol=lorentz, seed=42)...
+Evaluating on 1250 held-out test jets (untouched by training)...
+
+Test-set metrics (at the validation-selected threshold):
+  accuracy    : 0.6520
+  auc         : 0.7024
+  ap          : 0.7393
+  macro_f1    : 0.6471
+  precision   : 0.7261
+  recall      : 0.5194
+  confusion_matrix (rows=true, cols=pred, label 0=quark/1=gluon): [[481, 126], [309, 334]]
+  threshold used: 0.5528 (validation-selected (train_qgnn.py))
+  accuracy at fixed threshold=0.5 (for comparison): 0.6536  (delta: -0.0016)
+  qubit_count (M): 4
+  circuit_depth (num_layers): 8
+  optimizer: adamw
+  train_accuracy: 0.6963
+  training_time_s: 838.41
+  inference_time_s: 1.05  (1250 test jets)
+
+NOTE (NFR-5): wall-clock timing above is measured on this run's own hardware, not matched to sota-table.png's Table II hardware -- directional comparison only.
+
+NOTE: no literature QGNN comparison number is included here -- that search (plan.md T4.6) has not been done yet. Comparison target identified 2026-07-30 (Lorentz-EQGNN, sota-table.png Table II) -- see plan.md Design Decision 12.
+
+Results written to results/qgnn/qg_jets_metrics_lorentz800_seed43.json
+
+=== [2/3] Training QGNN classifier (seed=44, training subset reseeded per trial, optimizer=adamw, gradient_method=spsa) ===
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run 8iyczbzh
+wandb: Tracking run with wandb version 0.28.1
+wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_225356-8iyczbzh
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run qgnn-M4-lorentz800-seed44
+wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
+wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/8iyczbzh
+Device: cuda
+Loading frozen GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
+  M=4  d=8
+Loading qg_jets (protocol=lorentz, seed=42)...
+  train=800  val=1250  test(unused here)=1250
+Extracting frozen (z_tilde, A_z) features (no gradient)...
+QGNN config: M=4 num_layers=8 optimizer=adamw lr=0.001 epochs=50 batch_size=16 gradient_method=spsa
+train QGNN:   0%|          | 0/50 [00:00<?, ?it/s]train QGNN:   0%|          | 0/50 [00:22<?, ?it/s, train_loss=1.95, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:22<17:59, 22.04s/it, train_loss=1.95, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:37<17:59, 22.04s/it, train_loss=1.9, val_acc=0.516] train QGNN:   4%|▍         | 2/50 [00:37<14:20, 17.93s/it, train_loss=1.9, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:57<14:20, 17.93s/it, train_loss=1.78, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [00:57<14:51, 18.98s/it, train_loss=1.78, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [01:12<14:51, 18.98s/it, train_loss=1.56, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [01:12<13:30, 17.61s/it, train_loss=1.56, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [01:33<13:30, 17.61s/it, train_loss=1.34, val_acc=0.516]train QGNN:  10%|█         | 5/50 [01:33<14:05, 18.79s/it, train_loss=1.34, val_acc=0.516]train QGNN:  10%|█         | 5/50 [01:50<14:05, 18.79s/it, train_loss=1.12, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [01:50<13:14, 18.06s/it, train_loss=1.12, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [02:08<13:14, 18.06s/it, train_loss=0.967, val_acc=0.517]train QGNN:  14%|█▍        | 7/50 [02:08<12:56, 18.07s/it, train_loss=0.967, val_acc=0.517]train QGNN:  14%|█▍        | 7/50 [02:27<12:56, 18.07s/it, train_loss=0.885, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [02:27<12:56, 18.48s/it, train_loss=0.885, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [02:44<12:56, 18.48s/it, train_loss=0.83, val_acc=0.516] train QGNN:  18%|█▊        | 9/50 [02:44<12:18, 18.01s/it, train_loss=0.83, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [03:05<12:18, 18.01s/it, train_loss=0.791, val_acc=0.516]train QGNN:  20%|██        | 10/50 [03:05<12:37, 18.95s/it, train_loss=0.791, val_acc=0.516]train QGNN:  20%|██        | 10/50 [03:21<12:37, 18.95s/it, train_loss=0.762, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [03:21<11:34, 17.81s/it, train_loss=0.762, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [03:35<11:34, 17.81s/it, train_loss=0.738, val_acc=0.516]train QGNN:  24%|██▍       | 12/50 [03:35<10:37, 16.78s/it, train_loss=0.738, val_acc=0.516]train QGNN:  24%|██▍       | 12/50 [03:49<10:37, 16.78s/it, train_loss=0.723, val_acc=0.515]train QGNN:  26%|██▌       | 13/50 [03:49<09:51, 15.98s/it, train_loss=0.723, val_acc=0.515]train QGNN:  26%|██▌       | 13/50 [04:04<09:51, 15.98s/it, train_loss=0.713, val_acc=0.514]train QGNN:  28%|██▊       | 14/50 [04:04<09:20, 15.57s/it, train_loss=0.713, val_acc=0.514]train QGNN:  28%|██▊       | 14/50 [04:18<09:20, 15.57s/it, train_loss=0.704, val_acc=0.518]train QGNN:  30%|███       | 15/50 [04:18<08:49, 15.13s/it, train_loss=0.704, val_acc=0.518]train QGNN:  30%|███       | 15/50 [04:32<08:49, 15.13s/it, train_loss=0.696, val_acc=0.518]train QGNN:  32%|███▏      | 16/50 [04:32<08:23, 14.82s/it, train_loss=0.696, val_acc=0.518]train QGNN:  32%|███▏      | 16/50 [04:46<08:23, 14.82s/it, train_loss=0.688, val_acc=0.518]train QGNN:  34%|███▍      | 17/50 [04:46<08:02, 14.61s/it, train_loss=0.688, val_acc=0.518]train QGNN:  34%|███▍      | 17/50 [05:00<08:02, 14.61s/it, train_loss=0.679, val_acc=0.522]train QGNN:  36%|███▌      | 18/50 [05:00<07:44, 14.52s/it, train_loss=0.679, val_acc=0.522]train QGNN:  36%|███▌      | 18/50 [05:14<07:44, 14.52s/it, train_loss=0.67, val_acc=0.542] train QGNN:  38%|███▊      | 19/50 [05:14<07:25, 14.38s/it, train_loss=0.67, val_acc=0.542]train QGNN:  38%|███▊      | 19/50 [05:29<07:25, 14.38s/it, train_loss=0.663, val_acc=0.549]train QGNN:  40%|████      | 20/50 [05:29<07:13, 14.46s/it, train_loss=0.663, val_acc=0.549]train QGNN:  40%|████      | 20/50 [05:44<07:13, 14.46s/it, train_loss=0.658, val_acc=0.568]train QGNN:  42%|████▏     | 21/50 [05:44<06:59, 14.45s/it, train_loss=0.658, val_acc=0.568]train QGNN:  42%|████▏     | 21/50 [05:58<06:59, 14.45s/it, train_loss=0.654, val_acc=0.575]train QGNN:  44%|████▍     | 22/50 [05:58<06:42, 14.38s/it, train_loss=0.654, val_acc=0.575]train QGNN:  44%|████▍     | 22/50 [06:12<06:42, 14.38s/it, train_loss=0.647, val_acc=0.602]train QGNN:  46%|████▌     | 23/50 [06:12<06:28, 14.37s/it, train_loss=0.647, val_acc=0.602]train QGNN:  46%|████▌     | 23/50 [06:28<06:28, 14.37s/it, train_loss=0.641, val_acc=0.619]train QGNN:  48%|████▊     | 24/50 [06:28<06:29, 14.98s/it, train_loss=0.641, val_acc=0.619]train QGNN:  48%|████▊     | 24/50 [06:43<06:29, 14.98s/it, train_loss=0.637, val_acc=0.626]train QGNN:  50%|█████     | 25/50 [06:43<06:13, 14.95s/it, train_loss=0.637, val_acc=0.626]train QGNN:  50%|█████     | 25/50 [06:58<06:13, 14.95s/it, train_loss=0.633, val_acc=0.63] train QGNN:  52%|█████▏    | 26/50 [06:58<05:56, 14.85s/it, train_loss=0.633, val_acc=0.63]train QGNN:  52%|█████▏    | 26/50 [07:15<05:56, 14.85s/it, train_loss=0.63, val_acc=0.638]train QGNN:  54%|█████▍    | 27/50 [07:15<05:54, 15.41s/it, train_loss=0.63, val_acc=0.638]train QGNN:  54%|█████▍    | 27/50 [07:33<05:54, 15.41s/it, train_loss=0.628, val_acc=0.649]train QGNN:  56%|█████▌    | 28/50 [07:33<06:01, 16.42s/it, train_loss=0.628, val_acc=0.649]train QGNN:  56%|█████▌    | 28/50 [07:48<06:01, 16.42s/it, train_loss=0.626, val_acc=0.65] train QGNN:  58%|█████▊    | 29/50 [07:48<05:29, 15.71s/it, train_loss=0.626, val_acc=0.65]train QGNN:  58%|█████▊    | 29/50 [08:02<05:29, 15.71s/it, train_loss=0.624, val_acc=0.659]train QGNN:  60%|██████    | 30/50 [08:02<05:03, 15.19s/it, train_loss=0.624, val_acc=0.659]train QGNN:  60%|██████    | 30/50 [08:15<05:03, 15.19s/it, train_loss=0.623, val_acc=0.664]train QGNN:  62%|██████▏   | 31/50 [08:15<04:41, 14.81s/it, train_loss=0.623, val_acc=0.664]train QGNN:  62%|██████▏   | 31/50 [08:30<04:41, 14.81s/it, train_loss=0.621, val_acc=0.671]train QGNN:  64%|██████▍   | 32/50 [08:30<04:23, 14.65s/it, train_loss=0.621, val_acc=0.671]train QGNN:  64%|██████▍   | 32/50 [08:47<04:23, 14.65s/it, train_loss=0.62, val_acc=0.673] train QGNN:  66%|██████▌   | 33/50 [08:47<04:22, 15.45s/it, train_loss=0.62, val_acc=0.673]train QGNN:  66%|██████▌   | 33/50 [09:07<04:22, 15.45s/it, train_loss=0.618, val_acc=0.681]train QGNN:  68%|██████▊   | 34/50 [09:07<04:29, 16.83s/it, train_loss=0.618, val_acc=0.681]train QGNN:  68%|██████▊   | 34/50 [09:23<04:29, 16.83s/it, train_loss=0.616, val_acc=0.676]train QGNN:  70%|███████   | 35/50 [09:23<04:07, 16.47s/it, train_loss=0.616, val_acc=0.676]train QGNN:  70%|███████   | 35/50 [09:40<04:07, 16.47s/it, train_loss=0.615, val_acc=0.678]train QGNN:  72%|███████▏  | 36/50 [09:40<03:54, 16.73s/it, train_loss=0.615, val_acc=0.678]train QGNN:  72%|███████▏  | 36/50 [10:01<03:54, 16.73s/it, train_loss=0.613, val_acc=0.679]train QGNN:  74%|███████▍  | 37/50 [10:01<03:54, 18.04s/it, train_loss=0.613, val_acc=0.679]train QGNN:  74%|███████▍  | 37/50 [10:17<03:54, 18.04s/it, train_loss=0.612, val_acc=0.681]train QGNN:  76%|███████▌  | 38/50 [10:17<03:28, 17.37s/it, train_loss=0.612, val_acc=0.681]train QGNN:  76%|███████▌  | 38/50 [10:35<03:28, 17.37s/it, train_loss=0.612, val_acc=0.68] train QGNN:  78%|███████▊  | 39/50 [10:35<03:13, 17.61s/it, train_loss=0.612, val_acc=0.68]train QGNN:  78%|███████▊  | 39/50 [10:53<03:13, 17.61s/it, train_loss=0.611, val_acc=0.682]train QGNN:  80%|████████  | 40/50 [10:53<02:58, 17.82s/it, train_loss=0.611, val_acc=0.682]train QGNN:  80%|████████  | 40/50 [11:12<02:58, 17.82s/it, train_loss=0.611, val_acc=0.69] train QGNN:  82%|████████▏ | 41/50 [11:12<02:41, 17.95s/it, train_loss=0.611, val_acc=0.69]train QGNN:  82%|████████▏ | 41/50 [11:30<02:41, 17.95s/it, train_loss=0.61, val_acc=0.687]train QGNN:  84%|████████▍ | 42/50 [11:30<02:24, 18.04s/it, train_loss=0.61, val_acc=0.687]train QGNN:  84%|████████▍ | 42/50 [11:48<02:24, 18.04s/it, train_loss=0.609, val_acc=0.686]train QGNN:  86%|████████▌ | 43/50 [11:48<02:06, 18.08s/it, train_loss=0.609, val_acc=0.686]train QGNN:  86%|████████▌ | 43/50 [12:06<02:06, 18.08s/it, train_loss=0.609, val_acc=0.69] train QGNN:  88%|████████▊ | 44/50 [12:06<01:48, 18.13s/it, train_loss=0.609, val_acc=0.69]train QGNN:  88%|████████▊ | 44/50 [12:23<01:48, 18.13s/it, train_loss=0.608, val_acc=0.69]train QGNN:  90%|█████████ | 45/50 [12:23<01:28, 17.72s/it, train_loss=0.608, val_acc=0.69]train QGNN:  90%|█████████ | 45/50 [12:42<01:28, 17.72s/it, train_loss=0.607, val_acc=0.689]train QGNN:  92%|█████████▏| 46/50 [12:42<01:12, 18.13s/it, train_loss=0.607, val_acc=0.689]train QGNN:  92%|█████████▏| 46/50 [12:58<01:12, 18.13s/it, train_loss=0.606, val_acc=0.69] train QGNN:  94%|█████████▍| 47/50 [12:58<00:52, 17.43s/it, train_loss=0.606, val_acc=0.69]train QGNN:  94%|█████████▍| 47/50 [13:21<00:52, 17.43s/it, train_loss=0.606, val_acc=0.69]train QGNN:  96%|█████████▌| 48/50 [13:21<00:38, 19.10s/it, train_loss=0.606, val_acc=0.69]train QGNN:  96%|█████████▌| 48/50 [13:37<00:38, 19.10s/it, train_loss=0.607, val_acc=0.692]train QGNN:  98%|█████████▊| 49/50 [13:37<00:18, 18.13s/it, train_loss=0.607, val_acc=0.692]train QGNN:  98%|█████████▊| 49/50 [13:57<00:18, 18.13s/it, train_loss=0.606, val_acc=0.693]train QGNN: 100%|██████████| 50/50 [13:57<00:00, 18.84s/it, train_loss=0.606, val_acc=0.693]train QGNN: 100%|██████████| 50/50 [13:57<00:00, 16.76s/it, train_loss=0.606, val_acc=0.693]
+wandb: uploading artifact qgnn-jets-m4; updating run metadata
+wandb: uploading artifact qgnn-jets-m4
+wandb: uploading summary
+wandb: 
+wandb: Run history:
+wandb:       accuracy ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▃▃▄▅▆▆▆▇▇▇█▇▇█▇████████
+wandb:             ap ▁▅▇█████████████████████████████████████
+wandb:            auc ▁▇██████████████████████████████████████
+wandb:          epoch ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇███
+wandb:       macro_f1 ▁▁▁▁▁▁▁▁▁▁▁▁▂▂▃▄▅▆▆▇▇▇▇▇▇███████████████
+wandb:      precision ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▂▃▃▄▅▅▅▅▆▆▆▆▇▇▇▇▇▇█████
+wandb:         recall ██████████████▇▇▆▆▆▅▄▃▃▃▃▃▃▂▂▂▂▂▁▁▁▁▁▁▁▁
+wandb:      threshold ▁
+wandb: train_accuracy ▁
+wandb:     train_loss ██▆▅▄▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:             +1 ...
+wandb: 
+wandb: Run summary:
+wandb:       accuracy 0.6928
+wandb:             ap 0.78043
+wandb:            auc 0.7296
+wandb:          epoch 49
+wandb:       macro_f1 0.6904
+wandb:      precision 0.76364
+wandb:         recall 0.58605
+wandb:      threshold 0.49963
+wandb: train_accuracy 0.685
+wandb:     train_loss 0.60636
+wandb:             +1 ...
+wandb: 
+wandb: 🚀 View run qgnn-M4-lorentz800-seed44 at: https://wandb.ai/tousi-team/graph-vls/runs/8iyczbzh
+wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
+wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260803_225356-8iyczbzh/logs
+
+Best epoch=49  val_accuracy=0.6928  val_auc=0.7296  val_macro_f1=0.6904
+train_accuracy=0.6850  training_time_s=839.65
+threshold (val-selected)=0.4996
+Saved best QGNN checkpoint to checkpoints/qgnn_jets_m4_lorentz800_seed44.pt
+
+=== [3/3] Evaluating QGNN on held-out test jets (seed=44, same fixed test set every trial) ===
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run awzycxxy
+wandb: Tracking run with wandb version 0.28.1
+wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_230816-awzycxxy
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run qgnn-eval-M4-lorentz800-seed44
+wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
+wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/awzycxxy
+wandb: uploading artifact qgnn-jets-m4-test-metrics; updating run metadata
+wandb: uploading artifact qgnn-jets-m4-test-metrics
+wandb: uploading history steps 0-2, summary, console lines 0-22
+wandb: 
+wandb: Run history:
+wandb:                  inference_time_s ▁
+wandb:                     test_accuracy ▁
+wandb: test_accuracy_fixed_threshold_0.5 ▁
+wandb:                           test_ap ▁
+wandb:                          test_auc ▁
+wandb:                     test_macro_f1 ▁
+wandb:                    test_precision ▁
+wandb:                       test_recall ▁
+wandb:                         threshold ▁
+wandb:                    train_accuracy ▁
+wandb:                                +1 ...
+wandb: 
+wandb: Run summary:
+wandb:                  inference_time_s 1.728
+wandb:                     test_accuracy 0.644
+wandb: test_accuracy_fixed_threshold_0.5 0.6432
+wandb:                           test_ap 0.731
+wandb:                          test_auc 0.68194
+wandb:                     test_macro_f1 0.64085
+wandb:                    test_precision 0.70204
+wandb:                       test_recall 0.53499
+wandb:                         threshold 0.49963
+wandb:                    train_accuracy 0.685
+wandb:                                +1 ...
+wandb: 
+wandb: 🚀 View run qgnn-eval-M4-lorentz800-seed44 at: https://wandb.ai/tousi-team/graph-vls/runs/awzycxxy
+wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
+wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260803_230816-awzycxxy/logs
+Device: cuda
+Loading GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
+Loading QGNN checkpoint from checkpoints/qgnn_jets_m4_lorentz800_seed44.pt...
+  GVLS M=4  QGNN M=4  num_layers=8
+Loading qg_jets (protocol=lorentz, seed=42)...
+Evaluating on 1250 held-out test jets (untouched by training)...
+
+Test-set metrics (at the validation-selected threshold):
+  accuracy    : 0.6440
+  auc         : 0.6819
+  ap          : 0.7310
+  macro_f1    : 0.6409
+  precision   : 0.7020
+  recall      : 0.5350
+  confusion_matrix (rows=true, cols=pred, label 0=quark/1=gluon): [[461, 146], [299, 344]]
+  threshold used: 0.4996 (validation-selected (train_qgnn.py))
+  accuracy at fixed threshold=0.5 (for comparison): 0.6432  (delta: +0.0008)
+  qubit_count (M): 4
+  circuit_depth (num_layers): 8
+  optimizer: adamw
+  train_accuracy: 0.6850
+  training_time_s: 839.65
+  inference_time_s: 1.73  (1250 test jets)
+
+NOTE (NFR-5): wall-clock timing above is measured on this run's own hardware, not matched to sota-table.png's Table II hardware -- directional comparison only.
+
+NOTE: no literature QGNN comparison number is included here -- that search (plan.md T4.6) has not been done yet. Comparison target identified 2026-07-30 (Lorentz-EQGNN, sota-table.png Table II) -- see plan.md Design Decision 12.
+
+Results written to results/qgnn/qg_jets_metrics_lorentz800_seed44.json
+
+=== [2/3] Training QGNN classifier (seed=45, training subset reseeded per trial, optimizer=adamw, gradient_method=spsa) ===
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run 2saq6jzj
+wandb: Tracking run with wandb version 0.28.1
+wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_230853-2saq6jzj
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run qgnn-M4-lorentz800-seed45
+wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
+wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/2saq6jzj
+Device: cuda
+Loading frozen GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
+  M=4  d=8
+Loading qg_jets (protocol=lorentz, seed=42)...
+  train=800  val=1250  test(unused here)=1250
+Extracting frozen (z_tilde, A_z) features (no gradient)...
+QGNN config: M=4 num_layers=8 optimizer=adamw lr=0.001 epochs=50 batch_size=16 gradient_method=spsa
+train QGNN:   0%|          | 0/50 [00:00<?, ?it/s]train QGNN:   0%|          | 0/50 [00:21<?, ?it/s, train_loss=1.92, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:21<17:37, 21.58s/it, train_loss=1.92, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:38<17:37, 21.58s/it, train_loss=1.83, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:38<15:03, 18.81s/it, train_loss=1.83, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:59<15:03, 18.81s/it, train_loss=1.66, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [00:59<15:24, 19.66s/it, train_loss=1.66, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [01:16<15:24, 19.66s/it, train_loss=1.45, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [01:16<14:23, 18.77s/it, train_loss=1.45, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [01:38<14:23, 18.77s/it, train_loss=1.23, val_acc=0.516]train QGNN:  10%|█         | 5/50 [01:38<14:49, 19.76s/it, train_loss=1.23, val_acc=0.516]train QGNN:  10%|█         | 5/50 [01:54<14:49, 19.76s/it, train_loss=1.05, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [01:54<13:43, 18.72s/it, train_loss=1.05, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [02:16<13:43, 18.72s/it, train_loss=0.938, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [02:16<14:06, 19.68s/it, train_loss=0.938, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [02:33<14:06, 19.68s/it, train_loss=0.869, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [02:33<13:09, 18.80s/it, train_loss=0.869, val_acc=0.516]train QGNN:  16%|█▌        | 8/50 [02:55<13:09, 18.80s/it, train_loss=0.817, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [02:55<13:39, 20.00s/it, train_loss=0.817, val_acc=0.516]train QGNN:  18%|█▊        | 9/50 [03:12<13:39, 20.00s/it, train_loss=0.782, val_acc=0.516]train QGNN:  20%|██        | 10/50 [03:12<12:41, 19.03s/it, train_loss=0.782, val_acc=0.516]train QGNN:  20%|██        | 10/50 [03:34<12:41, 19.03s/it, train_loss=0.756, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [03:34<12:58, 19.96s/it, train_loss=0.756, val_acc=0.516]train QGNN:  22%|██▏       | 11/50 [03:51<12:58, 19.96s/it, train_loss=0.738, val_acc=0.514]train QGNN:  24%|██▍       | 12/50 [03:51<11:55, 18.83s/it, train_loss=0.738, val_acc=0.514]train QGNN:  24%|██▍       | 12/50 [04:06<11:55, 18.83s/it, train_loss=0.721, val_acc=0.512]train QGNN:  26%|██▌       | 13/50 [04:06<10:55, 17.73s/it, train_loss=0.721, val_acc=0.512]train QGNN:  26%|██▌       | 13/50 [04:21<10:55, 17.73s/it, train_loss=0.707, val_acc=0.518]train QGNN:  28%|██▊       | 14/50 [04:21<10:10, 16.96s/it, train_loss=0.707, val_acc=0.518]train QGNN:  28%|██▊       | 14/50 [04:36<10:10, 16.96s/it, train_loss=0.697, val_acc=0.516]train QGNN:  30%|███       | 15/50 [04:36<09:36, 16.48s/it, train_loss=0.697, val_acc=0.516]train QGNN:  30%|███       | 15/50 [04:51<09:36, 16.48s/it, train_loss=0.687, val_acc=0.522]train QGNN:  32%|███▏      | 16/50 [04:51<09:06, 16.07s/it, train_loss=0.687, val_acc=0.522]train QGNN:  32%|███▏      | 16/50 [05:07<09:06, 16.07s/it, train_loss=0.679, val_acc=0.528]train QGNN:  34%|███▍      | 17/50 [05:07<08:41, 15.79s/it, train_loss=0.679, val_acc=0.528]train QGNN:  34%|███▍      | 17/50 [05:22<08:41, 15.79s/it, train_loss=0.669, val_acc=0.538]train QGNN:  36%|███▌      | 18/50 [05:22<08:20, 15.63s/it, train_loss=0.669, val_acc=0.538]train QGNN:  36%|███▌      | 18/50 [05:37<08:20, 15.63s/it, train_loss=0.662, val_acc=0.546]train QGNN:  38%|███▊      | 19/50 [05:37<08:00, 15.51s/it, train_loss=0.662, val_acc=0.546]train QGNN:  38%|███▊      | 19/50 [05:53<08:00, 15.51s/it, train_loss=0.656, val_acc=0.557]train QGNN:  40%|████      | 20/50 [05:53<07:45, 15.52s/it, train_loss=0.656, val_acc=0.557]train QGNN:  40%|████      | 20/50 [06:08<07:45, 15.52s/it, train_loss=0.65, val_acc=0.575] train QGNN:  42%|████▏     | 21/50 [06:08<07:29, 15.50s/it, train_loss=0.65, val_acc=0.575]train QGNN:  42%|████▏     | 21/50 [06:23<07:29, 15.50s/it, train_loss=0.644, val_acc=0.586]train QGNN:  44%|████▍     | 22/50 [06:23<07:09, 15.34s/it, train_loss=0.644, val_acc=0.586]train QGNN:  44%|████▍     | 22/50 [06:38<07:09, 15.34s/it, train_loss=0.639, val_acc=0.598]train QGNN:  46%|████▌     | 23/50 [06:38<06:53, 15.31s/it, train_loss=0.639, val_acc=0.598]train QGNN:  46%|████▌     | 23/50 [06:55<06:53, 15.31s/it, train_loss=0.635, val_acc=0.603]train QGNN:  48%|████▊     | 24/50 [06:55<06:47, 15.67s/it, train_loss=0.635, val_acc=0.603]train QGNN:  48%|████▊     | 24/50 [07:11<06:47, 15.67s/it, train_loss=0.632, val_acc=0.617]train QGNN:  50%|█████     | 25/50 [07:11<06:31, 15.68s/it, train_loss=0.632, val_acc=0.617]train QGNN:  50%|█████     | 25/50 [07:26<06:31, 15.68s/it, train_loss=0.627, val_acc=0.636]train QGNN:  52%|█████▏    | 26/50 [07:26<06:16, 15.67s/it, train_loss=0.627, val_acc=0.636]train QGNN:  52%|█████▏    | 26/50 [07:43<06:16, 15.67s/it, train_loss=0.624, val_acc=0.642]train QGNN:  54%|█████▍    | 27/50 [07:43<06:08, 16.04s/it, train_loss=0.624, val_acc=0.642]train QGNN:  54%|█████▍    | 27/50 [08:00<06:08, 16.04s/it, train_loss=0.622, val_acc=0.645]train QGNN:  56%|█████▌    | 28/50 [08:00<05:57, 16.25s/it, train_loss=0.622, val_acc=0.645]train QGNN:  56%|█████▌    | 28/50 [08:15<05:57, 16.25s/it, train_loss=0.62, val_acc=0.646] train QGNN:  58%|█████▊    | 29/50 [08:15<05:34, 15.93s/it, train_loss=0.62, val_acc=0.646]train QGNN:  58%|█████▊    | 29/50 [08:30<05:34, 15.93s/it, train_loss=0.619, val_acc=0.649]train QGNN:  60%|██████    | 30/50 [08:30<05:12, 15.62s/it, train_loss=0.619, val_acc=0.649]train QGNN:  60%|██████    | 30/50 [08:45<05:12, 15.62s/it, train_loss=0.617, val_acc=0.66] train QGNN:  62%|██████▏   | 31/50 [08:45<04:52, 15.41s/it, train_loss=0.617, val_acc=0.66]train QGNN:  62%|██████▏   | 31/50 [09:00<04:52, 15.41s/it, train_loss=0.615, val_acc=0.664]train QGNN:  64%|██████▍   | 32/50 [09:00<04:35, 15.33s/it, train_loss=0.615, val_acc=0.664]train QGNN:  64%|██████▍   | 32/50 [09:18<04:35, 15.33s/it, train_loss=0.613, val_acc=0.666]train QGNN:  66%|██████▌   | 33/50 [09:18<04:33, 16.11s/it, train_loss=0.613, val_acc=0.666]train QGNN:  66%|██████▌   | 33/50 [09:37<04:33, 16.11s/it, train_loss=0.61, val_acc=0.666] train QGNN:  68%|██████▊   | 34/50 [09:37<04:30, 16.93s/it, train_loss=0.61, val_acc=0.666]train QGNN:  68%|██████▊   | 34/50 [09:52<04:30, 16.93s/it, train_loss=0.609, val_acc=0.662]train QGNN:  70%|███████   | 35/50 [09:52<04:06, 16.45s/it, train_loss=0.609, val_acc=0.662]train QGNN:  70%|███████   | 35/50 [10:08<04:06, 16.45s/it, train_loss=0.609, val_acc=0.662]train QGNN:  72%|███████▏  | 36/50 [10:08<03:49, 16.37s/it, train_loss=0.609, val_acc=0.662]train QGNN:  72%|███████▏  | 36/50 [10:25<03:49, 16.37s/it, train_loss=0.61, val_acc=0.669] train QGNN:  74%|███████▍  | 37/50 [10:25<03:32, 16.36s/it, train_loss=0.61, val_acc=0.669]train QGNN:  74%|███████▍  | 37/50 [10:46<03:32, 16.36s/it, train_loss=0.609, val_acc=0.668]train QGNN:  76%|███████▌  | 38/50 [10:46<03:32, 17.74s/it, train_loss=0.609, val_acc=0.668]train QGNN:  76%|███████▌  | 38/50 [11:04<03:32, 17.74s/it, train_loss=0.607, val_acc=0.67] train QGNN:  78%|███████▊  | 39/50 [11:04<03:18, 18.03s/it, train_loss=0.607, val_acc=0.67]train QGNN:  78%|███████▊  | 39/50 [11:26<03:18, 18.03s/it, train_loss=0.606, val_acc=0.676]train QGNN:  80%|████████  | 40/50 [11:26<03:10, 19.02s/it, train_loss=0.606, val_acc=0.676]train QGNN:  80%|████████  | 40/50 [11:43<03:10, 19.02s/it, train_loss=0.604, val_acc=0.674]train QGNN:  82%|████████▏ | 41/50 [11:43<02:46, 18.50s/it, train_loss=0.604, val_acc=0.674]train QGNN:  82%|████████▏ | 41/50 [12:03<02:46, 18.50s/it, train_loss=0.602, val_acc=0.677]train QGNN:  84%|████████▍ | 42/50 [12:03<02:32, 19.08s/it, train_loss=0.602, val_acc=0.677]train QGNN:  84%|████████▍ | 42/50 [12:20<02:32, 19.08s/it, train_loss=0.601, val_acc=0.677]train QGNN:  86%|████████▌ | 43/50 [12:20<02:08, 18.30s/it, train_loss=0.601, val_acc=0.677]train QGNN:  86%|████████▌ | 43/50 [12:42<02:08, 18.30s/it, train_loss=0.6, val_acc=0.678]  train QGNN:  88%|████████▊ | 44/50 [12:42<01:56, 19.48s/it, train_loss=0.6, val_acc=0.678]train QGNN:  88%|████████▊ | 44/50 [12:59<01:56, 19.48s/it, train_loss=0.6, val_acc=0.682]train QGNN:  90%|█████████ | 45/50 [12:59<01:33, 18.61s/it, train_loss=0.6, val_acc=0.682]train QGNN:  90%|█████████ | 45/50 [13:20<01:33, 18.61s/it, train_loss=0.6, val_acc=0.682]train QGNN:  92%|█████████▏| 46/50 [13:20<01:18, 19.55s/it, train_loss=0.6, val_acc=0.682]train QGNN:  92%|█████████▏| 46/50 [13:37<01:18, 19.55s/it, train_loss=0.599, val_acc=0.683]train QGNN:  94%|█████████▍| 47/50 [13:37<00:56, 18.70s/it, train_loss=0.599, val_acc=0.683]train QGNN:  94%|█████████▍| 47/50 [13:59<00:56, 18.70s/it, train_loss=0.599, val_acc=0.683]train QGNN:  96%|█████████▌| 48/50 [13:59<00:39, 19.72s/it, train_loss=0.599, val_acc=0.683]train QGNN:  96%|█████████▌| 48/50 [14:16<00:39, 19.72s/it, train_loss=0.598, val_acc=0.686]train QGNN:  98%|█████████▊| 49/50 [14:16<00:18, 19.00s/it, train_loss=0.598, val_acc=0.686]train QGNN:  98%|█████████▊| 49/50 [14:39<00:18, 19.00s/it, train_loss=0.597, val_acc=0.686]train QGNN: 100%|██████████| 50/50 [14:39<00:00, 20.02s/it, train_loss=0.597, val_acc=0.686]train QGNN: 100%|██████████| 50/50 [14:39<00:00, 17.59s/it, train_loss=0.597, val_acc=0.686]
+wandb: uploading artifact qgnn-jets-m4; updating run metadata
+wandb: uploading artifact qgnn-jets-m4
+wandb: uploading artifact qgnn-jets-m4; uploading history steps 48-49, summary, console lines 0-5
+wandb: uploading data
+wandb: 
+wandb: Run history:
+wandb:       accuracy ▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▃▄▄▅▅▆▆▆▆▇▇▇▇▇▇▇█████████
+wandb:             ap ▁▆▇█████████████████████████████████████
+wandb:            auc ▁▅▇█████████████████████████████████████
+wandb:          epoch ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇▇███
+wandb:       macro_f1 ▁▁▁▁▁▁▁▁▁▁▁▂▂▂▃▄▅▅▆▆▇▇▇▇▇███████████████
+wandb:      precision ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▃▃▃▄▅▅▅▅▆▆▆▆▆▆▆▇▇▇▇█████
+wandb:         recall ███████████▇▇▇▆▆▅▅▅▄▄▄▃▃▃▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁
+wandb:      threshold ▁
+wandb: train_accuracy ▁
+wandb:     train_loss █▇▆▄▃▂▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:             +1 ...
+wandb: 
+wandb: Run summary:
+wandb:       accuracy 0.6856
+wandb:             ap 0.78241
+wandb:            auc 0.73376
+wandb:          epoch 49
+wandb:       macro_f1 0.68526
+wandb:      precision 0.7234
+wandb:         recall 0.63256
+wandb:      threshold 0.5606
+wandb: train_accuracy 0.68375
+wandb:     train_loss 0.59726
+wandb:             +1 ...
+wandb: 
+wandb: 🚀 View run qgnn-M4-lorentz800-seed45 at: https://wandb.ai/tousi-team/graph-vls/runs/2saq6jzj
+wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
+wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260803_230853-2saq6jzj/logs
+
+Best epoch=48  val_accuracy=0.6856  val_auc=0.7337  val_macro_f1=0.6853
+train_accuracy=0.6837  training_time_s=881.31
+threshold (val-selected)=0.5606
+Saved best QGNN checkpoint to checkpoints/qgnn_jets_m4_lorentz800_seed45.pt
+
+=== [3/3] Evaluating QGNN on held-out test jets (seed=45, same fixed test set every trial) ===
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run rl5j49jj
+wandb: Tracking run with wandb version 0.28.1
+wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_232401-rl5j49jj
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run qgnn-eval-M4-lorentz800-seed45
+wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
+wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/rl5j49jj
+wandb: uploading artifact qgnn-jets-m4-test-metrics; updating run metadata
+wandb: uploading artifact qgnn-jets-m4-test-metrics
+wandb: uploading history steps 0-2, summary, console lines 0-22
+wandb: 
+wandb: Run history:
+wandb:                  inference_time_s ▁
+wandb:                     test_accuracy ▁
+wandb: test_accuracy_fixed_threshold_0.5 ▁
+wandb:                           test_ap ▁
+wandb:                          test_auc ▁
+wandb:                     test_macro_f1 ▁
+wandb:                    test_precision ▁
+wandb:                       test_recall ▁
+wandb:                         threshold ▁
+wandb:                    train_accuracy ▁
+wandb:                                +1 ...
+wandb: 
+wandb: Run summary:
+wandb:                  inference_time_s 1.15127
+wandb:                     test_accuracy 0.648
+wandb: test_accuracy_fixed_threshold_0.5 0.644
+wandb:                           test_ap 0.73888
+wandb:                          test_auc 0.7048
+wandb:                     test_macro_f1 0.64183
+wandb:                    test_precision 0.72912
+wandb:                       test_recall 0.50233
+wandb:                         threshold 0.5606
+wandb:                    train_accuracy 0.68375
+wandb:                                +1 ...
+wandb: 
+wandb: 🚀 View run qgnn-eval-M4-lorentz800-seed45 at: https://wandb.ai/tousi-team/graph-vls/runs/rl5j49jj
+wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
+wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260803_232401-rl5j49jj/logs
+Device: cuda
+Loading GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
+Loading QGNN checkpoint from checkpoints/qgnn_jets_m4_lorentz800_seed45.pt...
+  GVLS M=4  QGNN M=4  num_layers=8
+Loading qg_jets (protocol=lorentz, seed=42)...
+Evaluating on 1250 held-out test jets (untouched by training)...
+
+Test-set metrics (at the validation-selected threshold):
+  accuracy    : 0.6480
+  auc         : 0.7048
+  ap          : 0.7389
+  macro_f1    : 0.6418
+  precision   : 0.7291
+  recall      : 0.5023
+  confusion_matrix (rows=true, cols=pred, label 0=quark/1=gluon): [[487, 120], [320, 323]]
+  threshold used: 0.5606 (validation-selected (train_qgnn.py))
+  accuracy at fixed threshold=0.5 (for comparison): 0.6440  (delta: +0.0040)
+  qubit_count (M): 4
+  circuit_depth (num_layers): 8
+  optimizer: adamw
+  train_accuracy: 0.6837
+  training_time_s: 881.31
+  inference_time_s: 1.15  (1250 test jets)
+
+NOTE (NFR-5): wall-clock timing above is measured on this run's own hardware, not matched to sota-table.png's Table II hardware -- directional comparison only.
+
+NOTE: no literature QGNN comparison number is included here -- that search (plan.md T4.6) has not been done yet. Comparison target identified 2026-07-30 (Lorentz-EQGNN, sota-table.png Table II) -- see plan.md Design Decision 12.
+
+Results written to results/qgnn/qg_jets_metrics_lorentz800_seed45.json
+
+=== [2/3] Training QGNN classifier (seed=46, training subset reseeded per trial, optimizer=adamw, gradient_method=spsa) ===
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run y7rfvzyp
+wandb: Tracking run with wandb version 0.28.1
+wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_232437-y7rfvzyp
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run qgnn-M4-lorentz800-seed46
+wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
+wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/y7rfvzyp
+Device: cuda
+Loading frozen GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
+  M=4  d=8
+Loading qg_jets (protocol=lorentz, seed=42)...
+  train=800  val=1250  test(unused here)=1250
+Extracting frozen (z_tilde, A_z) features (no gradient)...
+QGNN config: M=4 num_layers=8 optimizer=adamw lr=0.001 epochs=50 batch_size=16 gradient_method=spsa
+train QGNN:   0%|          | 0/50 [00:00<?, ?it/s]train QGNN:   0%|          | 0/50 [00:16<?, ?it/s, train_loss=1.96, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:16<13:32, 16.57s/it, train_loss=1.96, val_acc=0.516]train QGNN:   2%|▏         | 1/50 [00:37<13:32, 16.57s/it, train_loss=1.95, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:37<15:06, 18.88s/it, train_loss=1.95, val_acc=0.516]train QGNN:   4%|▍         | 2/50 [00:53<15:06, 18.88s/it, train_loss=1.91, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [00:53<14:04, 17.98s/it, train_loss=1.91, val_acc=0.516]train QGNN:   6%|▌         | 3/50 [01:15<14:04, 17.98s/it, train_loss=1.78, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [01:15<14:53, 19.42s/it, train_loss=1.78, val_acc=0.516]train QGNN:   8%|▊         | 4/50 [01:31<14:53, 19.42s/it, train_loss=1.53, val_acc=0.516]train QGNN:  10%|█         | 5/50 [01:31<13:36, 18.13s/it, train_loss=1.53, val_acc=0.516]train QGNN:  10%|█         | 5/50 [01:52<13:36, 18.13s/it, train_loss=1.24, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [01:52<13:58, 19.06s/it, train_loss=1.24, val_acc=0.516]train QGNN:  12%|█▏        | 6/50 [02:08<13:58, 19.06s/it, train_loss=1.04, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [02:08<13:02, 18.19s/it, train_loss=1.04, val_acc=0.516]train QGNN:  14%|█▍        | 7/50 [02:29<13:02, 18.19s/it, train_loss=0.929, val_acc=0.517]train QGNN:  16%|█▌        | 8/50 [02:29<13:13, 18.89s/it, train_loss=0.929, val_acc=0.517]train QGNN:  16%|█▌        | 8/50 [02:44<13:13, 18.89s/it, train_loss=0.85, val_acc=0.517] train QGNN:  18%|█▊        | 9/50 [02:44<12:14, 17.93s/it, train_loss=0.85, val_acc=0.517]train QGNN:  18%|█▊        | 9/50 [03:07<12:14, 17.93s/it, train_loss=0.804, val_acc=0.516]train QGNN:  20%|██        | 10/50 [03:07<12:51, 19.29s/it, train_loss=0.804, val_acc=0.516]train QGNN:  20%|██        | 10/50 [03:22<12:51, 19.29s/it, train_loss=0.775, val_acc=0.515]train QGNN:  22%|██▏       | 11/50 [03:22<11:48, 18.17s/it, train_loss=0.775, val_acc=0.515]train QGNN:  22%|██▏       | 11/50 [03:37<11:48, 18.17s/it, train_loss=0.75, val_acc=0.513] train QGNN:  24%|██▍       | 12/50 [03:37<10:52, 17.16s/it, train_loss=0.75, val_acc=0.513]train QGNN:  24%|██▍       | 12/50 [03:51<10:52, 17.16s/it, train_loss=0.732, val_acc=0.512]train QGNN:  26%|██▌       | 13/50 [03:51<10:00, 16.23s/it, train_loss=0.732, val_acc=0.512]train QGNN:  26%|██▌       | 13/50 [04:06<10:00, 16.23s/it, train_loss=0.718, val_acc=0.518]train QGNN:  28%|██▊       | 14/50 [04:06<09:24, 15.67s/it, train_loss=0.718, val_acc=0.518]train QGNN:  28%|██▊       | 14/50 [04:20<09:24, 15.67s/it, train_loss=0.708, val_acc=0.518]train QGNN:  30%|███       | 15/50 [04:20<08:55, 15.30s/it, train_loss=0.708, val_acc=0.518]train QGNN:  30%|███       | 15/50 [04:34<08:55, 15.30s/it, train_loss=0.698, val_acc=0.527]train QGNN:  32%|███▏      | 16/50 [04:34<08:27, 14.93s/it, train_loss=0.698, val_acc=0.527]train QGNN:  32%|███▏      | 16/50 [04:48<08:27, 14.93s/it, train_loss=0.689, val_acc=0.53] train QGNN:  34%|███▍      | 17/50 [04:48<08:04, 14.68s/it, train_loss=0.689, val_acc=0.53]train QGNN:  34%|███▍      | 17/50 [05:03<08:04, 14.68s/it, train_loss=0.683, val_acc=0.54]train QGNN:  36%|███▌      | 18/50 [05:03<07:47, 14.60s/it, train_loss=0.683, val_acc=0.54]train QGNN:  36%|███▌      | 18/50 [05:17<07:47, 14.60s/it, train_loss=0.673, val_acc=0.552]train QGNN:  38%|███▊      | 19/50 [05:17<07:29, 14.50s/it, train_loss=0.673, val_acc=0.552]train QGNN:  38%|███▊      | 19/50 [05:31<07:29, 14.50s/it, train_loss=0.666, val_acc=0.56] train QGNN:  40%|████      | 20/50 [05:31<07:12, 14.41s/it, train_loss=0.666, val_acc=0.56]train QGNN:  40%|████      | 20/50 [05:46<07:12, 14.41s/it, train_loss=0.66, val_acc=0.568]train QGNN:  42%|████▏     | 21/50 [05:46<06:58, 14.43s/it, train_loss=0.66, val_acc=0.568]train QGNN:  42%|████▏     | 21/50 [06:00<06:58, 14.43s/it, train_loss=0.654, val_acc=0.583]train QGNN:  44%|████▍     | 22/50 [06:00<06:41, 14.35s/it, train_loss=0.654, val_acc=0.583]train QGNN:  44%|████▍     | 22/50 [06:14<06:41, 14.35s/it, train_loss=0.649, val_acc=0.597]train QGNN:  46%|████▌     | 23/50 [06:14<06:26, 14.33s/it, train_loss=0.649, val_acc=0.597]train QGNN:  46%|████▌     | 23/50 [06:30<06:26, 14.33s/it, train_loss=0.644, val_acc=0.607]train QGNN:  48%|████▊     | 24/50 [06:30<06:28, 14.94s/it, train_loss=0.644, val_acc=0.607]train QGNN:  48%|████▊     | 24/50 [06:45<06:28, 14.94s/it, train_loss=0.642, val_acc=0.617]train QGNN:  50%|█████     | 25/50 [06:45<06:13, 14.95s/it, train_loss=0.642, val_acc=0.617]train QGNN:  50%|█████     | 25/50 [07:00<06:13, 14.95s/it, train_loss=0.639, val_acc=0.626]train QGNN:  52%|█████▏    | 26/50 [07:00<05:57, 14.88s/it, train_loss=0.639, val_acc=0.626]train QGNN:  52%|█████▏    | 26/50 [07:19<05:57, 14.88s/it, train_loss=0.636, val_acc=0.638]train QGNN:  54%|█████▍    | 27/50 [07:19<06:09, 16.05s/it, train_loss=0.636, val_acc=0.638]train QGNN:  54%|█████▍    | 27/50 [07:36<06:09, 16.05s/it, train_loss=0.633, val_acc=0.645]train QGNN:  56%|█████▌    | 28/50 [07:36<05:58, 16.31s/it, train_loss=0.633, val_acc=0.645]train QGNN:  56%|█████▌    | 28/50 [07:52<05:58, 16.31s/it, train_loss=0.63, val_acc=0.648] train QGNN:  58%|█████▊    | 29/50 [07:52<05:41, 16.24s/it, train_loss=0.63, val_acc=0.648]train QGNN:  58%|█████▊    | 29/50 [08:06<05:41, 16.24s/it, train_loss=0.629, val_acc=0.648]train QGNN:  60%|██████    | 30/50 [08:06<05:11, 15.57s/it, train_loss=0.629, val_acc=0.648]train QGNN:  60%|██████    | 30/50 [08:20<05:11, 15.57s/it, train_loss=0.626, val_acc=0.653]train QGNN:  62%|██████▏   | 31/50 [08:20<04:46, 15.10s/it, train_loss=0.626, val_acc=0.653]train QGNN:  62%|██████▏   | 31/50 [08:34<04:46, 15.10s/it, train_loss=0.625, val_acc=0.657]train QGNN:  64%|██████▍   | 32/50 [08:34<04:25, 14.77s/it, train_loss=0.625, val_acc=0.657]train QGNN:  64%|██████▍   | 32/50 [08:49<04:25, 14.77s/it, train_loss=0.622, val_acc=0.665]train QGNN:  66%|██████▌   | 33/50 [08:49<04:13, 14.89s/it, train_loss=0.622, val_acc=0.665]train QGNN:  66%|██████▌   | 33/50 [09:09<04:13, 14.89s/it, train_loss=0.62, val_acc=0.669] train QGNN:  68%|██████▊   | 34/50 [09:09<04:21, 16.35s/it, train_loss=0.62, val_acc=0.669]train QGNN:  68%|██████▊   | 34/50 [09:28<04:21, 16.35s/it, train_loss=0.618, val_acc=0.668]train QGNN:  70%|███████   | 35/50 [09:28<04:18, 17.20s/it, train_loss=0.618, val_acc=0.668]train QGNN:  70%|███████   | 35/50 [09:43<04:18, 17.20s/it, train_loss=0.618, val_acc=0.668]train QGNN:  72%|███████▏  | 36/50 [09:43<03:51, 16.53s/it, train_loss=0.618, val_acc=0.668]train QGNN:  72%|███████▏  | 36/50 [09:59<03:51, 16.53s/it, train_loss=0.618, val_acc=0.67] train QGNN:  74%|███████▍  | 37/50 [09:59<03:34, 16.50s/it, train_loss=0.618, val_acc=0.67]train QGNN:  74%|███████▍  | 37/50 [10:21<03:34, 16.50s/it, train_loss=0.617, val_acc=0.67]train QGNN:  76%|███████▌  | 38/50 [10:21<03:34, 17.89s/it, train_loss=0.617, val_acc=0.67]train QGNN:  76%|███████▌  | 38/50 [10:38<03:34, 17.89s/it, train_loss=0.615, val_acc=0.676]train QGNN:  78%|███████▊  | 39/50 [10:38<03:15, 17.73s/it, train_loss=0.615, val_acc=0.676]train QGNN:  78%|███████▊  | 39/50 [10:59<03:15, 17.73s/it, train_loss=0.614, val_acc=0.674]train QGNN:  80%|████████  | 40/50 [10:59<03:08, 18.86s/it, train_loss=0.614, val_acc=0.674]train QGNN:  80%|████████  | 40/50 [11:16<03:08, 18.86s/it, train_loss=0.614, val_acc=0.674]train QGNN:  82%|████████▏ | 41/50 [11:16<02:43, 18.12s/it, train_loss=0.614, val_acc=0.674]train QGNN:  82%|████████▏ | 41/50 [11:37<02:43, 18.12s/it, train_loss=0.613, val_acc=0.677]train QGNN:  84%|████████▍ | 42/50 [11:37<02:33, 19.15s/it, train_loss=0.613, val_acc=0.677]train QGNN:  84%|████████▍ | 42/50 [11:53<02:33, 19.15s/it, train_loss=0.612, val_acc=0.677]train QGNN:  86%|████████▌ | 43/50 [11:53<02:06, 18.05s/it, train_loss=0.612, val_acc=0.677]train QGNN:  86%|████████▌ | 43/50 [12:15<02:06, 18.05s/it, train_loss=0.612, val_acc=0.677]train QGNN:  88%|████████▊ | 44/50 [12:15<01:55, 19.32s/it, train_loss=0.612, val_acc=0.677]train QGNN:  88%|████████▊ | 44/50 [12:31<01:55, 19.32s/it, train_loss=0.61, val_acc=0.68]  train QGNN:  90%|█████████ | 45/50 [12:31<01:31, 18.33s/it, train_loss=0.61, val_acc=0.68]train QGNN:  90%|█████████ | 45/50 [12:53<01:31, 18.33s/it, train_loss=0.61, val_acc=0.684]train QGNN:  92%|█████████▏| 46/50 [12:53<01:17, 19.29s/it, train_loss=0.61, val_acc=0.684]train QGNN:  92%|█████████▏| 46/50 [13:09<01:17, 19.29s/it, train_loss=0.609, val_acc=0.684]train QGNN:  94%|█████████▍| 47/50 [13:09<00:54, 18.31s/it, train_loss=0.609, val_acc=0.684]train QGNN:  94%|█████████▍| 47/50 [13:32<00:54, 18.31s/it, train_loss=0.608, val_acc=0.686]train QGNN:  96%|█████████▌| 48/50 [13:32<00:39, 19.75s/it, train_loss=0.608, val_acc=0.686]train QGNN:  96%|█████████▌| 48/50 [13:48<00:39, 19.75s/it, train_loss=0.608, val_acc=0.691]train QGNN:  98%|█████████▊| 49/50 [13:48<00:18, 18.66s/it, train_loss=0.608, val_acc=0.691]train QGNN:  98%|█████████▊| 49/50 [14:08<00:18, 18.66s/it, train_loss=0.607, val_acc=0.687]train QGNN: 100%|██████████| 50/50 [14:08<00:00, 19.15s/it, train_loss=0.607, val_acc=0.687]train QGNN: 100%|██████████| 50/50 [14:08<00:00, 16.98s/it, train_loss=0.607, val_acc=0.687]
+wandb: uploading artifact qgnn-jets-m4; updating run metadata
+wandb: uploading artifact qgnn-jets-m4
+wandb: uploading artifact qgnn-jets-m4; uploading history steps 48-49, summary, console lines 0-5
+wandb: uploading output.log; uploading wandb-summary.json; uploading config.yaml
+wandb: uploading wandb-summary.json; uploading config.yaml
+wandb: 
+wandb: Run history:
+wandb:       accuracy ▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▃▃▃▄▄▅▆▆▆▆▇▇▇▇▇█▇▇███████
+wandb:             ap ▁▂▅▇████████████████████████████████████
+wandb:            auc ▁▂▅▇████████████████████████████████████
+wandb:          epoch ▁▁▁▁▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▄▅▅▅▅▅▅▆▆▆▆▆▆▇▇▇▇███
+wandb:       macro_f1 ▁▁▁▁▁▁▁▁▁▁▁▂▂▂▃▄▄▅▅▆▆▆▇▇▇▇██████████████
+wandb:      precision ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▂▂▂▃▃▃▄▄▅▅▅▅▆▆▆▆▇▇▇▇▇▇▇███
+wandb:         recall ████████████▇▇▇▆▆▅▅▅▄▄▄▄▃▂▂▂▂▂▂▂▂▂▂▁▁▁▁▁
+wandb:      threshold ▁
+wandb: train_accuracy ▁
+wandb:     train_loss ██▇▆▄▃▂▂▂▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:             +1 ...
+wandb: 
+wandb: Run summary:
+wandb:       accuracy 0.6872
+wandb:             ap 0.78302
+wandb:            auc 0.73571
+wandb:          epoch 49
+wandb:       macro_f1 0.68659
+wandb:      precision 0.73091
+wandb:         recall 0.62326
+wandb:      threshold 0.55968
+wandb: train_accuracy 0.68625
+wandb:     train_loss 0.60673
+wandb:             +1 ...
+wandb: 
+wandb: 🚀 View run qgnn-M4-lorentz800-seed46 at: https://wandb.ai/tousi-team/graph-vls/runs/y7rfvzyp
+wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
+wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260803_232437-y7rfvzyp/logs
+
+Best epoch=48  val_accuracy=0.6912  val_auc=0.7353  val_macro_f1=0.6907
+train_accuracy=0.6863  training_time_s=850.60
+threshold (val-selected)=0.5597
+Saved best QGNN checkpoint to checkpoints/qgnn_jets_m4_lorentz800_seed46.pt
+
+=== [3/3] Evaluating QGNN on held-out test jets (seed=46, same fixed test set every trial) ===
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run jh11trwb
+wandb: Tracking run with wandb version 0.28.1
+wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_233913-jh11trwb
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run qgnn-eval-M4-lorentz800-seed46
+wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
+wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/jh11trwb
+wandb: uploading data; uploading artifact qgnn-jets-m4-test-metrics; updating run metadata
+wandb: uploading data; uploading artifact qgnn-jets-m4-test-metrics
+wandb: uploading data
+wandb: uploading history steps 0-2, summary, console lines 0-22
+wandb: 
+wandb: Run history:
+wandb:                  inference_time_s ▁
+wandb:                     test_accuracy ▁
+wandb: test_accuracy_fixed_threshold_0.5 ▁
+wandb:                           test_ap ▁
+wandb:                          test_auc ▁
+wandb:                     test_macro_f1 ▁
+wandb:                    test_precision ▁
+wandb:                       test_recall ▁
+wandb:                         threshold ▁
+wandb:                    train_accuracy ▁
+wandb:                                +1 ...
+wandb: 
+wandb: Run summary:
+wandb:                  inference_time_s 1.73936
+wandb:                     test_accuracy 0.6472
+wandb: test_accuracy_fixed_threshold_0.5 0.648
+wandb:                           test_ap 0.73926
+wandb:                          test_auc 0.70583
+wandb:                     test_macro_f1 0.64031
+wandb:                    test_precision 0.73272
+wandb:                       test_recall 0.49456
+wandb:                         threshold 0.55968
+wandb:                    train_accuracy 0.68625
+wandb:                                +1 ...
+wandb: 
+wandb: 🚀 View run qgnn-eval-M4-lorentz800-seed46 at: https://wandb.ai/tousi-team/graph-vls/runs/jh11trwb
+wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
+wandb: Synced 5 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260803_233913-jh11trwb/logs
+Device: cuda
+Loading GVLS checkpoint from checkpoints/gvls_jets_m4_lorentz800.pt...
+Loading QGNN checkpoint from checkpoints/qgnn_jets_m4_lorentz800_seed46.pt...
+  GVLS M=4  QGNN M=4  num_layers=8
+Loading qg_jets (protocol=lorentz, seed=42)...
+Evaluating on 1250 held-out test jets (untouched by training)...
+
+Test-set metrics (at the validation-selected threshold):
+  accuracy    : 0.6472
+  auc         : 0.7058
+  ap          : 0.7393
+  macro_f1    : 0.6403
+  precision   : 0.7327
+  recall      : 0.4946
+  confusion_matrix (rows=true, cols=pred, label 0=quark/1=gluon): [[491, 116], [325, 318]]
+  threshold used: 0.5597 (validation-selected (train_qgnn.py))
+  accuracy at fixed threshold=0.5 (for comparison): 0.6480  (delta: -0.0008)
+  qubit_count (M): 4
+  circuit_depth (num_layers): 8
+  optimizer: adamw
+  train_accuracy: 0.6863
+  training_time_s: 850.60
+  inference_time_s: 1.74  (1250 test jets)
+
+NOTE (NFR-5): wall-clock timing above is measured on this run's own hardware, not matched to sota-table.png's Table II hardware -- directional comparison only.
+
+NOTE: no literature QGNN comparison number is included here -- that search (plan.md T4.6) has not been done yet. Comparison target identified 2026-07-30 (Lorentz-EQGNN, sota-table.png Table II) -- see plan.md Design Decision 12.
+
+Results written to results/qgnn/qg_jets_metrics_lorentz800_seed46.json
+
+=== Aggregating 5 repeats into mean +/- std ===
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: stmmc (tousi-team) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run g1pdzq5e
+wandb: Tracking run with wandb version 0.28.1
+wandb: Run data is saved locally in /root/home/graph-vls/wandb/run-20260803_234003-g1pdzq5e
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run qgnn-M4-lorentz800-summary
+wandb: ⭐️ View project at https://wandb.ai/tousi-team/graph-vls
+wandb: 🚀 View run at https://wandb.ai/tousi-team/graph-vls/runs/g1pdzq5e
+wandb: updating run metadata; uploading artifact qgnn-repeats-summary
+wandb: uploading artifact qgnn-repeats-summary
+wandb: uploading history steps 0-1, summary
+wandb: 
+wandb: Run history:
+wandb:                         ap_mean ▁
+wandb:                          ap_std ▁
+wandb:                        auc_mean ▁
+wandb:                         auc_std ▁
+wandb:           inference_time_s_mean ▁
+wandb:            inference_time_s_std ▁
+wandb:     lorentz_eqgnn_test_accuracy ▁
+wandb: lorentz_eqgnn_test_accuracy_std ▁
+wandb:                   macro_f1_mean ▁
+wandb:                    macro_f1_std ▁
+wandb:                             +15 ...
+wandb: 
+wandb: Run summary:
+wandb:                         ap_mean 0.738
+wandb:                          ap_std 0.00406
+wandb:                        auc_mean 0.70072
+wandb:                         auc_std 0.01074
+wandb:           inference_time_s_mean 1.55581
+wandb:            inference_time_s_std 0.44657
+wandb:     lorentz_eqgnn_test_accuracy 0.74
+wandb: lorentz_eqgnn_test_accuracy_std 0.0026
+wandb:                   macro_f1_mean 0.64603
+wandb:                    macro_f1_std 0.00829
+wandb:                             +15 ...
+wandb: 
+wandb: 🚀 View run qgnn-M4-lorentz800-summary at: https://wandb.ai/tousi-team/graph-vls/runs/g1pdzq5e
+wandb: ⭐️ View project at: https://wandb.ai/tousi-team/graph-vls
+wandb: Synced 4 W&B file(s), 0 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20260803_234003-g1pdzq5e/logs
+Aggregating 5 runs:
+  results/qgnn/qg_jets_metrics_lorentz800_seed42.json
+  results/qgnn/qg_jets_metrics_lorentz800_seed43.json
+  results/qgnn/qg_jets_metrics_lorentz800_seed44.json
+  results/qgnn/qg_jets_metrics_lorentz800_seed45.json
+  results/qgnn/qg_jets_metrics_lorentz800_seed46.json
+
+Test accuracy: 0.6507 +/- 0.0071  (n=5)
+Lorentz-EQGNN (literature): 0.7400 +/- 0.0026  (sota-table.png Table II, Quark-Gluon, 4 qubits)
+Fixed threshold=0.5 accuracy (for comparison): 0.6491 +/- 0.0059  (delta from tuned: +0.0016)
+Written to results/qgnn/qg_jets_metrics_lorentz800_summary.json
