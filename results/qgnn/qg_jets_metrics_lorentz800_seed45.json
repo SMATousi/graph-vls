@@ -3,26 +3,26 @@
   "num_layers": 8,
   "optimizer": "adamw",
   "num_test_jets": 1250,
-  "train_accuracy": 0.70375,
-  "test_accuracy": 0.66,
-  "test_accuracy_fixed_threshold_0.5": 0.6608,
-  "threshold": 0.4793271213402825,
-  "training_time_s": 2587.3552731630625,
-  "inference_time_s": 1.0693203230621293,
-  "accuracy": 0.66,
-  "auc": 0.7152402889052295,
-  "ap": 0.7442937045234712,
-  "macro_f1": 0.6587715776796468,
-  "precision": 0.7048872180451128,
-  "recall": 0.583203732503888,
+  "train_accuracy": 0.6525,
+  "test_accuracy": 0.6472,
+  "test_accuracy_fixed_threshold_0.5": 0.6504,
+  "threshold": 0.5029389296262237,
+  "training_time_s": 8672.866767748026,
+  "inference_time_s": 3.4350231089629233,
+  "accuracy": 0.6472,
+  "auc": 0.6937517454477442,
+  "ap": 0.7198942013486175,
+  "macro_f1": 0.6396444099287526,
+  "precision": 0.7370892018779343,
+  "recall": 0.48833592534992226,
   "confusion_matrix": [
     [
-      450,
-      157
+      495,
+      112
     ],
     [
-      268,
-      375
+      329,
+      314
     ]
   ]
 }

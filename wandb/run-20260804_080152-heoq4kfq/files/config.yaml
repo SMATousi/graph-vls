@@ -1,0 +1,97 @@
+_wandb:
+    value:
+        cli_version: 0.28.1
+        e:
+            nrkc246sgdkczwceye5ws7r4l3cqgrty:
+                args:
+                    - data=qg_jets_lorentz
+                    - data.k_graph_cap=8
+                    - data.num_train=10000
+                    - data.num_val=1250
+                    - data.num_test=1250
+                    - data.min_particles=10
+                    - data.seed=42
+                    - data.train_subset=800
+                    - data.train_subset_balanced=true
+                    - data.train_subset_seed=42
+                    - wandb.mode=online
+                    - gvls_checkpoint_path=checkpoints/gvls_jets_m4_lorentz800.pt
+                    - qgnn_checkpoint_path=checkpoints/qgnn_jets_m4_lorentz800_seed42.pt
+                    - results_path=results/qgnn/qg_jets_metrics_lorentz800_seed42.json
+                    - wandb.name=qgnn-eval-M4-lorentz800-seed42
+                    - wandb.group=qgnn-jet-classification-lorentz800
+                    - wandb.tags=[lorentz-comparability,qg-jets-800]
+                codePath: experiments/evaluate_qgnn.py
+                codePathLocal: experiments/evaluate_qgnn.py
+                cpu_count: 128
+                cpu_count_logical: 256
+                cudaVersion: "13.2"
+                disk:
+                    /:
+                        total: "1599929212928"
+                        used: "1071276699648"
+                email: stmmc@umsystem.edu
+                executable: /opt/conda/envs/graph-vls/bin/python
+                git:
+                    commit: 3944ec339029ac92c06c4fbe1dc3fb5d868d0930
+                    remote: git@github.com:SMATousi/graph-vls.git
+                gpu: NVIDIA A100-SXM4-80GB
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ampere
+                      cudaCores: 6912
+                      memoryTotal: "85899345920"
+                      name: NVIDIA A100-SXM4-80GB
+                      uuid: GPU-6d639b10-70fe-303c-3580-1e02f54673d7
+                host: 2-ali-100-dep-vigir-575d848757-fv66n
+                memory:
+                    total: "1081702211584"
+                os: Linux-6.8.0-136-generic-x86_64-with-glibc2.35
+                program: /root/home/graph-vls/experiments/evaluate_qgnn.py
+                python: CPython 3.11.15
+                root: /root/home/graph-vls
+                startedAt: "2026-08-04T08:01:52.117980Z"
+                writerId: nrkc246sgdkczwceye5ws7r4l3cqgrty
+        m: []
+        python_version: 3.11.15
+        t:
+            "1":
+                - 1
+                - 5
+                - 50
+                - 53
+                - 77
+            "2":
+                - 1
+                - 5
+                - 50
+                - 53
+                - 77
+            "3":
+                - 2
+                - 13
+                - 15
+                - 16
+            "4": 3.11.15
+            "5": 0.28.1
+            "12": 0.28.1
+            "13": linux-x86_64
+data:
+    value:
+        k_graph_cap: 8
+        min_particles: 10
+        name: qg_jets
+        num_test: 1250
+        num_train: 10000
+        num_val: 1250
+        protocol: lorentz
+        seed: 42
+        train_subset: 800
+        train_subset_balanced: true
+        train_subset_seed: 42
+m:
+    value: 4
+num_layers:
+    value: 8
+num_test_jets:
+    value: 1250
