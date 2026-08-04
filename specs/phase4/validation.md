@@ -1,6 +1,6 @@
 # Phase 4 — Validation
 
-**Status: T4.1–T4.4 complete (2026-07-20); T4.5 code-complete and smoke-tested, but not actually run (2026-07-20, user instruction).** T4.6/T4.7 not started. **T4.8 (batched QGNN training, 2026-07-27) gave only ~1.34x — insufficient alone. T4.9 (SPSA gradient estimator, 2026-07-27) followed up and gave ~15.5x combined — by far the largest lever found, and the first one that plausibly makes T4.5's real run tractable at the target dataset scale, though not yet confirmed at that real scale. See V-8, V-9.** **T4.10 (new, 2026-07-30): literature comparison target confirmed (Lorentz-EQGNN, user-supplied table) and pipeline realignment implemented (AdamW/lr=1e-3/batch=16 defaults, optimizer selector, train-accuracy + wall-clock reporting, bash-script overrides) and tested — the actual 800-jet comparability run has not been executed yet. See V-10.**
+**Status: T4.1–T4.4 complete (2026-07-20); T4.5 code-complete and smoke-tested, but not actually run on this machine (2026-07-20, user instruction — all real training happens on the user's remote machine throughout this phase).** **T4.8/T4.9 (batching + SPSA gradient estimator, 2026-07-27) gave a combined ~15.5x synthetic-benchmark speedup. See V-8, V-9.** **T4.10 (2026-07-30–2026-08-01): literature comparison target confirmed (Lorentz-EQGNN) and pipeline realigned (AdamW/lr=1e-3/batch=16, optimizer selector, train-accuracy + wall-clock reporting) — then a direct reading of the source paper (arXiv:2411.01641) found the data protocol itself didn't match (wrong split ratio, wrong pool size, forced class balance, wrong which-split-gets-shrunk); corrected, and the real 800-jet comparability run was executed. See V-10.** **T4.10 followup (2026-08-02–2026-08-04): the first real run scored only 59.12% mean test accuracy (vs. Lorentz-EQGNN's 74.00%); diagnosed and fixed GVLS's own data-starved pretraining (→ 66.88%, the current best confirmed result), ran a classical-baseline diagnostic that found the QGNN underperforming a plain logistic regression on identical features, and tried three QGNN-architecture interventions in response (full data re-uploading, more epochs, a learned classical readout) — all three regressed or failed to beat the 66.88% baseline while escalating compute cost up to ~31x. Recommendation (not yet executed): revert to the 66.88% configuration. See V-11.**
 
 ## Exit Criteria
 
@@ -9,13 +9,14 @@
 - [x] Fixed-`M` pooling confirmed working unmodified from T3.6's `PooledGVLS` (FR-2)
 - [x] Per-jet GVLS pretraining sweep over `M ∈ {4,6,8}` complete, compression-optimal `M` selected (FR-3)
 - [x] QGNN ansatz built, topology-equivariance to `A_z` verified directly (FR-4)
-- [x] Two-stage supervised training code complete, smoke-tested; best-val-accuracy checkpointing implemented but **not yet exercised on a real run** (FR-5, see V-5)
-- [ ] Test-set accuracy/AUC/macro-F1 reported, literature comparison identified or explicitly declared absent (FR-6)
-- [ ] `README.md` updated with a new results section
-- [ ] `pytest tests/` passes with all new Phase 4 tests included
+- [x] Two-stage supervised training code complete, smoke-tested, **and exercised on real runs** (FR-5, see V-5, V-10, V-11)
+- [x] Test-set accuracy/AUC/macro-F1 reported (66.88% ± 0.30% at the best confirmed configuration; see V-10, V-11), literature comparison identified (Lorentz-EQGNN, 74.00% ± 0.26%, gap not yet closed) (FR-6)
+- [ ] `README.md` updated with a new results section — real numbers now exist (V-10, V-11) but have not yet been written into `README.md`
+- [x] `pytest tests/` passes with all new Phase 4 tests included (263/263 as of V-11's last change)
 - [x] (T4.8, 2026-07-27) QGNN training batched (one `EstimatorQNN`/`TorchConnector` call per minibatch, `input_gradients=False`), gradient-parity-tested against the per-jet loop, with an actual before/after wall-clock recorded — measured ~1.34x, not the large speedup originally hoped for; see V-8
 - [x] (T4.9, 2026-07-27) SPSA gradient estimator replacing parameter-shift as the default, with the evaluation-count claim measured directly (not assumed) and degeneracy-sensitive tests pinned to param_shift — combined ~15.5x speedup measured on synthetic jets; see V-9
-- [x] (T4.10, 2026-07-30) Literature comparison target confirmed and pipeline realigned: `configs/train/qgnn_classifier.yaml` updated to `AdamW, lr=1e-3, batch_size=16`; an `800`-jet comparability subset reachable via `data.num_jets=800`/`NUM_JETS` (bash script); `evaluate_qgnn.py` reports train/test accuracy and wall-clock training/inference time — implemented and unit-tested; the real 800-jet run itself has not been executed — see V-10
+- [x] (T4.10, 2026-07-30–2026-08-01) Literature comparison target confirmed, pipeline realigned (`AdamW, lr=1e-3, batch_size=16`), data protocol corrected to match arXiv:2411.01641 exactly after reading it directly, and the real 800-jet comparability run executed — see V-10
+- [x] (T4.10 followup, 2026-08-02–2026-08-04) First real run diagnosed (59.12% mean accuracy), GVLS pretraining's data-starvation fixed (→ 66.88%, current best), classical-baseline diagnostic run, three QGNN-architecture interventions tried and found not to beat the baseline — see V-11
 
 ---
 
@@ -120,22 +121,25 @@
 
 ---
 
-## V-6: Evaluation and Literature Comparison (FR-6) ⬜ Not started
+## V-6: Evaluation and Literature Comparison (FR-6) 🔶 Real numbers exist (see V-10, V-11); gap not closed, `README.md` not yet updated
+
+**Superseded by real runs, 2026-08-02–04 — see V-10 Part D and V-11 for full detail.** Summarized here against this section's original pass conditions:
 
 | Check | Pass condition | Result |
 |---|---|---|
-| Test metrics reported | Accuracy, AUC, macro-F1 on held-out test jets | ⬜ |
-| Qubit/depth reported | `M` and `num_layers` stated alongside accuracy | ⬜ |
-| Literature comparison | A specific, cited published QGNN (or closely related) result on this/a comparable dataset, or an explicit statement that none was found | ⬜ |
+| Test metrics reported | Accuracy, AUC, macro-F1 on held-out test jets | ✅ best confirmed: `test_accuracy=66.88% ± 0.30%`, `auc=0.722 ± 0.003`, `macro_f1=0.668 ± 0.003` (`num_layers=1, readout_mode=sum, epochs=50`, GVLS on the full 10,000-jet pool) — V-11 Step 1 |
+| Qubit/depth reported | `M` and `num_layers` stated alongside accuracy | ✅ `M=4`, `num_layers=1` at the best confirmed configuration; `num_layers=8` and `readout_mode=learned` variants also reported (V-11 Step 3), none of which improved on the above |
+| Literature comparison | A specific, cited published QGNN (or closely related) result on this/a comparable dataset, or an explicit statement that none was found | ✅ target identified (Lorentz-EQGNN, `74.00% ± 0.26%`, Design Decision 12) and a real gap reported (`~7.1` points at the best confirmed result, down from `~14.9` points before V-11's fix) — **not closed**, and the source paper's bibliographic details remain unconfirmed (NFR-5) |
+| `README.md` updated with results | New results section written | ⬜ not yet done — real numbers exist but have not been transcribed into `README.md` |
 
 ---
 
-## V-7: Code Quality ⬜ Not started
+## V-7: Code Quality ✅ Passing throughout this phase's work
 
 | Check | Pass condition | Result |
 |---|---|---|
-| `pytest tests/` | All new Phase 4 tests pass alongside the existing suite | ⬜ |
-| `ruff check src/` | Zero violations | ⬜ |
+| `pytest tests/` | All new Phase 4 tests pass alongside the existing suite | ✅ 263/263 as of V-11's last change (T4.13) |
+| `ruff check src/` | Zero violations | ✅ on every file touched across T4.1–T4.13; a small number of pre-existing violations in files this phase never touched (`compression_sweep.py`, `smoke_test.py`, `train_gvls.py`, and a few pre-existing long lines in `tests/test_jets.py`/`tests/test_jet_sweep.py`) were left as-is rather than fixed opportunistically |
 
 ---
 
@@ -208,32 +212,161 @@ SPSA alone (batched param-shift -> batched SPSA, holding batching constant) cont
 
 ---
 
-## V-10: Literature Comparison Target & Pipeline Realignment (T4.10) 🔶 Pipeline implemented and tested; comparability run not yet executed
+## V-10: Literature Comparison Target, Pipeline Realignment, Data-Protocol Correction & First Real Run (T4.10) ✅ Complete 2026-08-01
 
 **Trigger:** user supplied a benchmark table (`sota-table.png`, Table II "Quark-Gluon Dataset" / Table III "Electron-Photon Dataset", 2026-07-30) reporting QGNN/hybrid-QNN/classical-CNN accuracy on jet-classification tasks. Resolves T4.6's previously-unidentified literature-comparison target (Design Decision 4 / FR-6). Full design reasoning in `plan.md` Design Decision 12; requirement amendments in `requirements.md` FR-1/FR-5/FR-6.
 
-**Comparison target:** `Lorentz-EQGNN`, Table II, Quark-Gluon dataset — `4` qubits (matches our `M=4`), `AdamW`, `lr=1e-3`, `batch_size=16`, `50` epochs, `Cross Entropy Loss`, `800`-jet training subset, `74.00% ± 0.26%` test accuracy. **Not yet bibliographically confirmed** — the source paper's title/venue/arXiv ID have not been verified, only the supplied table image; do not present as a confirmed citation in `README.md` until resolved (NFR-5).
+**Comparison target:** `Lorentz-EQGNN`, Table II, Quark-Gluon dataset — `4` qubits (matches our `M=4`), `AdamW`, `lr=1e-3`, `batch_size=16`, `50` epochs, `Cross Entropy Loss`, `800`-jet training subset, `74.00% ± 0.26%` test accuracy. **Not yet bibliographically confirmed** — the source paper's title/venue/arXiv ID have not been verified independently of the supplied table image; do not present as a confirmed citation in `README.md` until resolved (NFR-5).
 
-**User decisions (`AskUserQuestion`, 2026-07-30):**
+### Part A — Hyperparameter realignment (2026-07-30)
 
-| Question | Decision |
-|---|---|
-| Alignment target | Match Lorentz-EQGNN exactly, not the table's broader conventions or a no-change citation-only approach |
-| Dataset scope | Quark-Gluon only; Electron-Photon (Table III) explicitly deferred |
-| Training subset size | Match literally: `800` jets, as a dedicated comparability run (additive to, not replacing, the 10,000–50,000-jet target) |
-| Metrics format | Add train/test accuracy and wall-clock training/inference time reporting, alongside existing accuracy/AUC/macro-F1 |
+**User decisions (`AskUserQuestion`, 2026-07-30):** (a) match Lorentz-EQGNN exactly, not the table's broader conventions or a no-change citation-only approach; (b) Quark-Gluon only — Electron-Photon (Table III) explicitly deferred; (c) match the `800`-jet training subset literally, as a dedicated comparability run (additive to, not replacing, the 10,000–50,000-jet target); (d) add train/test accuracy and wall-clock training/inference time reporting, alongside existing accuracy/AUC/macro-F1.
 
-**Implemented 2026-07-30.** Files: `src/gvls/qgnn_training.py` (`_build_optimizer`, `_OPTIMIZERS = {"adam": Adam, "adamw": AdamW}`, `train_qgnn_classifier` gains `optimizer: str = "adamw"`; `QGNNTrainingResult` gains `best_train_metrics`, computed once on the best-val-accuracy weights via the existing `evaluate_qgnn_classifier`); `configs/train/qgnn_classifier.yaml` (`optimizer: adamw`, `lr: 0.001`, `batch_size: 16`, `epochs: 50` unchanged); `experiments/train_qgnn.py` (times the `train_qgnn_classifier` call via `time.perf_counter()`, persists `optimizer`/`train_accuracy`/`training_time_s` into the QGNN checkpoint's saved config and W&B); `experiments/evaluate_qgnn.py` (reads those three back via `qgnn_config.get(...)` with `None` fallback for pre-T4.10 checkpoints, times its own inference pass, prints/persists/logs all of it, plus the NFR-5 hardware-non-parity note); `scripts/run_full_qgnn_pipeline.sh` (`QGNN_OPTIMIZER` variable added to Stage 2, `QGNN_LR`/`QGNN_BATCH_SIZE` defaults updated to `0.001`/`16` to mirror the new yaml defaults, `NUM_JETS` comment documents setting `800` for the literal comparability run). Tests: 4 new in `tests/test_qgnn_training.py`.
+Implemented: `src/gvls/qgnn_training.py` (`_build_optimizer`, `_OPTIMIZERS = {"adam": Adam, "adamw": AdamW}`, `train_qgnn_classifier` gains `optimizer: str = "adamw"`; `QGNNTrainingResult` gains `best_train_metrics`); `configs/train/qgnn_classifier.yaml` (`optimizer: adamw`, `lr: 0.001`, `batch_size: 16`, `epochs: 50` unchanged); `experiments/train_qgnn.py`/`experiments/evaluate_qgnn.py` (time and persist `train_accuracy`/`training_time_s`/`inference_time_s`). 4 new tests in `tests/test_qgnn_training.py`.
+
+### Part B — Data-protocol correction, found by reading the source paper directly (2026-08-01)
+
+**Trigger:** user asked whether internet access was available to read arXiv:2411.01641 directly rather than relying on the table image alone. Fetched and read all 11 pages. Found the initial T4.10 comparability config (Part A) matched the paper's *hyperparameters* but not its *data protocol*: the paper draws a **fixed 12,500-jet pool** (>=10 particles each, **no forced class balance** — reports 4,982/658/583 quark jets across its own split, not exact 50/50), splits it **80/10/10 positionally** into 10,000/1,250/1,250 train/val/test, and for its "800 (subset)" data-scarcity row **shrinks only the training set** — validation and test stay fixed at 1,250/1,250. The prior config instead drew an **800-jet class-balanced pool** and re-split it **70/15/15** (560/120/120) — wrong on split ratio, wrong pool size, wrong class-balance method, and wrong about *which* split gets shrunk.
+
+**Implemented 2026-08-01.** New functions in `src/gvls/data/jets.py`: `load_qg_jets_fixed_pool` (uniform random draw, no forced 50/50, optional min-particle filter), `load_qg_jets_lorentz_protocol` (positional train/val/test slice of one fixed-size draw), `subsample_train`/`subsample_train_balanced` (training-only shrinking, val/test untouched), dispatched via `load_split_from_config(data_cfg)` shared by all three jet-pipeline experiment scripts. New `configs/data/qg_jets_lorentz.yaml` selects this protocol (`protocol: lorentz`); the pre-existing balanced/ratio-split behavior (`qg_jets.yaml`, used by the separate 20,000-jet target run) is unchanged. 14 new tests in `tests/test_jets.py`.
 
 | Check | Pass condition | Result |
 |---|---|---|
-| Comparability config exists | `800`-jet subset reachable via the existing `data.num_jets` Hydra key / `NUM_JETS` bash variable — no new config file needed since this was already overridable | ✅ verified via `python experiments/train_qgnn.py --cfg job --resolve data.num_jets=800` |
-| Optimizer/hyperparameters realigned | `configs/train/qgnn_classifier.yaml` uses `AdamW, lr=1e-3, batch_size=16, epochs=50` by default; `train_qgnn_classifier` gains an optimizer selector (`optimizer="adamw"` default, `"adam"` selectable, invalid names raise `ValueError`) | ✅ `test_train_qgnn_classifier_default_optimizer_is_adamw`, `test_train_qgnn_classifier_supports_adam`, `test_train_qgnn_classifier_invalid_optimizer_raises`; config verified via `--cfg job --resolve` both with and without an override back to `adam/0.05/32` |
-| Loss-function equivalence documented | `BCEWithLogitsLoss` kept on the single-logit readout (no code change — already the default); the CE-equivalence reasoning is recorded in `plan.md` Design Decision 12, referenced from `evaluate_qgnn.py`'s module docstring | ✅ |
-| Train/test accuracy reported | `evaluate_qgnn.py` reports both — `train_accuracy` read back from the checkpoint, `test_accuracy` from the fresh test-split evaluation | ✅ `test_train_qgnn_classifier_result_includes_best_train_metrics`; `evaluate_qgnn.py`'s `results` dict includes both keys |
-| Wall-clock timing reported | Training time (`experiments/train_qgnn.py`) and inference time (`experiments/evaluate_qgnn.py`) in seconds, printed/logged/persisted, with the NFR-5 hardware-non-parity caveat printed alongside | ✅ code-complete; not yet exercised on a real (non-synthetic) run — see below |
-| Real comparability run executed | `800`-jet run actually completed (not just smoke-tested) with real numbers reported against Table II | ⬜ not yet run |
-| README updated | New results section includes a direct row added to (or placed alongside) `sota-table.png`'s Table II format | ⬜ not yet done — depends on the real run above |
-| Full suite / lint | `pytest tests/` and `ruff check` on all touched files | ✅ 223/223 passing; `ruff check src/gvls/qgnn_training.py experiments/train_qgnn.py experiments/evaluate_qgnn.py tests/test_qgnn_training.py` clean (3 pre-existing import-order violations in unrelated files — `compression_sweep.py`, `smoke_test.py`, `train_gvls.py` — untouched by this task) |
+| Fixed 12,500-jet draw, no forced balance | `load_qg_jets_fixed_pool` reproduces a random draw whose class proportions are whatever the draw yields, not exact 50/50 | ✅ `test_fixed_pool_does_not_force_class_balance` |
+| Positional 10,000/1,250/1,250 split | `load_qg_jets_lorentz_protocol` slices one fixed draw by position, not two independent random operations | ✅ `test_lorentz_protocol_split_sizes_and_partition` |
+| `min_particles=10` filter | Jets with <10 particles excluded before the draw | ✅ `test_fixed_pool_respects_min_particles` |
+| `train_subset` shrinks only training | `subsample_train`/`subsample_train_balanced` leave `split.val`/`split.test` untouched (same object identity) | ✅ `test_subsample_train_shrinks_only_train`, `test_subsample_train_balanced_exact_per_class_counts` |
+| Full suite / lint | `pytest tests/` and `ruff check` on all touched files | ✅ |
 
-**What still needs to happen before this is genuinely "done":** run `scripts/run_full_qgnn_pipeline.sh` with `NUM_JETS=800` on a real machine, confirm the reported `train_accuracy`/`test_accuracy`/`training_time_s`/`inference_time_s` are real (not synthetic-smoke-test) numbers, and add the resulting row to `README.md` alongside `sota-table.png`'s Table II. This mirrors V-5's own "code-complete, not run" status for the larger-scale pipeline — the two comparability configurations (10,000–50,000 jets vs. this 800-jet literature-comparability run) share the same underlying code path and both await an actual execution.
+### Part C — Repeated-training-subset methodology and GVLS checkpoint reuse (2026-08-01–02, user-directed)
+
+The paper reports its `74.00% ± 0.26%` as a mean/std over **5-fold cross-validation** — a genuinely different variance source than repeating training on one fixed split with only the model's own seed varying (re-partitions the data itself; we do not). After discussing the tradeoff directly with the user, the adopted design is a documented middle ground, not a claim of matching 5-fold CV: **each of 5 trials draws a *different* class-balanced (400/400) 800-jet training subset from the same fixed 10,000-jet training pool**, while validation/test (1,250/1,250) and the frozen GVLS checkpoint stay identical across every trial — draws are not guaranteed disjoint across trials (unlike true folds), and GVLS itself is never re-partitioned or retrained per trial.
+
+Implemented via `load_split_from_config`'s `train_subset_seed` (decoupled from the outer `seed`, which fixes val/test) and `train_subset_balanced` keys — `scripts/run_qgnn_lorentz_comparability.sh` reseeds `data.train_subset_seed` per trial while holding `data.seed` fixed. 5 new tests confirm val/test stay byte-identical across trials while the training subset differs (`test_load_split_from_config_train_subset_seed_varies_train_only`) and that the balanced draw hits exact per-class counts.
+
+**Also fixed in this window: GVLS pretraining never selected a best-validation checkpoint.** `train_pooled_gvls_on_jets` computed validation F1 every `eval_every` epochs (for W&B logging) but always returned whatever the model looked like after the *final* epoch, unconditionally — inconsistent with `train_qgnn_classifier`, which already tracked best-val-accuracy. Fixed: whenever `eval_jets` is given, the returned model's weights are now the best-val-F1 snapshot across eval epochs (restored via `load_state_dict` before returning); return type stays `PooledGVLS` so every existing caller (the M-grid sweep, the production pretraining script, all test call sites) needed zero changes. When `eval_jets` is `None`, behavior is unchanged (last-epoch model, as before). 2 new tests in `tests/test_jet_sweep.py`, including one that mocks a non-monotonic F1 sequence (peaks at epoch 1 of 3) and confirms the *epoch-1* weights, not epoch 2's, are what gets returned.
+
+### Part D — First real 800-jet comparability run (2026-08-02)
+
+Both stages (GVLS pretraining and the 5 QGNN trials) initially shared the *same* `train_subset=800` cap — i.e. GVLS itself was also pretrained on only 800 jets, since the shared script argument block applied to Stage 1 too.
+
+| Metric | Result |
+|---|---|
+| test_accuracy | **59.12% ± 4.10%** |
+| auc | 0.684 ± 0.009 |
+| ap | 0.731 ± 0.003 |
+| macro_f1 | 0.556 ± 0.093 |
+| precision | 0.585 ± 0.046 |
+| recall | 0.774 ± 0.127 |
+| train_accuracy | 0.598 ± 0.065 |
+
+Gap to Lorentz-EQGNN: ~14.9 points. See V-11 for the diagnosis and fix that followed.
+
+| Check | Pass condition | Result |
+|---|---|---|
+| Real comparability run executed | `800`-jet run actually completed (not just smoke-tested) with real numbers reported against Table II | ✅ executed on the user's remote machine 2026-08-02 |
+| Wall-clock timing reported | Training/inference time in seconds, printed/logged/persisted | ✅ `training_time_s_mean=284.9s`, `inference_time_s_mean=0.37s` |
+| README updated | New results section added | ⬜ not yet done — real numbers exist (this table, and V-11's improved one) but have not been written into `README.md` |
+| Full suite / lint | `pytest tests/` and `ruff check` on all touched files | ✅ |
+
+---
+
+## V-11: Diagnosis and Architecture Iteration Following the First Real Run (T4.10 followup) 🔶 Best confirmed result: 66.88% ± 0.30% (up from 59.12%); three subsequent QGNN-architecture interventions all failed to improve on it; revert recommended, not yet executed
+
+**Trigger:** V-10 Part D's first real run scored 59.12% ± 4.10% test accuracy against Lorentz-EQGNN's 74.00% ± 0.26% — a ~14.9-point gap. This section documents every diagnostic step and intervention that followed, in chronological order, including the negative results, per NFR-5's honesty requirement.
+
+### Step 1 — Diagnosis: threshold miscalibration vs. GVLS data starvation (2026-08-02)
+
+**Signal in the V-10 Part D numbers:** AUC (0.684 ± 0.009) and AP (0.731 ± 0.003) — threshold-independent ranking metrics — were stable across the 5 seeds; accuracy (± 4.10%), macro-F1 (± 0.093), and recall (0.644–0.961 range) were not. Stable ranking + unstable thresholded metrics is the signature of a miscalibrated decision boundary, not a poorly-ranked classifier. Two candidate fixes were identified:
+
+1. **Validation-tuned decision threshold** — `classification_metrics` always used a fixed `threshold=0.5`.
+2. **GVLS's own pretraining set size, unnecessarily capped at 800.** Lorentz-EQGNN's 800-jet constraint is about *its* end-to-end classifier's training budget — it has no unsupervised pretraining stage of its own, so nothing about comparability requires our upstream GVLS feature extractor to also be starved to 800 jets.
+
+**Implemented 2026-08-02, both together:**
+- `select_best_threshold` (`src/gvls/eval/metrics.py`) — exact search over achievable operating points (candidates = every distinct predicted probability, not an approximate grid), tie-broken toward 0.5. `train_qgnn_classifier` computes it once from the best epoch's own validation logits (never the test set); persisted in the QGNN checkpoint config; `evaluate_qgnn.py` applies it to the test set as the primary reported number while also reporting the fixed-0.5 accuracy alongside for transparency (`test_accuracy_fixed_threshold_0.5`). Backward compatible (old checkpoints fall back to 0.5). 5 new tests in `tests/test_metrics.py`, 1 in `tests/test_qgnn_training.py`.
+- `scripts/run_qgnn_lorentz_comparability.sh`: `GVLS_TRAIN_SUBSET=null` — GVLS pretrains on the full 10,000-jet pool instead of the 800-jet cap (Stage 1's own data args decoupled from Stage 2/3's).
+
+**Result (2026-08-02, GVLS on full pool + threshold tuning both active):**
+
+| Metric | V-10 Part D (both stages @ 800) | This run (GVLS @ full pool) |
+|---|---|---|
+| test_accuracy | 59.12% ± 4.10% | **66.88% ± 0.30%** |
+| auc | 0.684 ± 0.009 | 0.722 ± 0.003 |
+| ap | 0.731 ± 0.003 | 0.753 ± 0.002 |
+| macro_f1 | 0.556 ± 0.093 | 0.668 ± 0.003 |
+| train_accuracy | 0.598 ± 0.065 | 0.698 ± 0.007 |
+| threshold (mean) | n/a (fixed 0.5) | 0.508 ± 0.007 |
+
+**Finding: the threshold fix turned out not to be the active ingredient.** `threshold_mean=0.5077` landed almost exactly on the un-tuned default, and `test_accuracy_fixed_threshold_0.5_mean` (66.90%) was statistically indistinguishable from the tuned number (66.88%). GVLS's data-starved pretraining was the real driver — a properly-trained encoder produced well-calibrated logits on its own; the earlier instability disappeared once the features improved, not because the threshold was recalibrated. The threshold machinery is kept (cheap, harmless, occasionally useful insurance) but the causal story is now clear. **This is the best confirmed result to date and the current recommended configuration** (`num_layers=1`, `readout_mode=sum`, `epochs=50`). Gap to Lorentz-EQGNN narrowed from ~14.9 to ~7.1 points.
+
+### Step 2 — Classical-baseline diagnostic (2026-08-02–03)
+
+**Question:** is the remaining ~7.1-point gap a GVLS feature-quality ceiling, or is the QGNN leaving accuracy on the table relative to what its own frozen features already support? Trained a plain `LogisticRegression` and a shallow `MLPClassifier` (16 hidden units) on the exact same frozen `(z̃, A_z)` features (flattened `z̃` + upper-triangle of `A_z`), using the identical 5-trial repeated-subsampling protocol as the QGNN run.
+
+**Files:** `src/gvls/eval/classical_baseline.py` (`jet_features_to_array`, `evaluate_classical_baselines`), `experiments/classical_baseline_diagnostic.py`, `scripts/run_classical_baseline_diagnostic.sh`, `configs/qgnn_classical_baseline_config.yaml`. 7 new tests in `tests/test_classical_baseline.py`, including an end-to-end test using a real saved/loaded GVLS checkpoint.
+
+**Result (2026-08-03):**
+
+| Model | accuracy | auc | macro_f1 |
+|---|---|---|---|
+| Logistic regression | 69.07% ± 0.82% | 0.758 ± 0.010 | 0.689 ± 0.009 |
+| Shallow MLP (16 units) | 69.49% ± 1.09% | 0.761 ± 0.007 | 0.694 ± 0.011 |
+| QGNN (Step 1's result) | 66.88% ± 0.30% | 0.722 ± 0.003 | 0.668 ± 0.003 |
+
+**Finding: both classical baselines beat the QGNN by ~2.2–2.6 accuracy points on the same frozen features — the ceiling is not GVLS, it's the QGNN's own training/architecture.** Logistic regression (linear) and the MLP (nonlinear) landed within 0.4 points of each other, meaning the features are close to linearly separable already — there is not much exploitable nonlinear structure sitting unused.
+
+**Root cause found by reading `src/gvls/models/qgnn.py` directly:** `QGNNClassifier.encode_input`'s re-uploading logic is `dim = layer % self.d`. At the (then-)default `num_layers=1` with `d=8`, every jet's circuit only ever encoded dimension 0 of GVLS's 8-dimensional `z̃` — the other 7 dimensions were discarded before the circuit ever saw them. The classical baselines used the full 32-dimensional `z̃`; the QGNN used 4 numbers.
+
+### Step 3 — QGNN architecture interventions (2026-08-03–04, all three failed to beat Step 1's baseline)
+
+Three real interventions were tried, in response to Step 2's finding, all layered on top of the Step-1-best configuration. **None improved on it; costs escalated up to ~31x.**
+
+**3a. Full data re-uploading — `num_layers = GVLS_LATENT_DIM` (=8), `epochs=50`.** Directly targets the discovered bottleneck: re-uploads every `z̃` dimension exactly once across the circuit's layers instead of just dimension 0. Verified structurally correct before running (dims used = `range(8)`, forward/backward both work, 44 trainable weight params at `m=4, num_layers=8`, up from 9).
+
+| Metric | num_layers=1 (Step 1) | num_layers=8, epochs=50 |
+|---|---|---|
+| test_accuracy | 66.88% ± 0.30% | 65.07% ± 0.71% |
+| train_accuracy | 69.75% | 68.60% |
+| training_time_s | 287s | 849s |
+
+**Regressed, not improved.** Both train *and* test accuracy dropped together — not an overfitting signature (would show train up, test down), an optimization-difficulty one: trainable weights went 9→44, but SPSA estimates every parameter's gradient from a single shared random-direction perturbation per step, and that estimate's quality is known to degrade as parameter count grows.
+
+**3b. Same config, `epochs=150` (user-directed: try more optimization steps before concluding the deeper circuit is fundamentally harder to train).**
+
+| Metric | num_layers=1 (Step 1) | num_layers=8, epochs=150 |
+|---|---|---|
+| test_accuracy | 66.88% ± 0.30% | 66.08% ± 1.17% |
+| train_accuracy | 69.75% | 69.30% |
+| training_time_s | 287s | 2539s (8.8x) |
+
+**Recovered most of 3a's regression but never surpassed the original baseline** — 66.08% vs. 66.88% is a statistical wash given the ~4x-noisier std, at 8.8x the compute. Confirms under-training was *part* of what went wrong at 50 epochs, but not the whole story.
+
+**3c. Learned classical readout, `readout_mode="learned"`, kept `num_layers=8`/`epochs=150` (user-directed: try a lower-risk, complementary fix targeting a different gap instead of pushing `num_layers` further).** Replaces the fixed, unweighted `sum(Z_i)` readout with per-qubit `Z` measurements (`per_qubit_z_observables`) fed through a trainable classical `Linear(m,1)` head (`QGNNClassifier.readout_head`) — targets the classical baselines' ability to *weight* their combination of inputs, which the fixed-sum readout structurally could not express. This head's own gradient is exact PyTorch autograd (outside `TorchConnector` entirely), so it adds zero parameters to the count SPSA's joint-perturbation estimate has to spread across. Files: `src/gvls/models/qgnn.py` (`per_qubit_z_observables`, `QGNNClassifier.readout_head`, `READOUT_MODES`), `src/gvls/qgnn_training.py`/`experiments/train_qgnn.py` (threaded through, persisted in checkpoint config — `load_qgnn_checkpoint` must restore `readout_mode` correctly, not just for metadata, since a mismatched mode makes `load_state_dict` fail on a missing/unexpected `readout_head` key). 8 new tests in `tests/test_qgnn.py`/`tests/test_qgnn_training.py`.
+
+**Correction to an earlier claim, made and then measured, not left standing:** initially described this as "free" in circuit-evaluation terms (reading multiple expectation values off one exact statevector). Measured directly instead (`_backward_pub_count`, mirroring V-9's methodology) and found `EstimatorQNN`'s gradient estimators submit one pub *per observable* rather than batching a multi-observable readout into one — evaluation count multiplies by `m` for both SPSA (2→8 pubs at `m=4`) and param-shift (28→112). Small in absolute terms, but not free, and the record is corrected here rather than left wrong.
+
+| Metric | num_layers=8, sum, epochs=150 (3b) | num_layers=8, learned, epochs=150 |
+|---|---|---|
+| test_accuracy | 66.08% ± 1.17% | 65.90% ± 2.02% |
+| train_accuracy | 69.30% ± 0.71% | 67.08% ± 2.34% |
+| training_time_s | 2539s | 9069s (31.6x vs. Step 1) |
+
+**No improvement, and materially worse stability.** Mean accuracy is an effective wash (66.08% → 65.90%), but train accuracy *dropped* 2.2 points while its std more than tripled (0.71% → 2.34%) — train accuracy dropping while variance balloons is not an overfitting signature; it suggests the added classical head made the joint quantum+classical optimization landscape harder to navigate, not easier, despite the head's own gradients being exact.
+
+### Current state and recommendation
+
+Three consecutive real experiments on the QGNN architecture side (more re-uploading layers, more epochs, a learned readout) have now all failed to beat the simple `num_layers=1, readout_mode=sum, epochs=50` baseline from Step 1, while per-trial training time grew from 287s to 9,069s (~31.6x) for no net accuracy gain and, if anything, worse run-to-run consistency. The classical-baseline ceiling from Step 2 (69–70%) has not been closed by any of these three attempts.
+
+**Recommendation (discussed with the user, not yet executed as of this writing):** revert `scripts/run_qgnn_lorentz_comparability.sh` to `num_layers=1`, `readout_mode=sum`, `epochs=50` — the best, cheapest, most consistent confirmed result (66.88% ± 0.30%, ~7.1 points from Lorentz-EQGNN). The GVLS-side auxiliary-supervision idea (a light supervised classification loss during GVLS's otherwise-unsupervised pretraining, deferred by explicit user choice earlier in this investigation — see the `AskUserQuestion` exchange that scoped this whole followup down to the QGNN side only) remains the most-evidenced untried lever, given Step 2 showed the ceiling sits in what the QGNN currently extracts from features that a classical model already handles at 69–70%, and Step 3 showed that pushing harder on the QGNN's own architecture/training under SPSA has not worked so far.
+
+| Check | Pass condition | Result |
+|---|---|---|
+| Threshold tuning implemented and evaluated | `select_best_threshold` in place, its actual effect measured on a real run | ✅ implemented; measured effect was negligible once GVLS was properly trained (Step 1) |
+| GVLS pretraining set size decoupled from the 800-jet cap | GVLS trains on the full pool independent of the QGNN's comparability constraint | ✅ implemented and confirmed as the dominant fix (+7.76 accuracy points) |
+| Classical-baseline ceiling established | Logistic regression / MLP results on identical frozen features | ✅ 69.07%/69.49%, both above the QGNN's 66.88% |
+| Re-uploading bottleneck identified and fixed | `num_layers` tied to `d` so all `z̃` dimensions are encoded | ✅ implemented, verified structurally correct; did not improve accuracy (Step 3a/3b) |
+| Learned readout implemented | Per-qubit measurement + trainable classical combination | ✅ implemented, verified correct (shape/gradient/determinism/checkpoint round-trip); did not improve accuracy (Step 3c) |
+| Evaluation-count claim for multi-observable readout | Measured, not assumed | ✅ `test_learned_mode_multiplies_circuit_evaluations_by_observable_count` — corrects an earlier wrong "free" claim |
+| Full suite / lint | `pytest tests/` and `ruff check` on all touched files | ✅ 263/263 passing throughout this section's work |
+| Config reverted to the best confirmed result | `num_layers=1`, `readout_mode=sum`, `epochs=50` restored as the pipeline default | ⬜ recommended, not yet executed |
+| GVLS-side auxiliary supervision | Light supervised loss during GVLS pretraining, to test whether the classical-baseline ceiling itself can be raised | ⬜ not started — deferred by explicit user choice when this followup was scoped to the QGNN side only |
