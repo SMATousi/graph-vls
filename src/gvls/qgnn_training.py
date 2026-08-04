@@ -188,6 +188,7 @@ def train_qgnn_classifier(
     spsa_epsilon: float = 1e-6,
     spsa_batch_size: int = 1,
     optimizer: str = "adamw",
+    readout_mode: str = "sum",
 ) -> QGNNTrainingResult:
     """Train QGNNClassifier's circuit parameters via Adam/AdamW (T4.5, FR-5).
 
@@ -197,6 +198,11 @@ def train_qgnn_classifier(
     purely a classical training-loop choice -- it has no bearing on the
     quantum circuit's `gradient_method` (SPSA vs. parameter-shift, T4.9),
     which is an orthogonal, separately-configurable concern.
+
+    `readout_mode` (T4.10 followup, validation.md V-11) is passed straight
+    through to `QGNNClassifier` -- `"learned"`'s classical readout head is
+    an ordinary submodule, so `model.parameters()` (used to build `optim`
+    below) already includes it; no separate wiring needed.
 
     Each minibatch is one batched `QGNNClassifier` call (T4.8) via
     `qgnn_batch_loss`/`collate_jet_features` -- unlike the classical GVLS
@@ -248,7 +254,12 @@ def train_qgnn_classifier(
         gradient_method=gradient_method,
         spsa_epsilon=spsa_epsilon,
         spsa_batch_size=spsa_batch_size,
+        readout_mode=readout_mode,
     ).to(device)
+    # readout_mode="learned"'s classical Linear(m,1) head is registered as an
+    # ordinary submodule -- model.parameters() already includes it alongside
+    # the quantum circuit's TorchConnector weight, so no separate optimizer
+    # wiring is needed for it.
     optim = _build_optimizer(optimizer, model.parameters(), lr)
     shuffle_generator = torch.Generator().manual_seed(seed)
 
@@ -335,6 +346,14 @@ def load_qgnn_checkpoint(path: str, device: torch.device) -> tuple[QGNNClassifie
     has no bearing on correctness here (this model is only ever `.eval()`'d
     for inference) -- restored anyway for provenance/completeness, defaulting
     to "spsa" for older checkpoints saved before T4.8's SPSA follow-up.
+
+    `readout_mode` (T4.10 followup, validation.md V-11) must be restored
+    correctly, unlike `gradient_method` -- `"learned"` checkpoints have an
+    extra `readout_head` submodule in their `state_dict`, so reconstructing
+    with the wrong mode would make `load_state_dict` fail on a
+    missing/unexpected key, not just misreport metadata. Defaults to `"sum"`
+    for checkpoints saved before this change (all of which used that
+    architecture unconditionally).
     """
     checkpoint = torch.load(path, map_location=device, weights_only=False)
     config = checkpoint["config"]
@@ -343,6 +362,7 @@ def load_qgnn_checkpoint(path: str, device: torch.device) -> tuple[QGNNClassifie
         d=int(config["d"]),
         num_layers=int(config["num_layers"]),
         gradient_method=config.get("gradient_method", "spsa"),
+        readout_mode=config.get("readout_mode", "sum"),
     ).to(device)
     model.load_state_dict(checkpoint["state_dict"])
     model.eval()

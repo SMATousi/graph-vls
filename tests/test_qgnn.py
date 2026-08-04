@@ -3,7 +3,12 @@ import torch
 from qiskit.quantum_info import Statevector
 from qiskit_machine_learning.gradients import ParamShiftEstimatorGradient, SPSAEstimatorGradient
 
-from gvls.models.qgnn import QGNNClassifier, build_qgnn_circuit, sum_z_observable
+from gvls.models.qgnn import (
+    QGNNClassifier,
+    build_qgnn_circuit,
+    per_qubit_z_observables,
+    sum_z_observable,
+)
 
 M = 4
 D = 8
@@ -117,11 +122,17 @@ def test_zero_a_z_reduces_to_no_entangling_reference_circuit() -> None:
     np.testing.assert_allclose(sv_ansatz.data, sv_reference.data, atol=1e-10)
 
 
-# ── sum_z_observable ─────────────────────────────────────────────────────────
+# ── sum_z_observable / per_qubit_z_observables ───────────────────────────────
 
 def test_sum_z_observable_qubit_count() -> None:
     obs = sum_z_observable(5)
     assert obs.num_qubits == 5
+
+
+def test_per_qubit_z_observables_returns_one_per_qubit() -> None:
+    obs = per_qubit_z_observables(5)
+    assert len(obs) == 5
+    assert all(o.num_qubits == 5 for o in obs)
 
 
 # ── QGNNClassifier: gradient flow through TorchConnector ────────────────────
@@ -392,3 +403,96 @@ def test_spsa_gradients_flow_and_are_nonzero() -> None:
     grad = model.connector.weight.grad
     assert grad is not None
     assert grad.abs().sum().item() > 0
+
+
+# ── readout_mode="learned" (T4.10 followup, validation.md V-11) ─────────────
+
+def test_sum_mode_is_default_and_has_no_readout_head() -> None:
+    model = QGNNClassifier(m=M, d=D, num_layers=1, seed=0)
+    assert model.readout_mode == "sum"
+    assert model.readout_head is None
+
+
+def test_learned_mode_has_readout_head_with_expected_shape() -> None:
+    model = QGNNClassifier(m=M, d=D, num_layers=1, seed=0, readout_mode="learned")
+    assert model.readout_head is not None
+    assert model.readout_head.weight.shape == (1, M)
+    assert model.readout_head.bias.shape == (1,)
+
+
+def test_invalid_readout_mode_raises() -> None:
+    try:
+        QGNNClassifier(m=M, d=D, num_layers=1, readout_mode="weighted_sum")
+        raise AssertionError("expected ValueError for an unknown readout_mode")
+    except ValueError as exc:
+        assert "weighted_sum" in str(exc)
+
+
+def test_learned_mode_forward_shapes_single_and_batched() -> None:
+    model = QGNNClassifier(m=M, d=D, num_layers=1, seed=0, readout_mode="learned")
+    z_tilde = torch.randn(M, D)
+    a_z = torch.zeros(M, M)
+    a_z[0, 1] = a_z[1, 0] = 1.0
+    single = model(z_tilde, a_z)
+    assert single.shape == (1,)
+
+    z_tildes, a_zs = _random_batch(3, M, D, seed=1)
+    batched = model(z_tildes, a_zs)
+    assert batched.shape == (3,)
+
+
+def test_learned_mode_gradients_flow_to_both_quantum_and_classical_weights() -> None:
+    model = QGNNClassifier(
+        m=M, d=D, num_layers=1, seed=0, gradient_method="param_shift", readout_mode="learned"
+    )
+    z_tilde = torch.randn(M, D)
+    a_z = torch.zeros(M, M)
+    a_z[0, 1] = a_z[1, 0] = 1.0
+
+    logit = model(z_tilde, a_z)
+    logit.backward()
+
+    quantum_grad = model.connector.weight.grad
+    assert quantum_grad is not None
+    assert quantum_grad.abs().sum().item() > 0
+
+    assert model.readout_head.weight.grad is not None
+    assert model.readout_head.weight.grad.abs().sum().item() > 0
+    assert model.readout_head.bias.grad is not None
+    assert model.readout_head.bias.grad.abs().sum().item() > 0
+
+
+def test_learned_mode_deterministic_given_fixed_seed() -> None:
+    model_a = QGNNClassifier(m=M, d=D, num_layers=1, seed=3, readout_mode="learned")
+    model_b = QGNNClassifier(m=M, d=D, num_layers=1, seed=3, readout_mode="learned")
+    assert torch.allclose(model_a.connector.weight, model_b.connector.weight)
+    assert torch.allclose(model_a.readout_head.weight, model_b.readout_head.weight)
+    assert torch.allclose(model_a.readout_head.bias, model_b.readout_head.bias)
+
+    z_tilde = torch.randn(M, D)
+    a_z = torch.zeros(M, M)
+    a_z[0, 1] = a_z[1, 0] = 1.0
+    assert torch.allclose(model_a(z_tilde, a_z), model_b(z_tilde, a_z))
+
+
+def test_learned_mode_multiplies_circuit_evaluations_by_observable_count() -> None:
+    """Empirically measured, not assumed: EstimatorQNN's gradient estimators
+    submit one pub per observable rather than batching a multi-observable
+    readout into a single pub, so "learned" mode's per-step circuit-
+    evaluation cost is `sum`'s cost times m (num observables) -- for both
+    SPSA and param-shift. Cheap in absolute terms at m=4 (2->8), but a real,
+    measured cost, not the "free" readout an exact-statevector single state
+    preparation might suggest."""
+    z_tilde = torch.randn(M, D)
+    a_z = torch.zeros(M, M)
+    a_z[0, 1] = a_z[1, 0] = 1.0
+
+    model_sum_spsa = QGNNClassifier(m=M, d=D, num_layers=1, seed=0, gradient_method="spsa")
+    model_learned_spsa = QGNNClassifier(
+        m=M, d=D, num_layers=1, seed=0, gradient_method="spsa", readout_mode="learned"
+    )
+    n_sum = _backward_pub_count(model_sum_spsa, z_tilde, a_z)
+    n_learned = _backward_pub_count(model_learned_spsa, z_tilde, a_z)
+
+    assert n_sum == 2
+    assert n_learned == n_sum * M

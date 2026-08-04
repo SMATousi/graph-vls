@@ -144,12 +144,29 @@ SKIP_GVLS_PRETRAIN_IF_CHECKPOINT_EXISTS=true
 # per layer x8, plus readout), but SPSA estimates every parameter's gradient
 # from a single shared random-direction perturbation each step, and that
 # estimate's quality is known to degrade as parameter count grows. QGNN_EPOCHS
-# raised 50->150 (user-directed) as the first mitigation to try: same
-# gradient estimator, just substantially more optimization steps for the
-# now much larger parameter space, before concluding the deeper circuit
-# is fundamentally harder to train under SPSA rather than merely
-# under-trained. See specs/phase4/validation.md V-11.
+# raised 50->150 (user-directed): recovered most of the regression
+# (65.07%->66.08%) but never surpassed the original num_layers=1 baseline
+# (66.88%), at ~8.8x the compute (287s->2539s/trial) and ~4x the run-to-run
+# std (0.30%->1.17%) -- three real runs now agree this direction alone
+# doesn't pay off under SPSA. num_layers is kept at GVLS_LATENT_DIM anyway
+# (user-directed) and QGNN_READOUT_MODE=learned (below) is layered on top as
+# a complementary, lower-risk fix targeting a different gap (the fixed
+# readout's inability to weight per-qubit measurements, unlike a classical
+# linear model) -- see specs/phase4/validation.md V-11.
 QGNN_NUM_LAYERS=${GVLS_LATENT_DIM}
+# T4.10 followup (validation.md V-11, user-directed): "learned" replaces the
+# fixed, unweighted sum(Z_i) readout with a trainable classical Linear(m,1)
+# head on separately-measured per-qubit Z expectations -- targets the gap
+# the classical-baseline diagnostic exposed (logistic regression/MLP use a
+# LEARNED weighted combination of their inputs; the QGNN's old readout
+# structurally could not). This head's own gradient is exact PyTorch
+# autograd, not SPSA -- it does not add to the quantum circuit's own
+# trainable-weight count that SPSA's joint-perturbation estimate has to
+# spread across (unlike num_layers, which measurably did). Does modestly
+# increase circuit evaluations per gradient step (measured: SPSA 2->8 pubs
+# at m=4, i.e. proportional to m) -- small in absolute terms, unlike
+# num_layers' depth-driven wall-clock blowup.
+QGNN_READOUT_MODE=learned
 # T4.10 (plan.md Design Decision 12): realigned to the Lorentz-EQGNN
 # literature baseline for direct comparability.
 QGNN_OPTIMIZER=adamw
@@ -234,6 +251,7 @@ for SEED in "${QGNN_SEEDS[@]}"; do
         "data.train_subset_seed=${SEED}"
         "${WANDB_ONLINE_ARGS[@]}"
         "train.num_layers=${QGNN_NUM_LAYERS}"
+        "train.readout_mode=${QGNN_READOUT_MODE}"
         "train.optimizer=${QGNN_OPTIMIZER}"
         "train.lr=${QGNN_LR}"
         "train.epochs=${QGNN_EPOCHS}"

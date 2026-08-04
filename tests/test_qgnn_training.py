@@ -300,6 +300,51 @@ def test_train_qgnn_classifier_best_state_dict_is_loadable() -> None:
     assert metrics["accuracy"] == result.best_val_metrics["accuracy"]
 
 
+def test_train_qgnn_classifier_supports_learned_readout_mode() -> None:
+    """T4.10 followup (validation.md V-11): readout_mode is threaded through
+    to QGNNClassifier, and its classical Linear(m,1) head trains via ordinary
+    model.parameters() -- no separate optimizer wiring needed."""
+    train_features = _tiny_features(6, seed_offset=0)
+    val_features = _tiny_features(4, seed_offset=100)
+
+    result = train_qgnn_classifier(
+        train_features, val_features, m=M, d=LATENT_DIM, num_layers=1,
+        lr=0.1, epochs=2, seed=42, device=DEVICE, batch_size=3, show_progress=False,
+        readout_mode="learned",
+    )
+
+    assert len(result.history) == 2
+    assert "accuracy" in result.best_val_metrics
+    for row in result.history:
+        assert not torch.isnan(torch.tensor(row["train_loss"]))
+
+
+def test_learned_readout_checkpoint_roundtrip() -> None:
+    """A "learned"-mode checkpoint's readout_head submodule must round-trip
+    through save/load -- load_qgnn_checkpoint needs readout_mode from the
+    saved config to reconstruct the right architecture before load_state_dict,
+    unlike gradient_method (forward-only metadata)."""
+    train_features = _tiny_features(4, seed_offset=0)
+    val_features = _tiny_features(4, seed_offset=200)
+    result = train_qgnn_classifier(
+        train_features, val_features, m=M, d=LATENT_DIM, num_layers=1,
+        lr=0.1, epochs=1, seed=1, device=DEVICE, batch_size=2, show_progress=False,
+        readout_mode="learned",
+    )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        path = str(Path(tmp) / "qgnn_m4_learned.pt")
+        config = {"m": M, "d": LATENT_DIM, "num_layers": 1, "readout_mode": "learned"}
+        save_qgnn_checkpoint(result.best_state_dict, config, path)
+        loaded_model, loaded_config = load_qgnn_checkpoint(path, DEVICE)
+
+    assert loaded_config == config
+    assert loaded_model.readout_mode == "learned"
+    assert loaded_model.readout_head is not None
+    metrics = evaluate_qgnn_classifier(loaded_model, val_features, DEVICE)
+    assert metrics["accuracy"] == result.best_val_metrics["accuracy"]
+
+
 # ── evaluate_qgnn_classifier ──────────────────────────────────────────────────
 
 def test_evaluate_qgnn_classifier_returns_full_metrics() -> None:

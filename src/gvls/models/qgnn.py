@@ -142,6 +142,7 @@ from qiskit_machine_learning.neural_networks import EstimatorQNN
 from torch import Tensor
 
 GRADIENT_METHODS = ("spsa", "param_shift")
+READOUT_MODES = ("sum", "learned")
 
 
 @dataclass
@@ -189,6 +190,26 @@ def sum_z_observable(m: int) -> SparsePauliOp:
     if m < 1:
         raise ValueError(f"m must be >= 1, got {m}")
     return SparsePauliOp.from_sparse_list([("Z", [i], 1.0) for i in range(m)], num_qubits=m)
+
+
+def per_qubit_z_observables(m: int) -> list[SparsePauliOp]:
+    """Per-qubit Z observables, one per pooled latent node (`readout_mode="learned"`).
+
+    `sum_z_observable`'s combined operator forces every qubit's contribution
+    to the final logit through a fixed, unweighted coefficient of 1.0 -- the
+    trained weights can shape the state each `<Z_i>` is measured against, but
+    nothing can learn "qubit 2 matters more than qubit 0" in the final
+    combination. Measuring each qubit separately (`EstimatorQNN` natively
+    accepts a list of observables, returning one expectation value per
+    observable) lets `QGNNClassifier`'s own trainable classical
+    `Linear(m, 1)` head learn that weighting instead -- the combination
+    classical baselines get for free (a linear model's decision score IS a
+    learned weighted combination of its inputs) but the fixed-sum readout
+    structurally could not express. See `specs/phase4/validation.md` V-11.
+    """
+    if m < 1:
+        raise ValueError(f"m must be >= 1, got {m}")
+    return [SparsePauliOp.from_sparse_list([("Z", [i], 1.0)], num_qubits=m) for i in range(m)]
 
 
 def build_qgnn_circuit(m: int, num_layers: int = 1) -> tuple[QuantumCircuit, QGNNCircuitParams]:
@@ -242,13 +263,28 @@ class QGNNClassifier(nn.Module):
 
     `forward(z_tilde, a_z) -> Tensor`: single-jet inputs (`(M,d)`, `(M,M)`)
     return one logit, shape `(1,)`; batched inputs (`(B,M,d)`, `(B,M,M)`)
-    return one logit per jet, shape `(B,)` (T4.8) -- both are raw expectation
-    values of `sum_z_observable`, fed to a BCE-with-logits loss, consistent
-    with the rest of this codebase's convention of working with logits, not
-    probabilities, everywhere. Built once per `(m, d, num_layers)` and reused
-    for every jet/minibatch (see module docstring for why); only `theta`,
-    `b_i`, and the final readout rotation are trainable -- `z_tilde` and
-    `A_z` are runtime inputs, never weights.
+    return one logit per jet, shape `(B,)` (T4.8), fed to a BCE-with-logits
+    loss, consistent with the rest of this codebase's convention of working
+    with logits, not probabilities, everywhere. Built once per
+    `(m, d, num_layers)` and reused for every jet/minibatch (see module
+    docstring for why); `z_tilde` and `A_z` are runtime inputs, never weights.
+
+    `readout_mode` (T4.10 followup, validation.md V-11) selects how the `m`
+    per-qubit measurements become one logit:
+    - `"sum"` (default, backward compatible): `sum_z_observable`'s single
+      combined operator -- every qubit's `<Z_i>` contributes with a fixed,
+      unweighted coefficient of 1.0. Only `theta`, `b_i`, and the final
+      readout rotation are trainable.
+    - `"learned"`: `per_qubit_z_observables` measures each qubit separately
+      (`EstimatorQNN` returns an `(m,)`/`(B,m)` vector instead of a scalar),
+      fed through a trainable classical `nn.Linear(m, 1)` (`self.readout_head`)
+      to produce the logit -- lets the model learn which pooled nodes matter
+      more, the weighted-combination expressiveness a classical linear model
+      has for free but the fixed-sum readout structurally lacks. This head's
+      gradient is computed by ordinary PyTorch autograd (exact, not
+      SPSA/parameter-shift) since it sits entirely outside `TorchConnector`,
+      so it does not add to the quantum circuit's own trainable-weight count
+      that SPSA's joint-perturbation gradient estimate has to spread across.
     """
 
     def __init__(
@@ -260,6 +296,7 @@ class QGNNClassifier(nn.Module):
         gradient_method: str = "spsa",
         spsa_epsilon: float = 1e-6,
         spsa_batch_size: int = 1,
+        readout_mode: str = "sum",
     ) -> None:
         super().__init__()
         if d < 1:
@@ -268,13 +305,18 @@ class QGNNClassifier(nn.Module):
             raise ValueError(
                 f"gradient_method must be one of {GRADIENT_METHODS}, got {gradient_method!r}"
             )
+        if readout_mode not in READOUT_MODES:
+            raise ValueError(f"readout_mode must be one of {READOUT_MODES}, got {readout_mode!r}")
         self.m = m
         self.d = d
         self.num_layers = num_layers
         self.gradient_method = gradient_method
+        self.readout_mode = readout_mode
 
         circuit, self.circuit_params = build_qgnn_circuit(m, num_layers)
-        observable = sum_z_observable(m)
+        observable = (
+            per_qubit_z_observables(m) if readout_mode == "learned" else sum_z_observable(m)
+        )
         estimator = AerEstimatorV2()  # default_precision=0.0 (exact) -- see class Options
         if gradient_method == "spsa":
             # 2 * spsa_batch_size circuit evaluations per sample, independent
@@ -297,10 +339,26 @@ class QGNNClassifier(nn.Module):
         )
 
         initial_weights = None
+        rng = None
         if seed is not None:
             rng = np.random.default_rng(seed)
             initial_weights = rng.uniform(-0.1, 0.1, size=len(self.circuit_params.weight_params))
         self.connector = TorchConnector(qnn, initial_weights=initial_weights)
+
+        self.readout_head: nn.Linear | None = None
+        if readout_mode == "learned":
+            self.readout_head = nn.Linear(m, 1)
+            if rng is not None:
+                # Continue the same deterministic numpy RNG stream used for
+                # the quantum weights above (rather than relying on PyTorch's
+                # own global RNG, which the caller may or may not have
+                # seeded) so `seed` fully determines every trainable
+                # parameter in this module, quantum and classical alike.
+                head_weight = rng.uniform(-0.1, 0.1, size=(1, m))
+                head_bias = rng.uniform(-0.1, 0.1, size=(1,))
+                with torch.no_grad():
+                    self.readout_head.weight.copy_(torch.from_numpy(head_weight).float())
+                    self.readout_head.bias.copy_(torch.from_numpy(head_bias).float())
 
     def encode_input(self, z_tilde: Tensor, a_z: Tensor) -> Tensor:
         """Flatten one jet's (z_tilde, a_z) into the circuit's input-parameter
@@ -330,8 +388,15 @@ class QGNNClassifier(nn.Module):
 
     def forward(self, z_tilde: Tensor, a_z: Tensor) -> Tensor:
         if z_tilde.dim() == 3:
-            # batched: (B, num_inputs) -> TorchConnector returns (B, 1); squeeze
-            # to (B,) to match a per-jet call's (1,)-shaped output and BCE's
-            # expected label shape.
-            return self.connector(self.encode_input_batch(z_tilde, a_z)).squeeze(-1)
-        return self.connector(self.encode_input(z_tilde, a_z))
+            # batched: (B, num_inputs) -> TorchConnector returns (B, 1) in
+            # "sum" mode or (B, m) in "learned" mode.
+            raw = self.connector(self.encode_input_batch(z_tilde, a_z))
+            if self.readout_head is not None:
+                raw = self.readout_head(raw)
+            # squeeze to (B,) to match a per-jet call's (1,)-shaped output
+            # and BCE's expected label shape.
+            return raw.squeeze(-1)
+        raw = self.connector(self.encode_input(z_tilde, a_z))
+        if self.readout_head is not None:
+            raw = self.readout_head(raw)
+        return raw

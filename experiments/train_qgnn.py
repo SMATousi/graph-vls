@@ -57,11 +57,12 @@ def main(cfg: DictConfig) -> None:
 
     train_cfg = OmegaConf.to_container(cfg.train, resolve=True)
     optimizer_name = str(train_cfg.get("optimizer", "adam"))  # pre-T4.10 configs lack this key
+    readout_mode = str(train_cfg.get("readout_mode", "sum"))  # pre-V-11 configs lack this key
     print(
         f"QGNN config: M={m} num_layers={train_cfg['num_layers']} "
         f"optimizer={optimizer_name} lr={train_cfg['lr']} "
         f"epochs={train_cfg['epochs']} batch_size={train_cfg['batch_size']} "
-        f"gradient_method={train_cfg['gradient_method']}"
+        f"gradient_method={train_cfg['gradient_method']} readout_mode={readout_mode}"
     )
 
     # T4.10 (validation.md V-10): data_cfg (notably num_jets) is logged so
@@ -95,6 +96,7 @@ def main(cfg: DictConfig) -> None:
         spsa_epsilon=float(train_cfg["spsa_epsilon"]),
         spsa_batch_size=int(train_cfg["spsa_batch_size"]),
         optimizer=optimizer_name,
+        readout_mode=readout_mode,
     )
     training_time_s = time.perf_counter() - training_start
 
@@ -126,6 +128,7 @@ def main(cfg: DictConfig) -> None:
         "num_layers": int(train_cfg["num_layers"]),
         "gradient_method": str(train_cfg["gradient_method"]),
         "optimizer": optimizer_name,
+        "readout_mode": readout_mode,
         "train_accuracy": train_accuracy,
         "training_time_s": training_time_s,
         "threshold": result.best_threshold,
@@ -141,6 +144,7 @@ def main(cfg: DictConfig) -> None:
             "d": d,
             "num_layers": int(train_cfg["num_layers"]),
             "optimizer": optimizer_name,
+            "readout_mode": readout_mode,
             "best_epoch": result.best_epoch,
             "train_accuracy": train_accuracy,
             "training_time_s": training_time_s,

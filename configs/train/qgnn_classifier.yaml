@@ -25,3 +25,15 @@ seed: 42
 gradient_method: spsa
 spsa_epsilon: 1e-6
 spsa_batch_size: 1
+
+# T4.10 followup (validation.md V-11): "sum" (default, backward compatible)
+# measures a single combined sum(Z_i) operator -- every qubit's contribution
+# to the logit has a fixed, unweighted coefficient of 1.0. "learned" measures
+# each qubit's Z separately and feeds the m-vector through a trainable
+# classical Linear(m, 1) head instead, so the model can learn which pooled
+# nodes matter more (the weighted-combination expressiveness a classical
+# linear model has for free). Note: "learned" measurably increases circuit
+# evaluations per gradient step (proportional to m -- e.g. m=4 measured
+# SPSA 2->8, param_shift 28->112 pubs), unlike num_layers, which SPSA's cost
+# is independent of. See src/gvls/models/qgnn.py module docstring.
+readout_mode: sum  # sum (default) | learned
