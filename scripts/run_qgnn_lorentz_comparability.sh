@@ -135,12 +135,26 @@ SKIP_GVLS_PRETRAIN_IF_CHECKPOINT_EXISTS=true
 # across the circuit's layers, closing that gap structurally. Must track
 # GVLS_LATENT_DIM, not a fixed number, or re-uploading coverage silently
 # regresses if GVLS_LATENT_DIM ever changes.
+#
+# First real run of this fix (num_layers=8, epochs=50) REGRESSED every
+# metric (test_accuracy 66.88%->65.07%, train_accuracy 69.75%->68.60%,
+# training_time_s 287->849) rather than improving them. Both train and test
+# accuracy dropped together -- not a generalization/overfitting signature,
+# an optimization-difficulty one: trainable weights went 9->44 (theta+bias
+# per layer x8, plus readout), but SPSA estimates every parameter's gradient
+# from a single shared random-direction perturbation each step, and that
+# estimate's quality is known to degrade as parameter count grows. QGNN_EPOCHS
+# raised 50->150 (user-directed) as the first mitigation to try: same
+# gradient estimator, just substantially more optimization steps for the
+# now much larger parameter space, before concluding the deeper circuit
+# is fundamentally harder to train under SPSA rather than merely
+# under-trained. See specs/phase4/validation.md V-11.
 QGNN_NUM_LAYERS=${GVLS_LATENT_DIM}
 # T4.10 (plan.md Design Decision 12): realigned to the Lorentz-EQGNN
 # literature baseline for direct comparability.
 QGNN_OPTIMIZER=adamw
 QGNN_LR=0.001
-QGNN_EPOCHS=50
+QGNN_EPOCHS=150
 QGNN_BATCH_SIZE=16
 QGNN_GRADIENT_METHOD=spsa      # spsa (default, ~15x fewer circuit evals,
                                 # T4.9) | param_shift (exact, much slower --
