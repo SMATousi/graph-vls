@@ -58,6 +58,22 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Hyperparameters -- edit these directly; running the script needs no flags.
 # ============================================================================
 
+# --- Run tag: suffixes every checkpoint and results path this run writes ---
+# T5.1 (specs/phase5/). Set to "" to reproduce the original pre-Phase-5 paths.
+#
+# This exists as ONE variable rather than a suffix typed into each path
+# because the paths are coupled: the aggregator globs RESULTS_PATTERN, which
+# must match what the per-seed RESULTS_PATH inside the loop actually writes.
+# Suffixing some but not all of them silently produces a summary aggregated
+# from a *previous* run's files while the current run overwrites them --
+# which is worse than no suffix at all.
+#
+# Keeping the pre-Phase-5 outputs intact matters here: specs/phase4/
+# validation.md V-11's 66.88% +/- 0.30% is recorded from
+# qg_jets_metrics_lorentz800_summary.json, and it is the baseline this run
+# exists to be compared against.
+RUN_TAG="_t51"
+
 # --- Shared: configs/data/qg_jets_lorentz.yaml (used by all stages) ---
 # T4.10: reproduces the Lorentz-EQGNN paper's data protocol exactly
 # (arXiv:2411.01641 Section IV.A.1, specs/phase4/validation.md V-10) --
@@ -96,7 +112,7 @@ GVLS_TRAIN_SUBSET=null
 
 # --- W&B ---
 WANDB_MODE=online   # offline | online
-WANDB_GROUP=qgnn-jet-classification-lorentz800
+WANDB_GROUP="qgnn-jet-classification-lorentz800${RUN_TAG}"
 WANDB_TAGS="[lorentz-comparability,qg-jets-800]"
 
 # --- Stage 1: GVLS pretraining (once) -- configs/train/jet_pretrain_final.yaml ---
@@ -114,14 +130,22 @@ GVLS_LAMBDA=1.0
 GVLS_EPOCHS=200
 GVLS_BATCH_SIZE=32
 GVLS_SEED=42
-GVLS_CHECKPOINT_PATH="checkpoints/gvls_jets_m${GVLS_M}_lorentz800.pt"
+GVLS_CHECKPOINT_PATH="checkpoints/gvls_jets_m${GVLS_M}_lorentz800${RUN_TAG}.pt"
 # T4.10 followup (validation.md V-11, user-directed): re-running this script
 # (e.g. to pick up the QGNN_NUM_LAYERS re-uploading fix below) must NOT
 # retrain GVLS from scratch if a checkpoint from a prior run already exists
 # at GVLS_CHECKPOINT_PATH -- pretraining is the expensive, unrelated-to-this-
 # fix stage 1, and the whole point is to reuse its already-trained output.
 # Set to false to force a fresh GVLS pretraining run regardless.
-SKIP_GVLS_PRETRAIN_IF_CHECKPOINT_EXISTS=true
+#
+# T5.1 (specs/phase5/): set to FALSE for this run. Everything T5.1 changed
+# lives in stage 1 -- configs/train/jet_pretrain_final.yaml now defaults to
+# selection_metric=probe_accuracy instead of reconstruction_f1, which on a
+# 30-epoch local run picked epoch 18 (probe 0.7552) while validation
+# reconstruction F1 sat flat at 0.740-0.748 for every epoch (V-2). Leaving
+# this true would skip stage 1 against an existing checkpoint and spend ~13
+# hours reproducing the old number while measuring nothing.
+SKIP_GVLS_PRETRAIN_IF_CHECKPOINT_EXISTS=false
 
 # --- Stage 2/3: QGNN training + evaluation, repeated per seed --
 #     configs/train/qgnn_classifier.yaml ---
@@ -185,8 +209,8 @@ QGNN_SPSA_BATCH_SIZE=1
 QGNN_SEEDS=(42 43 44 45 46)
 
 RESULTS_DIR="results/qgnn"
-RESULTS_PATTERN="${RESULTS_DIR}/qg_jets_metrics_lorentz800_seed*.json"
-SUMMARY_PATH="${RESULTS_DIR}/qg_jets_metrics_lorentz800_summary.json"
+RESULTS_PATTERN="${RESULTS_DIR}/qg_jets_metrics_lorentz800${RUN_TAG}_seed*.json"
+SUMMARY_PATH="${RESULTS_DIR}/qg_jets_metrics_lorentz800${RUN_TAG}_summary.json"
 
 # ============================================================================
 
@@ -231,7 +255,7 @@ else
         "train.batch_size=${GVLS_BATCH_SIZE}"
         "train.seed=${GVLS_SEED}"
         "checkpoint_path=${GVLS_CHECKPOINT_PATH}"
-        "wandb.name=gvls-jets-M${GVLS_M}-lorentz800"
+        "wandb.name=gvls-jets-M${GVLS_M}-lorentz800${RUN_TAG}"
         "wandb.group=${WANDB_GROUP}"
         "wandb.tags=${WANDB_TAGS}"
     )
@@ -239,8 +263,8 @@ else
 fi
 
 for SEED in "${QGNN_SEEDS[@]}"; do
-    QGNN_CHECKPOINT_PATH="checkpoints/qgnn_jets_m${GVLS_M}_lorentz800_seed${SEED}.pt"
-    RESULTS_PATH="${RESULTS_DIR}/qg_jets_metrics_lorentz800_seed${SEED}.json"
+    QGNN_CHECKPOINT_PATH="checkpoints/qgnn_jets_m${GVLS_M}_lorentz800${RUN_TAG}_seed${SEED}.pt"
+    RESULTS_PATH="${RESULTS_DIR}/qg_jets_metrics_lorentz800${RUN_TAG}_seed${SEED}.json"
 
     echo
     echo "=== [2/3] Training QGNN classifier (seed=${SEED}, training subset reseeded per trial, optimizer=${QGNN_OPTIMIZER}, gradient_method=${QGNN_GRADIENT_METHOD}) ==="
@@ -262,7 +286,7 @@ for SEED in "${QGNN_SEEDS[@]}"; do
         "train.spsa_batch_size=${QGNN_SPSA_BATCH_SIZE}"
         "gvls_checkpoint_path=${GVLS_CHECKPOINT_PATH}"
         "qgnn_checkpoint_path=${QGNN_CHECKPOINT_PATH}"
-        "wandb.name=qgnn-M${GVLS_M}-lorentz800-seed${SEED}"
+        "wandb.name=qgnn-M${GVLS_M}-lorentz800${RUN_TAG}-seed${SEED}"
         "wandb.group=${WANDB_GROUP}"
         "wandb.tags=${WANDB_TAGS}"
     )
@@ -279,7 +303,7 @@ for SEED in "${QGNN_SEEDS[@]}"; do
         "gvls_checkpoint_path=${GVLS_CHECKPOINT_PATH}"
         "qgnn_checkpoint_path=${QGNN_CHECKPOINT_PATH}"
         "results_path=${RESULTS_PATH}"
-        "wandb.name=qgnn-eval-M${GVLS_M}-lorentz800-seed${SEED}"
+        "wandb.name=qgnn-eval-M${GVLS_M}-lorentz800${RUN_TAG}-seed${SEED}"
         "wandb.group=${WANDB_GROUP}"
         "wandb.tags=${WANDB_TAGS}"
     )
@@ -297,4 +321,4 @@ fi
     --output "${SUMMARY_PATH}" \
     --wandb-mode "${AGGREGATE_WANDB_MODE}" \
     --wandb-group "${WANDB_GROUP}" \
-    --wandb-name "qgnn-M${GVLS_M}-lorentz800-summary"
+    --wandb-name "qgnn-M${GVLS_M}-lorentz800${RUN_TAG}-summary"
