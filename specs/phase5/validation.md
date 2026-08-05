@@ -16,8 +16,9 @@ convention of recording negative results and surprises alongside successes.
 - [ ] (T5.1, FR-1) `(k, β)` operating point re-established under whichever
       flags are adopted — not yet run; both default to prior behaviour, so a
       bare re-run reproduces the original grid
-- [ ] (T5.2, FR-2) `log_var` reaches the downstream classifier; the
-      `(z̃, A_z)` vs `(z̃, A_z, log_var)` ablation measured and reported
+- [x] (T5.2, FR-2) `log_var` reaches the downstream classifier; ablation
+      measured and reported — **+0.0296 accuracy** (0.7074 → 0.7370), and
+      `logvar_only` alone beats the entire pre-T5.2 feature set. See V-2
 - [ ] (T5.3, FR-3) Occupancy-aware pooled posterior implemented and measured
       against both today's behavior (0.7034) and the concatenation control
       (0.7683)
@@ -214,7 +215,97 @@ default.
 - **Deferred out of this task:** `pos_weight`'s `N`-dependence, which is where
   the measured class asymmetry actually lives. See `plan.md`'s deferred scope.
 
-## V-2: Variational output reaches the downstream task (T5.2) ⬜ Not started
+## V-2: Variational output reaches the downstream task (T5.2) ✅ Complete 2026-08-05 — +3.0 accuracy points from a tensor that was being discarded
+
+**Files:** `src/gvls/qgnn_training.py` (`JetFeatures.mu`/`.log_var`,
+`extract_latent_features`), `src/gvls/eval/classical_baseline.py`
+(`FEATURE_SETS`, `jet_features_to_array(..., feature_set)`,
+`evaluate_classical_baselines(..., feature_set)`),
+`experiments/variational_feature_ablation.py`,
+`configs/variational_feature_ablation_config.yaml`. Tests: 11 new in
+`tests/test_classical_baseline.py`; suite 279 → 290.
+
+**The defect.** `extract_latent_features` kept only `(z_tilde, A_z)` and
+dropped the pooled posterior's `mu`/`log_var`. Because extraction runs under
+`model.eval()`, `z_tilde` is the deterministic mean path — so **no classifier
+in this project had ever seen a variance.** GVLS paid for its variational
+term in the objective and the metric received none of the information, which
+is a large part of why every `β` increase measured worse in V-0 Part B.
+
+### Ablation result
+
+Frozen GVLS checkpoint (`M=4, d=8, k=2, β=0.001, isotropic`, 30 epochs,
+`selection_metric=probe_accuracy` per T5.1), Lorentz protocol, 5 balanced-800
+training subsets, fixed 1,250-jet test set — the same protocol as
+`classical_baseline_diagnostic.py`, so these are directly comparable.
+
+| Feature set | logreg accuracy | AUC | vs. `z_a` |
+|---|---|---|---|
+| `z_a` (pre-T5.2 baseline) | 0.7074 ± 0.0060 | 0.7752 | — |
+| `z_a_logvar` | **0.7370 ± 0.0065** | 0.8003 | **+0.0296** |
+| `z_a_mu_logvar` | 0.7379 ± 0.0055 | 0.8040 | +0.0306 |
+| `logvar_only` | 0.7237 ± 0.0119 | 0.7886 | +0.0163 |
+
+Three findings, in order of how much they matter:
+
+1. **Adding `log_var` is worth ~3.0 accuracy points and ~2.5 AUC points**, at
+   the cost of carrying a tensor the forward pass already computed. This is
+   the largest single improvement any intervention in Phases 4–5 has produced.
+2. **`logvar_only` (32 numbers) beats the entire pre-T5.2 feature set**
+   (0.7237 vs 0.7074, 38 numbers). The tensor being discarded was more
+   discriminative than everything that was kept.
+3. **`mu` adds nothing beyond `log_var`** (+0.0009, well inside one std),
+   confirming it is redundant with `z_tilde` — which is `mu` pushed through
+   latent message passing at eval time — and that message passing is not
+   discarding anything a linear model can use.
+
+**Why the variance carries signal — measured, not assumed.** Predicting
+particle count `N` from the features by linear regression: `logvar_only`
+reaches `R² = 0.718`, slightly *above* `z_a`'s `0.708`. The pooled posterior's
+spread partly encodes cluster occupancy already, via the law-of-total-variance
+term in `LatentGraphPooling`, even though the column normalization divides
+occupancy out of the *mean*. This is direct evidence for T5.3's premise, and
+it also caps expectations: `R² ≈ 0.72` is a partial recovery, which is
+consistent with the ablation improving on the GVLS baseline (0.7034) while
+still falling short of the `N`-only bar.
+
+| Check | Pass condition | Result |
+|---|---|---|
+| `mu`/`log_var` carried | `extract_latent_features` populates them | ✅ `test_extract_latent_features_now_carries_mu_and_log_var` |
+| Default unchanged (NFR-4) | `z_a` byte-identical to pre-T5.2, ignoring the new fields entirely | ✅ `test_default_feature_set_is_byte_identical_to_pre_t52`; the `z_a` row (0.7074) also reproduces V-0 Part C's 0.7034 within run-to-run variation |
+| Ablation measured and reported (FR-2) | `(z̃, A_z)` vs `(z̃, A_z, log_var)` | ✅ table above |
+| Feature widths correct | Parametrized over all four sets | ✅ |
+| Extra columns are real | The `log_var` columns contain `log_var`, not zeros or duplicates | ✅ `test_log_var_columns_actually_carry_log_var` — width alone would pass a broken implementation |
+| Old features fail loudly | Requesting a variance-bearing set on pre-T5.2 features raises rather than silently narrowing | ✅ `test_variance_bearing_sets_reject_pre_t52_features` |
+| Mechanism check | If the class signal lives *only* in the variance, `z_a` misses it and `logvar_only` finds it | ✅ `test_log_var_only_separation_is_detected` |
+| QGNN input unchanged | The circuit still receives `(z̃, A_z)` only | ✅ no change to `QGNNClassifier`/`collate_jet_features` |
+| Bars reported (NFR-1) | Against both the GVLS baseline and the `N`-only bar | ✅ best 0.7379 clears the 0.7034 GVLS baseline; **does not clear the 0.7552 `N`-only bar** |
+| Full suite / lint | `pytest tests/`, `ruff check src/` | ✅ 290/290; `src/` clean |
+
+### Side observation: T5.1's premise corroborated
+
+The checkpoint used here was selected by T5.1's new `probe_accuracy`
+criterion, which picked **epoch 18** at probe accuracy 0.7552 while
+`val_reconstruction_f1` sat flat at 0.740–0.748 for all 30 epochs. Selecting
+on F1 would have been close to picking an epoch at random. That is
+independent support for T5.1's revised deliverable (`plan.md` T5.1), measured
+on a different run from the correlation that motivated it.
+
+### Follow-ups
+
+- **The `N`-only bar (0.7552) is still not cleared** by the best feature set
+  (0.7379). The variance recovers part of what fixed-`M` pooling discards but
+  not all of it — `R² = 0.718` for `N` says why. Closing that is T5.3.
+- **The QGNN does not yet see `log_var`.** FR-2 deliberately scoped this to
+  the classical measurement (Design Decision 3 freezes the quantum stage), but
+  a ~3-point gain in what the features support is only realized downstream if
+  T5.7's final run feeds them in. Encoding `d` more values per qubit interacts
+  with the re-uploading bottleneck Phase 4 found (`specs/phase4/validation.md`
+  V-11 Step 2), so it needs its own decision rather than being assumed free.
+- The checkpoint used is a locally-trained 30-epoch one, not the production
+  100-epoch `gvls_jets_m4_lorentz800.pt`; the comparison is internally
+  consistent (all four feature sets share one frozen checkpoint) but absolute
+  numbers will shift on a production rerun.
 
 ## V-3: Occupancy-aware pooled posterior (T5.3) ⬜ Not started
 

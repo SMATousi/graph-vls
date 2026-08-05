@@ -28,11 +28,27 @@ from gvls.models.qgnn import QGNNClassifier
 
 @dataclass
 class JetFeatures:
-    """One jet's frozen (z_tilde, A_z) pair plus its label."""
+    """One jet's frozen latent representation plus its label.
+
+    `mu`/`log_var` (T5.2, specs/phase5/) are the *pooled posterior's* own
+    parameters. They were previously discarded at extraction: only
+    `(z_tilde, a_z)` were kept, and since extraction runs under
+    `model.eval()`, `z_tilde` is the deterministic mean path -- so no
+    classifier in this project had ever seen a variance, and the variational
+    machinery was severed from the metric it is supposed to improve. They
+    default to `None` so existing positional construction (and any checkpoint
+    or test predating T5.2) keeps working unchanged.
+
+    Note `mu` is largely redundant with `z_tilde`: `z_tilde` is `mu` (at eval
+    time) pushed through latent message passing. `log_var` is the genuinely
+    new information.
+    """
 
     z_tilde: Tensor  # (M, latent_dim)
     a_z: Tensor       # (M, M)
     label: int
+    mu: Tensor | None = None       # (M, latent_dim), pooled posterior mean
+    log_var: Tensor | None = None  # (M, latent_dim), pooled posterior log-variance
 
 
 def extract_latent_features(
@@ -50,9 +66,20 @@ def extract_latent_features(
         for jet in jets:
             x = jet.x.to(device)
             edge_index = jet.edge_index.to(device)
-            _mu, _log_var, _z, a_z, z_tilde, _s, _recon_logits = model(x, edge_index)
+            mu, log_var, _z, a_z, z_tilde, _s, _recon_logits = model(x, edge_index)
             features.append(
-                JetFeatures(z_tilde=z_tilde.cpu(), a_z=a_z.cpu(), label=int(jet.y.item()))
+                JetFeatures(
+                    z_tilde=z_tilde.cpu(),
+                    a_z=a_z.cpu(),
+                    label=int(jet.y.item()),
+                    # T5.2: previously dropped on the floor here. Carrying them
+                    # costs M*d floats per jet and changes nothing downstream
+                    # unless a caller asks for them (see
+                    # gvls.eval.classical_baseline.jet_features_to_array's
+                    # feature_set argument).
+                    mu=mu.cpu(),
+                    log_var=log_var.cpu(),
+                )
             )
     return features
 

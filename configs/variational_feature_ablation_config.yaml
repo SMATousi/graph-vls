@@ -1,0 +1,33 @@
+# T5.2 (specs/phase5/): ablation over which parts of the frozen latent
+# representation a classical model may see. Mirrors
+# configs/qgnn_classical_baseline_config.yaml exactly (same data protocol,
+# same 5 balanced-800 training subsets, same fixed test set) so the numbers
+# are directly comparable to
+# results/qgnn/classical_baseline_lorentz800.json -- the "z_a" row here
+# should reproduce that file's logreg number.
+defaults:
+  - data: qg_jets_lorentz
+  - _self_
+
+data:
+  train_subset_balanced: true
+
+gvls_checkpoint_path: checkpoints/gvls_jets_m4_lorentz800.pt
+train_subset_seeds: [42, 43, 44, 45, 46]
+mlp_hidden_units: 16
+
+# z_a is the pre-T5.2 baseline and must stay first: the printed table reports
+# every other row as a delta against it.
+feature_sets:
+  - z_a
+  - z_a_logvar
+  - z_a_mu_logvar
+  - logvar_only
+
+results_path: results/qgnn/variational_feature_ablation.json
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  job:
+    chdir: false

@@ -156,3 +156,124 @@ def test_classical_baseline_pipeline_end_to_end() -> None:
     assert set(result.keys()) == {"logreg", "mlp"}
     for metrics in result.values():
         assert 0.0 <= metrics["accuracy"] <= 1.0
+
+
+# ── T5.2: variational output reaches the classifier (specs/phase5/) ──────────
+
+
+def _features_with_variational(n: int, seed: int) -> list[JetFeatures]:
+    rng = np.random.default_rng(seed)
+    return [
+        JetFeatures(
+            z_tilde=torch.from_numpy(rng.standard_normal((M, LATENT_DIM)).astype(np.float32)),
+            a_z=torch.from_numpy(rng.random((M, M)).astype(np.float32)),
+            label=int(i % 2),
+            mu=torch.from_numpy(rng.standard_normal((M, LATENT_DIM)).astype(np.float32)),
+            log_var=torch.from_numpy(rng.standard_normal((M, LATENT_DIM)).astype(np.float32)),
+        )
+        for i in range(n)
+    ]
+
+
+def test_extract_latent_features_now_carries_mu_and_log_var() -> None:
+    """The T5.2 defect, stated as a test: these were dropped on the floor."""
+    jets = [_synthetic_jet(12, seed=i) for i in range(4)]
+    model = build_pooled_gvls(NUM_FEATURES, LATENT_DIM, K, M, _base_cfg())
+    features = extract_latent_features(model, jets, DEVICE)
+    for f in features:
+        assert f.mu is not None and f.log_var is not None
+        assert f.mu.shape == (M, LATENT_DIM)
+        assert f.log_var.shape == (M, LATENT_DIM)
+
+
+def test_default_feature_set_is_byte_identical_to_pre_t52() -> None:
+    """Backward compatibility (FR-2/NFR-4): every result measured before T5.2
+    used `z_a`, so the default must not shift by even a column."""
+    features = _features_with_variational(6, seed=0)
+    default_x, default_y = jet_features_to_array(features)
+    explicit_x, explicit_y = jet_features_to_array(features, "z_a")
+    assert np.array_equal(default_x, explicit_x)
+    assert np.array_equal(default_y, explicit_y)
+    # and it must ignore mu/log_var entirely, not merely happen to match
+    assert default_x.shape[1] == M * LATENT_DIM + M * (M - 1) // 2
+
+
+@pytest.mark.parametrize(
+    ("feature_set", "expected_width"),
+    [
+        ("z_a", M * LATENT_DIM + M * (M - 1) // 2),
+        ("z_a_logvar", M * LATENT_DIM + M * (M - 1) // 2 + M * LATENT_DIM),
+        ("z_a_mu_logvar", M * LATENT_DIM + M * (M - 1) // 2 + 2 * M * LATENT_DIM),
+        ("logvar_only", M * LATENT_DIM),
+    ],
+)
+def test_feature_set_widths(feature_set: str, expected_width: int) -> None:
+    features = _features_with_variational(6, seed=1)
+    x, _ = jet_features_to_array(features, feature_set)
+    assert x.shape == (6, expected_width)
+
+
+def test_log_var_columns_actually_carry_log_var() -> None:
+    """Width alone would pass if the extra columns were zeros or duplicates."""
+    features = _features_with_variational(5, seed=2)
+    x, _ = jet_features_to_array(features, "z_a_logvar")
+    tail = x[:, -(M * LATENT_DIM) :]
+    expected = np.stack([f.log_var.numpy().reshape(-1) for f in features]).astype(np.float64)
+    assert np.allclose(tail, expected)
+
+
+def test_variance_bearing_sets_reject_pre_t52_features() -> None:
+    """Features extracted before T5.2 have log_var=None. Asking for a
+    variance-bearing set must fail loudly rather than silently returning a
+    narrower feature set that then gets reported as the wider one."""
+    old_style = _random_features(4, seed=3)  # constructed without mu/log_var
+    with pytest.raises(ValueError, match="needs log_var"):
+        jet_features_to_array(old_style, "z_a_logvar")
+    with pytest.raises(ValueError, match="needs mu"):
+        jet_features_to_array(
+            [
+                JetFeatures(f.z_tilde, f.a_z, f.label, mu=None, log_var=f.z_tilde)
+                for f in old_style
+            ],
+            "z_a_mu_logvar",
+        )
+
+
+def test_invalid_feature_set_raises() -> None:
+    with pytest.raises(ValueError, match="feature_set must be one of"):
+        jet_features_to_array(_features_with_variational(3, seed=4), "nonsense")
+
+
+def test_evaluate_classical_baselines_accepts_feature_set() -> None:
+    train = _features_with_variational(24, seed=5)
+    test = _features_with_variational(16, seed=6)
+    metrics = evaluate_classical_baselines(train, test, seed=0, feature_set="z_a_logvar")
+    assert set(metrics) == {"logreg", "mlp"}
+    for entry in metrics.values():
+        assert 0.0 <= entry["accuracy"] <= 1.0
+
+
+def test_log_var_only_separation_is_detected() -> None:
+    """If the class signal lives *only* in the variance, `z_a` must miss it
+    and `logvar_only` must find it -- this is the mechanism T5.2 exists to
+    expose, so it is checked directly rather than assumed."""
+    rng = np.random.default_rng(7)
+    features = []
+    for i in range(80):
+        label = i % 2
+        features.append(
+            JetFeatures(
+                z_tilde=torch.from_numpy(rng.standard_normal((M, LATENT_DIM)).astype(np.float32)),
+                a_z=torch.from_numpy(rng.random((M, M)).astype(np.float32)),
+                label=label,
+                mu=torch.zeros(M, LATENT_DIM),
+                log_var=torch.from_numpy(
+                    (rng.standard_normal((M, LATENT_DIM)) * 0.1 + 5.0 * label).astype(np.float32)
+                ),
+            )
+        )
+    train, test = features[:56], features[56:]
+    blind = evaluate_classical_baselines(train, test, seed=0, feature_set="z_a")
+    seeing = evaluate_classical_baselines(train, test, seed=0, feature_set="logvar_only")
+    assert seeing["logreg"]["accuracy"] > 0.95
+    assert blind["logreg"]["accuracy"] < seeing["logreg"]["accuracy"]

@@ -1,0 +1,68 @@
+{
+  "num_trials": 5,
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "feature_sets": {
+    "z_a": {
+      "logreg_accuracy_mean": 0.70736,
+      "logreg_accuracy_std": 0.0059705946102545015,
+      "logreg_auc_mean": 0.7752437221529025,
+      "logreg_auc_std": 0.005759226625029263,
+      "logreg_macro_f1_mean": 0.7064728492838057,
+      "logreg_macro_f1_std": 0.006452117043221327,
+      "mlp_accuracy_mean": 0.70816,
+      "mlp_accuracy_std": 0.006891153749554537,
+      "mlp_auc_mean": 0.7796372543242267,
+      "mlp_auc_std": 0.009503332663476787,
+      "mlp_macro_f1_mean": 0.7078243208320442,
+      "mlp_macro_f1_std": 0.006868835985406987
+    },
+    "z_a_logvar": {
+      "logreg_accuracy_mean": 0.7369600000000001,
+      "logreg_accuracy_std": 0.006509070594178553,
+      "logreg_auc_mean": 0.8002895201395845,
+      "logreg_auc_std": 0.007896173152300264,
+      "logreg_macro_f1_mean": 0.736711467791994,
+      "logreg_macro_f1_std": 0.00653952104380094,
+      "mlp_accuracy_mean": 0.7264,
+      "mlp_accuracy_std": 0.011838918869559007,
+      "mlp_auc_mean": 0.791777628035798,
+      "mlp_auc_std": 0.009495380667727208,
+      "mlp_macro_f1_mean": 0.7262942881102261,
+      "mlp_macro_f1_std": 0.011777779064730048
+    },
+    "z_a_mu_logvar": {
+      "logreg_accuracy_mean": 0.73792,
+      "logreg_accuracy_std": 0.005501999636495822,
+      "logreg_auc_mean": 0.8039835921506735,
+      "logreg_auc_std": 0.006325656462355152,
+      "logreg_macro_f1_mean": 0.7376999309268807,
+      "logreg_macro_f1_std": 0.005654623282685106,
+      "mlp_accuracy_mean": 0.72352,
+      "mlp_accuracy_std": 0.010097128304622064,
+      "mlp_auc_mean": 0.7933635834906905,
+      "mlp_auc_std": 0.010793280859095544,
+      "mlp_macro_f1_mean": 0.7233598838501135,
+      "mlp_macro_f1_std": 0.010132418010330447
+    },
+    "logvar_only": {
+      "logreg_accuracy_mean": 0.72368,
+      "logreg_accuracy_std": 0.01194118922050901,
+      "logreg_auc_mean": 0.7885964934755484,
+      "logreg_auc_std": 0.010171972672751254,
+      "logreg_macro_f1_mean": 0.7232478328583352,
+      "logreg_macro_f1_std": 0.011836196276744176,
+      "mlp_accuracy_mean": 0.70016,
+      "mlp_accuracy_std": 0.015066784660304916,
+      "mlp_auc_mean": 0.7623049902511139,
+      "mlp_auc_std": 0.018310081238156906,
+      "mlp_macro_f1_mean": 0.6994154197723207,
+      "mlp_macro_f1_std": 0.01516716129434741
+    }
+  }
+}
