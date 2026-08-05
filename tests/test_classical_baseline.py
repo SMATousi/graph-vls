@@ -277,3 +277,67 @@ def test_log_var_only_separation_is_detected() -> None:
     seeing = evaluate_classical_baselines(train, test, seed=0, feature_set="logvar_only")
     assert seeing["logreg"]["accuracy"] > 0.95
     assert blind["logreg"]["accuracy"] < seeing["logreg"]["accuracy"]
+
+
+# ── T5.3: the multiplicity concatenation control (specs/phase5/) ────────────
+
+
+def _features_with_n(n: int, seed: int) -> list[JetFeatures]:
+    rng = np.random.default_rng(seed)
+    return [
+        JetFeatures(
+            z_tilde=torch.from_numpy(rng.standard_normal((M, LATENT_DIM)).astype(np.float32)),
+            a_z=torch.from_numpy(rng.random((M, M)).astype(np.float32)),
+            label=int(i % 2),
+            mu=torch.from_numpy(rng.standard_normal((M, LATENT_DIM)).astype(np.float32)),
+            log_var=torch.from_numpy(rng.standard_normal((M, LATENT_DIM)).astype(np.float32)),
+            num_nodes=10 + i,
+        )
+        for i in range(n)
+    ]
+
+
+def test_extract_latent_features_carries_num_nodes() -> None:
+    jets = [_synthetic_jet(12 + i, seed=i) for i in range(4)]
+    model = build_pooled_gvls(NUM_FEATURES, LATENT_DIM, K, M, _base_cfg())
+    features = extract_latent_features(model, jets, DEVICE)
+    for jet, f in zip(jets, features):
+        assert f.num_nodes == int(jet.num_nodes)
+
+
+@pytest.mark.parametrize(
+    ("feature_set", "expected_width"),
+    [
+        ("z_a_n", M * LATENT_DIM + M * (M - 1) // 2 + 1),
+        ("z_a_logvar_n", M * LATENT_DIM + M * (M - 1) // 2 + M * LATENT_DIM + 1),
+        ("n_only", 1),
+    ],
+)
+def test_multiplicity_feature_set_widths(feature_set: str, expected_width: int) -> None:
+    features = _features_with_n(6, seed=20)
+    x, _ = jet_features_to_array(features, feature_set)
+    assert x.shape == (6, expected_width)
+
+
+def test_n_column_actually_carries_particle_count() -> None:
+    features = _features_with_n(5, seed=21)
+    x, _ = jet_features_to_array(features, "z_a_n")
+    assert np.allclose(x[:, -1], [float(f.num_nodes) for f in features])
+    x_only, _ = jet_features_to_array(features, "n_only")
+    assert np.allclose(x_only[:, 0], [float(f.num_nodes) for f in features])
+
+
+def test_multiplicity_sets_reject_features_without_num_nodes() -> None:
+    old_style = _features_with_variational(4, seed=22)  # no num_nodes
+    for feature_set in ("z_a_n", "z_a_logvar_n", "n_only"):
+        with pytest.raises(ValueError, match="needs num_nodes"):
+            jet_features_to_array(old_style, feature_set)
+
+
+def test_adding_n_does_not_disturb_the_existing_columns() -> None:
+    """`z_a_n` must be exactly `z_a` plus one appended column -- otherwise the
+    control is not comparable to the row it is being contrasted with."""
+    features = _features_with_n(6, seed=23)
+    base, _ = jet_features_to_array(features, "z_a")
+    with_n, _ = jet_features_to_array(features, "z_a_n")
+    assert np.array_equal(with_n[:, :-1], base)

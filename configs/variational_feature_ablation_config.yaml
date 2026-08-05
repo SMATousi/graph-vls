@@ -23,6 +23,9 @@ feature_sets:
   - z_a_logvar
   - z_a_mu_logvar
   - logvar_only
+  - z_a_n
+  - z_a_logvar_n
+  - n_only
 
 results_path: results/qgnn/variational_feature_ablation.json
 

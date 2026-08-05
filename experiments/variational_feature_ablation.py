@@ -121,21 +121,49 @@ def main(cfg: DictConfig) -> None:
             f"{entry['logreg_auc_mean']:>9.4f}  {delta}"
         )
 
-    best = max(e["logreg_accuracy_mean"] for e in summary["feature_sets"].values())
+    # The `*_n` / `n_only` rows are the T5.3 *control*: they contain the raw
+    # particle count. Judging "did we clear the N-only bar?" using a feature
+    # set that contains N is circular -- an earlier version of this block did
+    # exactly that and reported the bar cleared on the strength of `z_a_n`.
+    # The bar is about what the *latent representation* encodes.
+    encoded = {
+        name: entry
+        for name, entry in summary["feature_sets"].items()
+        if not (name.endswith("_n") or name == "n_only")
+    }
+    best_encoded_name, best_encoded = max(
+        encoded.items(), key=lambda kv: kv[1]["logreg_accuracy_mean"]
+    )
+    best_acc = best_encoded["logreg_accuracy_mean"]
+    best_std = best_encoded["logreg_accuracy_std"]
+
     print(f"\nBars (NFR-1): GVLS baseline {GVLS_BASELINE:.4f}, N-only {N_ONLY_BAR:.4f}")
-    if best > N_ONLY_BAR:
-        print(f"-> best feature set ({best:.4f}) clears the N-only bar.")
-    elif baseline is not None and best > baseline:
+    print(f"Best ENCODED feature set (no raw N): {best_encoded_name} = {best_acc:.4f}")
+    if best_acc - best_std > N_ONLY_BAR:
+        print("-> the encoded representation clears the N-only bar outright.")
+    elif best_acc + best_std > N_ONLY_BAR:
         print(
-            f"-> best feature set ({best:.4f}) improves on the GVLS baseline but is still "
-            f"below the N-only bar ({N_ONLY_BAR:.4f}); the variance helps but does not "
-            "recover what fixed-M pooling discards. That is T5.3's job."
+            f"-> the encoded representation ties the N-only bar "
+            f"({best_acc:.4f} +/- {best_std:.4f} vs {N_ONLY_BAR:.4f}) -- a tie, not a win."
+        )
+    elif baseline is not None and best_acc > baseline:
+        print(
+            f"-> improves on the GVLS baseline ({baseline:.4f}) but is still below the "
+            f"N-only bar; the latent does not yet encode what fixed-M pooling discards."
         )
     else:
+        print(f"-> no encoded feature set improves on the GVLS baseline ({baseline}).")
+
+    controls = {k: v for k, v in summary["feature_sets"].items() if k not in encoded}
+    if controls:
+        best_control_name, best_control = max(
+            controls.items(), key=lambda kv: kv[1]["logreg_accuracy_mean"]
+        )
+        gap = best_control["logreg_accuracy_mean"] - best_acc
         print(
-            f"-> no feature set improves on the GVLS baseline ({baseline}); the pooled "
-            "posterior's variance carries little usable class information as currently "
-            "parameterized."
+            f"Control (raw N appended): {best_control_name} = "
+            f"{best_control['logreg_accuracy_mean']:.4f}, "
+            f"{'still ahead by' if gap > 0 else 'behind by'} {abs(gap):.4f}"
         )
 
     results_path = Path(str(cfg.results_path))

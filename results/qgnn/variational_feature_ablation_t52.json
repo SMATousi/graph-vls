@@ -63,6 +63,48 @@
       "mlp_auc_std": 0.018310081238156906,
       "mlp_macro_f1_mean": 0.6994154197723207,
       "mlp_macro_f1_std": 0.01516716129434741
+    },
+    "z_a_n": {
+      "logreg_accuracy_mean": 0.76432,
+      "logreg_accuracy_std": 0.005895082696620969,
+      "logreg_auc_mean": 0.8390508863671884,
+      "logreg_auc_std": 0.0018424856225470248,
+      "logreg_macro_f1_mean": 0.7642063267763963,
+      "logreg_macro_f1_std": 0.005996695490254279,
+      "mlp_accuracy_mean": 0.76048,
+      "mlp_accuracy_std": 0.005203076013282907,
+      "mlp_auc_mean": 0.8344154895836803,
+      "mlp_auc_std": 0.0018358886113780005,
+      "mlp_macro_f1_mean": 0.7603755958688871,
+      "mlp_macro_f1_std": 0.005242675932677703
+    },
+    "z_a_logvar_n": {
+      "logreg_accuracy_mean": 0.76768,
+      "logreg_accuracy_std": 0.0032298606781098163,
+      "logreg_auc_mean": 0.8409504459378788,
+      "logreg_auc_std": 0.003514022286472525,
+      "logreg_macro_f1_mean": 0.7676060399405162,
+      "logreg_macro_f1_std": 0.0031870187734593164,
+      "mlp_accuracy_mean": 0.76144,
+      "mlp_accuracy_std": 0.008492820497337725,
+      "mlp_auc_mean": 0.8386414587715635,
+      "mlp_auc_std": 0.0012037988891933442,
+      "mlp_macro_f1_mean": 0.7612403805635677,
+      "mlp_macro_f1_std": 0.00875828807018315
+    },
+    "n_only": {
+      "logreg_accuracy_mean": 0.75552,
+      "logreg_accuracy_std": 0.004546647116282477,
+      "logreg_auc_mean": 0.8376112282571657,
+      "logreg_auc_std": 0.0,
+      "logreg_macro_f1_mean": 0.7550116764337997,
+      "logreg_macro_f1_std": 0.004841410533762396,
+      "mlp_accuracy_mean": 0.76032,
+      "mlp_accuracy_std": 0.0031799371062962785,
+      "mlp_auc_mean": 0.8376112282571657,
+      "mlp_auc_std": 0.0,
+      "mlp_macro_f1_mean": 0.7600615752450937,
+      "mlp_macro_f1_std": 0.003365819984879224
     }
   }
 }

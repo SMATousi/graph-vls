@@ -1,11 +1,25 @@
 # Phase 5 — Validation
 
-**Status: not started (spec written 2026-08-05).** V-0 below records the
+**Status (2026-08-05): T5.1–T5.3 complete; T5.4–T5.8 open.** V-0 records the
 measured evidence this phase was created from — the 2026-08-04 mission-
 conformance audit, the 24-config `(k, β, prior)` sweep, and the multiplicity
-baseline that reset the phase's acceptance bar. V-1 through V-7 are
-placeholders to be filled as T5.1–T5.7 land, mirroring Phases 0–4's
-convention of recording negative results and surprises alongside successes.
+baseline that reset the phase's acceptance bar.
+
+Progress on the acceptance bar (NFR-1), classical logistic regression on
+frozen features, best **encoded** representation (no raw `N` appended):
+
+| | accuracy | vs. `N`-only bar (0.7552) |
+|---|---|---|
+| Pre-Phase-5 (`z̃, A_z`) | 0.7034 | −0.052 |
+| after T5.2 (`+ log_var`) | 0.7379 | −0.017 |
+| after T5.3 (`+ occupancy-aware variance`) | **0.7555 ± 0.0138** | **tie** |
+
+The bar is reached but not beaten, and the concatenation control
+(`(z̃, A_z) + N` = 0.7685) still leads the encoded representation by 0.0130 —
+so Design Decision 5's "encoding beats appending" claim is narrowed, not
+established. T5.1's premise was measured false mid-implementation and the task
+was rewritten (V-1); that correction is recorded rather than quietly dropped,
+per NFR-5.
 
 ## Exit Criteria
 
@@ -19,9 +33,11 @@ convention of recording negative results and surprises alongside successes.
 - [x] (T5.2, FR-2) `log_var` reaches the downstream classifier; ablation
       measured and reported — **+0.0296 accuracy** (0.7074 → 0.7370), and
       `logvar_only` alone beats the entire pre-T5.2 feature set. See V-2
-- [ ] (T5.3, FR-3) Occupancy-aware pooled posterior implemented and measured
-      against both today's behavior (0.7034) and the concatenation control
-      (0.7683)
+- [x] (T5.3, FR-3) Occupancy-aware pooled posterior implemented and measured
+      against both today's behaviour and the concatenation control — every
+      variance-bearing feature set improves (+0.011 to +0.018) and the encoded
+      representation reaches 0.7555, **tying** the `N`-only bar; the
+      concatenation control still leads by 0.0130. See V-3
 - [ ] (T5.4, FR-4) Learned mixture prior implemented, with free bits/warm-up,
       evaluated at a `β` where the prior can express itself
 - [ ] (T5.5, FR-5) Graph-MRF `λ` swept jointly with `β`; a documented answer
@@ -311,7 +327,96 @@ on a different run from the correlation that motivated it.
   consistent (all four feature sets share one frozen checkpoint) but absolute
   numbers will shift on a production rerun.
 
-## V-3: Occupancy-aware pooled posterior (T5.3) ⬜ Not started
+## V-3: Occupancy-aware pooled posterior (T5.3) ✅ Complete 2026-08-05 — encoded representation reaches the `N`-only bar, but only ties it
+
+**Files:** `src/gvls/models/pooling.py` (`LatentGraphPooling.occupancy_aware`,
+`MIN_OCCUPANCY`), `src/gvls/compression/jet_sweep.py` (`build_pooled_gvls`),
+`src/gvls/qgnn_training.py` (`JetFeatures.num_nodes`),
+`src/gvls/eval/classical_baseline.py` (`z_a_n` / `z_a_logvar_n` / `n_only`
+control feature sets), `configs/train/jet_pretrain{,_final}.yaml`,
+`configs/variational_feature_ablation_config.yaml`. Tests: 14 new (7 in
+`tests/test_pooling.py`, 5 in `tests/test_classical_baseline.py`, plus
+parametrized cases); suite 290 → 304.
+
+### Premise re-verified before implementing (Design Decision 9)
+
+| Claim | Check | Result |
+|---|---|---|
+| Column normalization divides occupancy out | Tile one node set 1×/2×/5× — same cluster composition, k× the mass | `var_pooled` **bit-identical** across all three |
+| Multiplicity is recoverable if variance carries mass | Does `Σ_m n_m == N`? | ✅ exactly, at `N ∈ {10, 43, 139}` — every row of `S` sums to 1 |
+
+The second identity is what makes this work: dividing the pooled variance by
+`n_m = Σ_i S[i,m]` puts `−log(n_m)` offsets into the `M` log-variances whose
+masses total `N` precisely.
+
+### Result — A/B on two checkpoints identical except for the flag
+
+Same config (`M=4, d=8, k=2, β=0.001, isotropic`, 30 epochs,
+`selection_metric=probe_accuracy`), same Lorentz protocol, same 5
+balanced-800 subsets, same fixed test set.
+
+| Feature set | `occupancy_aware=False` | `occupancy_aware=True` | Δ |
+|---|---|---|---|
+| `z_a` | 0.7074 ± 0.0060 | 0.7075 ± 0.0103 | +0.0001 |
+| `z_a_logvar` | 0.7370 ± 0.0065 | 0.7482 ± 0.0089 | **+0.0112** |
+| `z_a_mu_logvar` | 0.7379 ± 0.0055 | **0.7555 ± 0.0138** | **+0.0176** |
+| `logvar_only` | 0.7237 ± 0.0119 | 0.7357 ± 0.0095 | **+0.0120** |
+| *control:* `n_only` | 0.7555 ± 0.0045 | 0.7555 ± 0.0045 | — |
+| *control:* `z_a_n` | 0.7643 ± 0.0059 | 0.7685 ± 0.0058 | +0.0042 |
+| *control:* `z_a_logvar_n` | 0.7677 ± 0.0032 | 0.7670 ± 0.0069 | −0.0007 |
+
+1. **The intervention does what it was designed to do.** Every
+   variance-bearing feature set improves (+0.0112, +0.0176, +0.0120), and
+   `z_a` — which reads only the pooled *mean*, untouched by the flag — moves
+   by +0.0001. The change is isolated to where it was claimed to be.
+2. **The encoded representation reaches the `N`-only bar for the first time**:
+   `z_a_mu_logvar` = 0.7555 ± 0.0138 against the bar's 0.7552. **This is a
+   tie, not a win** — the margin is 0.0003 against a std of 0.0138, and the
+   occupancy-aware runs are noticeably noisier than their counterparts.
+3. **The concatenation control still wins.** Best control 0.7685 vs. best
+   encoded 0.7555 — a `0.0130` gap. T5.3 narrowed it (it was `0.0298` before)
+   but did not close it. Design Decision 5's claim, that encoding multiplicity
+   is worth more than appending it, is **not yet established**; appending is
+   still better.
+
+| Check | Pass condition | Result |
+|---|---|---|
+| Variance scales as `1/n_m` | Tiling k× drops `log_var` by exactly `log k` | ✅ `test_pooled_variance_scales_as_one_over_cluster_mass`, `k ∈ {2,5}` |
+| Contrast pinned | With the flag off, the same tiling changes nothing | ✅ `test_occupancy_off_leaves_variance_scale_free` |
+| Default bit-identical (NFR-4) | Flag defaults off; output byte-for-byte unchanged | ✅ `test_occupancy_aware_defaults_to_off_and_is_bit_identical` |
+| Only the variance moves | `mu_pooled` identical with the flag on and off | ✅ `test_mu_pooled_unaffected_by_occupancy_flag`; corroborated by the `z_a` row's +0.0001 |
+| Empty clusters safe | No inf/NaN when a cluster's mass vanishes | ✅ `test_near_empty_cluster_does_not_explode` — forces two of three clusters to ~0 mass. `MIN_OCCUPANCY = 1.0` floors the divisor; without it a 1e-8 mass gives a std of ~1e4 straight into the reparameterization |
+| Gradients flow | Encoder and assignment both receive gradient | ✅ |
+| Control measured (FR-3) | `(z̃, A_z) + N` reported alongside | ✅ and `n_only` reproduces the bar (0.7555) **from the same code path** as every other row, rather than quoting 0.7552 from a separate script |
+| Bars reported (NFR-1) | Against both | ✅ |
+| Full suite / lint | `pytest tests/`, `ruff check src/` | ✅ 304/304; `src/` clean |
+
+### Bug found and fixed in the ablation's own reporting
+
+`variational_feature_ablation.py` computed "did we clear the `N`-only bar?"
+as `max()` over **all** feature sets — including `z_a_n`, which contains the
+raw particle count. It therefore reported the bar cleared on the strength of a
+feature set that literally contains `N`, which is circular: the bar exists to
+ask what the *latent representation* encodes. Fixed to take the best over
+encoded sets only, report the control separately as a gap, and distinguish a
+tie (within one std) from an outright clear. The first T5.3 run was read
+against the broken version, and both numbers above are from the corrected one.
+
+### Follow-ups
+
+- **The remaining 0.0130 gap to the concatenation control.** The pooled
+  variance now carries `n_m` per cluster, but the classifier has to recover
+  `N` from four log-variances rather than reading it directly, and the
+  occupancy-aware runs' larger std suggests that inference is noisy. Worth
+  checking whether `M` (currently 4) is the binding constraint.
+- **`z_a_mu_logvar` beats `z_a_logvar` here** (+0.0073) where under T5.2 they
+  were a wash (+0.0009). With occupancy scaling, `mu` and `log_var` are no
+  longer redundant in the same way — worth a look if the gap matters.
+- **T5.8's angle-scaling risk just got sharper.** Occupancy scaling shifts
+  `log_var` by `−log(n_m)`, i.e. by up to `−log(139/4) ≈ −3.5` nats relative
+  to before. FR-8 already requires measuring `log_var`'s empirical range
+  before encoding it as a rotation angle; that measurement must be taken on
+  an occupancy-aware checkpoint if T5.3 is adopted, not the T5.2 one.
 
 ## V-4: Learned mixture prior (T5.4) ⬜ Not started
 

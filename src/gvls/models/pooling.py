@@ -24,10 +24,22 @@ class LatentGraphPooling(nn.Module):
     1 by construction (row-softmax).
     """
 
-    def __init__(self, latent_dim: int, num_clusters: int) -> None:
+    # T5.3 (specs/phase5/): floor on the cluster mass used as a divisor. A
+    # cluster can have near-zero soft mass, and dividing by it would inflate
+    # that cluster's variance without bound (mass 1e-8 => variance x 1e8 =>
+    # a std of ~1e4 fed straight into the reparameterization). One effective
+    # observation is the natural floor: below that there is no averaging to
+    # gain from. At the jet scale this rarely binds -- the smallest jets
+    # (N=10, M=4) average ~2.5 mass per cluster.
+    MIN_OCCUPANCY = 1.0
+
+    def __init__(
+        self, latent_dim: int, num_clusters: int, occupancy_aware: bool = False
+    ) -> None:
         super().__init__()
         self.latent_dim = latent_dim
         self.num_clusters = num_clusters
+        self.occupancy_aware = occupancy_aware
         self.assign = nn.Linear(latent_dim, num_clusters)
 
     def forward(self, z: Tensor, mu: Tensor, log_var: Tensor) -> tuple[Tensor, Tensor, Tensor]:
@@ -40,6 +52,39 @@ class LatentGraphPooling(nn.Module):
         with column-normalised weights so each cluster's parameters are a
         proper weighted average over its assigned nodes (not a raw sum,
         which would scale with cluster size).
+
+        Occupancy (T5.3, specs/phase5/). Column normalisation makes the pooled
+        moments a weighted *average*, so the resulting variance is the spread
+        of the cluster's mixture and is scale-free in how many nodes the
+        cluster actually contains -- verified directly: tiling the same node
+        set 1x/2x/5x leaves `var_pooled` bit-identical. For a single
+        transductive graph (Phases 0-3) that is harmless, since every run
+        shares one N. For jets it discards the dataset's strongest
+        discriminant: particle multiplicity (corr(N, label) = -0.556; a
+        logistic regression on N alone scores 0.7552 against this whole
+        pipeline's 0.7034 -- see specs/phase5/validation.md V-0 Part C).
+
+        With `occupancy_aware=True` the pooled variance is divided by the
+        cluster's un-normalised mass `n_m = sum_i S[i,m]`, making it the
+        uncertainty *of the cluster's mean* (the standard error, var/n) rather
+        than the spread of its members. Two consequences:
+
+        * Multiplicity becomes exactly recoverable from the posterior, because
+          `sum_m n_m == N` identically (every row of S sums to 1), so the M
+          log-variances carry `-log(n_m)` offsets whose masses total N.
+        * Larger clusters get sharper posteriors, which is the statistically
+          correct direction (more observations, less uncertainty) and also
+          reduces reparameterization noise for larger jets.
+
+        `n_m` is the plain soft mass rather than Kish's effective sample size
+        `(sum_i s)^2 / sum_i s^2`: the plain sum is what makes `sum_m n_m == N`
+        hold exactly, and that identity is the whole point here. Kish's would
+        be the better choice if the goal were calibrated uncertainty rather
+        than recoverable multiplicity.
+
+        Defaults to `False`, reproducing the pre-T5.3 output bit-identically,
+        so Phase 3's citation-network pooling sweep and every Phase 4 result
+        stay reproducible.
         """
         s = torch.softmax(self.assign(z), dim=1)  # (N, M)
 
@@ -50,6 +95,9 @@ class LatentGraphPooling(nn.Module):
         mu_pooled = w.T @ mu                                        # (M, d)
         second_moment = w.T @ (var + mu.pow(2))                      # (M, d)
         var_pooled = (second_moment - mu_pooled.pow(2)).clamp(min=1e-8)
+        if self.occupancy_aware:
+            occupancy = col_sum.clamp(min=self.MIN_OCCUPANCY).unsqueeze(1)  # (M, 1)
+            var_pooled = (var_pooled / occupancy).clamp(min=1e-8)
         log_var_pooled = var_pooled.log()
 
         return s, mu_pooled, log_var_pooled

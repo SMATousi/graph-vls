@@ -36,7 +36,22 @@ from gvls.qgnn_training import JetFeatures
 # default, so existing results stay reproducible; the rest exist to measure
 # what the pooled posterior's variance is worth, since it was previously
 # discarded before any classifier saw it.
-FEATURE_SETS = ("z_a", "z_a_logvar", "z_a_mu_logvar", "logvar_only")
+#
+# The `*_n` sets (T5.3) append the jet's raw particle count. They are the
+# *control* FR-3 requires, not a proposal: appending N reaches 0.7683 and
+# concedes that the latent space discards the input's most important property.
+# The phase's claim is that encoding multiplicity in the posterior is worth
+# more than patching it in afterwards, which is only checkable if the patched
+# number is measured too.
+FEATURE_SETS = (
+    "z_a",
+    "z_a_logvar",
+    "z_a_mu_logvar",
+    "logvar_only",
+    "z_a_n",
+    "z_a_logvar_n",
+    "n_only",
+)
 
 
 def jet_features_to_array(
@@ -65,6 +80,14 @@ def jet_features_to_array(
     * ``"logvar_only"``    -- the variance alone, as a direct answer to
                              "does the posterior's spread carry any class
                              information at all?"
+    * ``"z_a_n"`` /
+      ``"z_a_logvar_n"``   -- (T5.3) the same, plus the jet's raw particle
+                             count appended. The *control*, not a proposal:
+                             see FEATURE_SETS above
+    * ``"n_only"``         -- particle count alone, reproducing this phase's
+                             acceptance bar (0.7552) from the same code path
+                             the other rows use, rather than a number quoted
+                             from a separate script
 
     Raises ValueError if a variance-bearing set is requested but the features
     were extracted before T5.2 (i.e. `log_var is None`), rather than silently
@@ -75,8 +98,9 @@ def jet_features_to_array(
     if feature_set not in FEATURE_SETS:
         raise ValueError(f"feature_set must be one of {FEATURE_SETS}, got '{feature_set}'")
 
-    needs_log_var = feature_set != "z_a"
+    needs_log_var = feature_set in {"z_a_logvar", "z_a_mu_logvar", "logvar_only", "z_a_logvar_n"}
     needs_mu = feature_set == "z_a_mu_logvar"
+    needs_n = feature_set.endswith("_n") or feature_set == "n_only"
     if needs_log_var and features[0].log_var is None:
         raise ValueError(
             f"feature_set='{feature_set}' needs log_var, but these JetFeatures have none "
@@ -87,6 +111,11 @@ def jet_features_to_array(
             f"feature_set='{feature_set}' needs mu, but these JetFeatures have none "
             "(extracted before T5.2). Re-run extract_latent_features."
         )
+    if needs_n and features[0].num_nodes is None:
+        raise ValueError(
+            f"feature_set='{feature_set}' needs num_nodes, but these JetFeatures have none "
+            "(extracted before T5.3). Re-run extract_latent_features."
+        )
 
     m = features[0].z_tilde.shape[0]
     iu, ju = np.triu_indices(m, k=1)
@@ -95,11 +124,16 @@ def jet_features_to_array(
         if feature_set == "logvar_only":
             rows.append(f.log_var.numpy().reshape(-1))  # type: ignore[union-attr]
             continue
+        if feature_set == "n_only":
+            rows.append(np.array([float(f.num_nodes)]))
+            continue
         parts = [f.z_tilde.numpy().reshape(-1), f.a_z.numpy()[iu, ju]]
         if needs_mu:
             parts.append(f.mu.numpy().reshape(-1))  # type: ignore[union-attr]
         if needs_log_var:
             parts.append(f.log_var.numpy().reshape(-1))  # type: ignore[union-attr]
+        if needs_n:
+            parts.append(np.array([float(f.num_nodes)]))
         rows.append(np.concatenate(parts))
     x = np.stack(rows).astype(np.float64)
     y = np.array([f.label for f in features], dtype=np.int64)

@@ -49,6 +49,13 @@ class JetFeatures:
     label: int
     mu: Tensor | None = None       # (M, latent_dim), pooled posterior mean
     log_var: Tensor | None = None  # (M, latent_dim), pooled posterior log-variance
+    # T5.3: the jet's own particle count, carried purely so the concatenation
+    # *control* (`(z̃, A_z) + N`) can be measured against an occupancy-aware
+    # posterior. FR-3 requires reporting it, because appending N as a raw
+    # scalar reaches 0.7683 today and the phase's claim is that an encoded
+    # representation is worth more than a patched one -- which is only
+    # meaningful if the patched number is on the record.
+    num_nodes: int | None = None
 
 
 def extract_latent_features(
@@ -79,6 +86,7 @@ def extract_latent_features(
                     # feature_set argument).
                     mu=mu.cpu(),
                     log_var=log_var.cpu(),
+                    num_nodes=int(jet.num_nodes),
                 )
             )
     return features

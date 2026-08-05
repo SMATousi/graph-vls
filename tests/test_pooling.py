@@ -298,3 +298,133 @@ def test_pooling_grid_smoke_writes_rows(tiny_graph) -> None:
         assert Path(csv_path).exists()
         content = Path(csv_path).read_text().strip().splitlines()
         assert len(content) == 3  # header + 2 rows
+
+
+# ── T5.3: occupancy-aware pooled posterior (specs/phase5/) ──────────────────
+
+
+def _pool_inputs(n: int, d: int, seed: int):
+    torch.manual_seed(seed)
+    return torch.randn(n, d), torch.randn(n, d), torch.zeros(n, d)
+
+
+def test_occupancy_aware_defaults_to_off_and_is_bit_identical() -> None:
+    """Backward compatibility (FR-3/NFR-4): Phase 3's citation-network sweep
+    and every Phase 4 result depend on the pre-T5.3 output."""
+    from gvls.models.pooling import LatentGraphPooling
+
+    d, m = 8, 4
+    z, mu, log_var = _pool_inputs(30, d, seed=0)
+
+    torch.manual_seed(1)
+    default = LatentGraphPooling(d, m)
+    torch.manual_seed(1)
+    explicit = LatentGraphPooling(d, m, occupancy_aware=False)
+
+    assert default.occupancy_aware is False
+    for a, b in zip(default(z, mu, log_var), explicit(z, mu, log_var)):
+        assert torch.equal(a, b)
+
+
+def test_pooled_variance_scales_as_one_over_cluster_mass() -> None:
+    """The core T5.3 claim: var_pooled becomes the variance OF THE MEAN.
+
+    Tiling the same node set k times leaves the cluster's *composition*
+    (and so its mixture spread) unchanged while multiplying its mass by k,
+    so an occupancy-aware pooled variance must fall by exactly k.
+    """
+    from gvls.models.pooling import LatentGraphPooling
+
+    d, m = 8, 4
+    z1, mu1, lv1 = _pool_inputs(20, d, seed=2)
+    torch.manual_seed(3)
+    pool = LatentGraphPooling(d, m, occupancy_aware=True)
+
+    _, _, lvp_1 = pool(z1, mu1, lv1)
+    for k in (2, 5):
+        z, mu, lv = z1.repeat(k, 1), mu1.repeat(k, 1), lv1.repeat(k, 1)
+        _, _, lvp_k = pool(z, mu, lv)
+        # var_k == var_1 / k  <=>  log_var_k == log_var_1 - log(k)
+        assert torch.allclose(lvp_k, lvp_1 - torch.log(torch.tensor(float(k))), atol=1e-5)
+
+
+def test_occupancy_off_leaves_variance_scale_free() -> None:
+    """Contrast case: without the flag, the same tiling changes nothing --
+    this is the behaviour T5.3 exists to change, pinned so the two are
+    characterized against each other rather than the new one asserted alone."""
+    from gvls.models.pooling import LatentGraphPooling
+
+    d, m = 8, 4
+    z1, mu1, lv1 = _pool_inputs(20, d, seed=2)
+    torch.manual_seed(3)
+    pool = LatentGraphPooling(d, m, occupancy_aware=False)
+    _, _, lvp_1 = pool(z1, mu1, lv1)
+    _, _, lvp_5 = pool(z1.repeat(5, 1), mu1.repeat(5, 1), lv1.repeat(5, 1))
+    assert torch.allclose(lvp_5, lvp_1, atol=1e-6)
+
+
+def test_cluster_masses_sum_to_node_count() -> None:
+    """The identity that makes multiplicity recoverable from the posterior:
+    every row of S sums to 1, so the column sums total N exactly."""
+    from gvls.models.pooling import LatentGraphPooling
+
+    d, m = 8, 4
+    torch.manual_seed(4)
+    pool = LatentGraphPooling(d, m, occupancy_aware=True)
+    for n in (10, 43, 139):
+        z, mu, log_var = _pool_inputs(n, d, seed=n)
+        s, _, _ = pool(z, mu, log_var)
+        assert s.sum().item() == pytest.approx(float(n), rel=1e-5)
+
+
+def test_mu_pooled_unaffected_by_occupancy_flag() -> None:
+    """Only the variance is rescaled; the pooled mean must not move, or the
+    flag would be changing two things at once."""
+    from gvls.models.pooling import LatentGraphPooling
+
+    d, m = 8, 4
+    z, mu, log_var = _pool_inputs(25, d, seed=5)
+    torch.manual_seed(6)
+    off = LatentGraphPooling(d, m, occupancy_aware=False)
+    torch.manual_seed(6)
+    on = LatentGraphPooling(d, m, occupancy_aware=True)
+    _, mu_off, _ = off(z, mu, log_var)
+    _, mu_on, _ = on(z, mu, log_var)
+    assert torch.equal(mu_off, mu_on)
+
+
+def test_near_empty_cluster_does_not_explode() -> None:
+    """A cluster with vanishing soft mass must not produce inf/NaN variance:
+    dividing by a ~1e-8 mass would give a std of ~1e4 straight into the
+    reparameterization. MIN_OCCUPANCY floors the divisor at one effective
+    observation."""
+    from gvls.models.pooling import LatentGraphPooling
+
+    d, m = 4, 3
+    torch.manual_seed(7)
+    pool = LatentGraphPooling(d, m, occupancy_aware=True)
+    # force a near-one-hot assignment so two of the three clusters are empty
+    with torch.no_grad():
+        pool.assign.weight.zero_()
+        pool.assign.bias.copy_(torch.tensor([50.0, -50.0, -50.0]))
+    z, mu, log_var = _pool_inputs(6, d, seed=8)
+    s, mu_p, log_var_p = pool(z, mu, log_var)
+
+    assert torch.isfinite(log_var_p).all()
+    assert torch.isfinite(mu_p).all()
+    assert torch.isfinite(log_var_p.exp()).all()
+    assert s.sum(dim=0).min().item() < 1e-6  # the empty clusters really are empty
+
+
+def test_occupancy_aware_gradients_still_flow() -> None:
+    from gvls.models.pooling import LatentGraphPooling
+
+    d, m = 8, 4
+    z, mu, log_var = _pool_inputs(20, d, seed=9)
+    z.requires_grad_(True)
+    torch.manual_seed(10)
+    pool = LatentGraphPooling(d, m, occupancy_aware=True)
+    _, mu_p, log_var_p = pool(z, mu, log_var)
+    (mu_p.sum() + log_var_p.sum()).backward()
+    assert z.grad is not None and z.grad.abs().sum() > 0
+    assert pool.assign.weight.grad is not None and pool.assign.weight.grad.abs().sum() > 0

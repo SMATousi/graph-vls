@@ -92,7 +92,13 @@ def build_pooled_gvls(
     base_cfg: dict[str, Any],
 ) -> PooledGVLS:
     encoder = GVLSEncoder(in_channels, int(base_cfg["hidden_dim"]), latent_dim)
-    pooling = LatentGraphPooling(latent_dim, num_clusters)
+    pooling = LatentGraphPooling(
+        latent_dim,
+        num_clusters,
+        # T5.3: defaults to False so configs and checkpoints predating
+        # specs/phase5/ rebuild with their original behaviour.
+        occupancy_aware=bool(base_cfg.get("occupancy_aware", False)),
+    )
     lgl = LatentGraphLearner(latent_dim, method=str(base_cfg["graph_method"]), k=k)
     return PooledGVLS(
         encoder, pooling, lgl, latent_dim=latent_dim, mp_rounds=int(base_cfg["mp_rounds"])

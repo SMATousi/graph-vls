@@ -31,3 +31,14 @@ normalization: legacy  # legacy (pre-Phase-5) | per_jet (T5.1)
 # with downstream accuracy across the usable beta range (V-0 Part B).
 # Options: reconstruction_f1 | val_loss | probe_accuracy
 selection_metric: probe_accuracy
+
+# T5.3 (specs/phase5/): the pooled posterior's variance is currently the
+# spread of a cluster's members, computed after column normalization divides
+# out how many members it has -- verified: tiling the same node set 1x/2x/5x
+# leaves var_pooled bit-identical. True divides it by the cluster's
+# un-normalized mass n_m, making it the uncertainty OF THE MEAN (var/n).
+# Because sum_m n_m == N identically, multiplicity then becomes exactly
+# recoverable from the posterior -- and multiplicity is this dataset's
+# strongest discriminant (logreg on N alone scores 0.7552 vs the pipeline's
+# 0.7034). See gvls.models.pooling.LatentGraphPooling.forward.
+occupancy_aware: false  # false (pre-Phase-5) | true (T5.3)
