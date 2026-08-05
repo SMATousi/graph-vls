@@ -37,32 +37,68 @@ split, GVLS pretrained on the full 10000-jet training pool (validation.md
 V-11's dominant fix), classical baselines trained on the same 5 balanced
 800-jet subsets and scored on the same fixed 1250-jet test set.
 
+Performance (2026-08-04: the first attempt at this sweep ran ~9x slower than
+predicted on a remote machine -- ~40 min/config against a locally measured
+~4 min/config -- and this module is now built around why).
+
+  * **Thread pinning is mandatory, not an optimization.** Jets are ~43
+    particles, so every tensor op is a ~43x43 matrix. BLAS thread-pool
+    dispatch costs more than the arithmetic at that size, so wall-clock gets
+    *worse* as thread count rises: measured 0.71 ms/jet-step at 1 thread vs.
+    0.82 at 8 on a 10-core machine, and the penalty grows with core count --
+    a remote server whose torch defaults to 32-128 threads pays it hardest.
+    Every worker here pins itself to one thread (`_pin_threads`), and the
+    BLAS env vars are set before torch is imported, since several backends
+    read them only at load time.
+  * **Configs are run in parallel processes.** The 24 grid points are fully
+    independent -- no shared state, no ordering -- so with single-threaded
+    workers this scales close to linearly in core count. Serial-at-1-thread
+    would be ~1.4h locally; at `--workers 12` it is ~10 min.
+
 Usage:
-    python experiments/gvls_prior_sweep.py
+    python experiments/gvls_prior_sweep.py                 # all cores
+    python experiments/gvls_prior_sweep.py --workers 8
+    python experiments/gvls_prior_sweep.py --epochs 10     # faster first pass
 """
 
 from __future__ import annotations
 
+import argparse
 import csv
-import time
-from pathlib import Path
-from typing import Any
+import os
 
-import numpy as np
-import torch
-import torch.nn.functional as F
+# BLAS backends read these at import time, so they must be set before torch is
+# imported -- setting torch.set_num_threads() alone is too late for some of
+# them. See the module docstring for why single-threaded is the fast path here.
+for _var in (
+    "OMP_NUM_THREADS",
+    "MKL_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "NUMEXPR_NUM_THREADS",
+    "VECLIB_MAXIMUM_THREADS",
+):
+    os.environ.setdefault(_var, "1")
 
-from gvls.compression.jet_sweep import (
+import multiprocessing as mp  # noqa: E402
+import time  # noqa: E402
+from pathlib import Path  # noqa: E402
+from typing import Any  # noqa: E402
+
+import numpy as np  # noqa: E402
+import torch  # noqa: E402
+import torch.nn.functional as F  # noqa: E402
+
+from gvls.compression.jet_sweep import (  # noqa: E402
     evaluate_pooled_gvls_on_jets,
     jet_adjacency,
     jet_pos_weight,
     train_pooled_gvls_on_jets,
 )
-from gvls.data.jets import load_split_from_config, subsample_train_balanced
-from gvls.eval.classical_baseline import evaluate_classical_baselines
-from gvls.losses.elbo import kl_graph_mrf, kl_isotropic
-from gvls.models.pooling import assignment_entropy, assignment_link_loss
-from gvls.qgnn_training import extract_latent_features
+from gvls.data.jets import load_split_from_config, subsample_train_balanced  # noqa: E402
+from gvls.eval.classical_baseline import evaluate_classical_baselines  # noqa: E402
+from gvls.losses.elbo import kl_graph_mrf, kl_isotropic  # noqa: E402
+from gvls.models.pooling import assignment_entropy, assignment_link_loss  # noqa: E402
+from gvls.qgnn_training import extract_latent_features  # noqa: E402
 
 # --- fixed at the production jet config (configs/train/jet_pretrain.yaml) ---
 NUM_CLUSTERS = 4
@@ -125,6 +161,32 @@ RESULT_FIELDS = [
     "mlp_auc_mean",
     "train_time_s",
 ]
+
+
+_THREADS_PINNED = False
+
+
+def _pin_threads() -> None:
+    """Force single-threaded tensor ops (see the module docstring's perf note).
+
+    Called in every worker process, not just the parent: `torch.set_num_threads`
+    is per-process, and a forked child does not reliably inherit it.
+
+    Idempotent, and deliberately tolerant of failure on the interop setting:
+    `set_num_interop_threads` raises if called more than once or after any
+    parallel work has started, and it is the less important of the two knobs
+    (the intra-op pool is what a 43x43 matmul actually thrashes). Failing to
+    set it must not take the run down.
+    """
+    global _THREADS_PINNED
+    if _THREADS_PINNED:
+        return
+    _THREADS_PINNED = True
+    torch.set_num_threads(1)
+    try:
+        torch.set_num_interop_threads(1)
+    except RuntimeError:
+        pass
 
 
 def data_config() -> dict[str, Any]:
@@ -244,88 +306,153 @@ def downstream_scores(model, split, device) -> dict[str, float]:
     return out
 
 
-def main() -> None:
+# Each worker loads the jet split once and caches it here. Loading is ~3s and
+# the split is a few tens of MB, so a per-worker copy is cheaper and far more
+# portable than relying on fork's copy-on-write (macOS spawns by default, and
+# would not inherit a parent-loaded global at all).
+_SPLIT_CACHE: Any = None
+
+
+def _get_split():
+    global _SPLIT_CACHE
+    if _SPLIT_CACHE is None:
+        _pin_threads()
+        _SPLIT_CACHE = load_split_from_config(data_config())
+    return _SPLIT_CACHE
+
+
+def run_config(point: tuple[int, float, str], epochs: int = EPOCHS) -> dict[str, Any]:
+    """Train and score one grid point. Self-contained so it can run in any process."""
+    k, beta, prior = point
+    _pin_threads()
+    split = _get_split()
+    cfg = base_cfg(k, beta, prior)
     device = torch.device("cpu")
-    split = load_split_from_config(data_config())
+
+    start = time.time()
+    model = train_pooled_gvls_on_jets(
+        split.train,
+        in_channels=NUM_FEATURES,
+        latent_dim=LATENT_DIM,
+        k=k,
+        num_clusters=NUM_CLUSTERS,
+        base_cfg=cfg,
+        epochs=epochs,
+        seed=SEED,
+        device=device,
+        batch_size=BATCH_SIZE,
+        entropy_weight=ENTROPY_WEIGHT,
+        aux_link_weight=AUX_LINK_WEIGHT,
+        show_progress=False,
+        eval_jets=split.val,
+        eval_every=5,
+        f1_negative_ratio=F1_NEGATIVE_RATIO,
+    )
+    train_time = time.time() - start
+
+    row: dict[str, Any] = {"k": k, "beta": beta, "prior": prior}
+    metrics = evaluate_pooled_gvls_on_jets(
+        model,
+        split.val,
+        num_clusters=NUM_CLUSTERS,
+        latent_dim=LATENT_DIM,
+        k=k,
+        num_features=NUM_FEATURES,
+        f1_negative_ratio=F1_NEGATIVE_RATIO,
+        seed=SEED,
+        device=device,
+    )
+    for field in (
+        "avg_reconstruction_f1",
+        "avg_bits_per_edge",
+        "avg_latent_density",
+        "avg_num_latent_edges",
+        "avg_edge_compression_ratio",
+    ):
+        row[field] = metrics[field]
+    row.update(latent_graph_stats(model, split.val, device))
+    row.update(loss_decomposition(model, split.val, cfg, device))
+    row.update(downstream_scores(model, split, device))
+    row["train_time_s"] = train_time
+    return row
+
+
+def _run_job(job: tuple[tuple[int, float, str], int]) -> dict[str, Any]:
+    """Single-argument adapter so `run_config` can go through `imap_unordered`."""
+    point, epochs = job
+    return run_config(point, epochs)
+
+
+def _format_row(row: dict[str, Any]) -> str:
+    return (
+        f"k={row['k']} beta={row['beta']} prior={row['prior']:9s} | "
+        f"f1={row['avg_reconstruction_f1']:.4f} "
+        f"A_z={row['avg_num_latent_edges']:.2f}/6 "
+        f"complete={row['frac_jets_complete_a_z']:.2f} "
+        f"kl_share={row['loss_share_kl']:.4f} "
+        f"logreg={row['logreg_accuracy_mean']:.4f}±{row['logreg_accuracy_std']:.4f} "
+        f"mlp={row['mlp_accuracy_mean']:.4f} "
+        f"({row['train_time_s']:.0f}s)"
+    )
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=0,
+        help="parallel worker processes (0 = min(cpu_count, grid size)). "
+        "Each worker is pinned to one thread, so this scales ~linearly.",
+    )
+    parser.add_argument("--epochs", type=int, default=EPOCHS, help="epochs per config")
+    parser.add_argument("--out", type=Path, default=RESULT_PATH, help="output CSV path")
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    _pin_threads()
+
+    grid = [(k, b, p) for k in K_GRID for b in BETA_GRID for p in PRIOR_GRID]
+    workers = args.workers or min(mp.cpu_count(), len(grid))
+    workers = max(1, min(workers, len(grid)))
     print(
-        f"loaded Lorentz split: train={len(split.train)} "
-        f"val={len(split.val)} test={len(split.test)}",
+        f"{len(grid)} configs, {workers} parallel workers (1 thread each), "
+        f"{args.epochs} epochs/config",
         flush=True,
     )
 
-    RESULT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with RESULT_PATH.open("w", newline="") as handle:
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    started = time.time()
+    with args.out.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=RESULT_FIELDS)
         writer.writeheader()
 
-        grid = [(k, b, p) for k in K_GRID for b in BETA_GRID for p in PRIOR_GRID]
-        for i, (k, beta, prior) in enumerate(grid, start=1):
-            cfg = base_cfg(k, beta, prior)
-            print(
-                f"\n[{i}/{len(grid)}] k={k} beta={beta} prior={prior}",
-                flush=True,
-            )
-            start = time.time()
-            model = train_pooled_gvls_on_jets(
-                split.train,
-                in_channels=NUM_FEATURES,
-                latent_dim=LATENT_DIM,
-                k=k,
-                num_clusters=NUM_CLUSTERS,
-                base_cfg=cfg,
-                epochs=EPOCHS,
-                seed=SEED,
-                device=device,
-                batch_size=BATCH_SIZE,
-                entropy_weight=ENTROPY_WEIGHT,
-                aux_link_weight=AUX_LINK_WEIGHT,
-                show_progress=False,
-                eval_jets=split.val,
-                eval_every=5,
-                f1_negative_ratio=F1_NEGATIVE_RATIO,
-            )
-            train_time = time.time() - start
-
-            row: dict[str, Any] = {"k": k, "beta": beta, "prior": prior}
-            metrics = evaluate_pooled_gvls_on_jets(
-                model,
-                split.val,
-                num_clusters=NUM_CLUSTERS,
-                latent_dim=LATENT_DIM,
-                k=k,
-                num_features=NUM_FEATURES,
-                f1_negative_ratio=F1_NEGATIVE_RATIO,
-                seed=SEED,
-                device=device,
-            )
-            for field in (
-                "avg_reconstruction_f1",
-                "avg_bits_per_edge",
-                "avg_latent_density",
-                "avg_num_latent_edges",
-                "avg_edge_compression_ratio",
-            ):
-                row[field] = metrics[field]
-            row.update(latent_graph_stats(model, split.val, device))
-            row.update(loss_decomposition(model, split.val, cfg, device))
-            row.update(downstream_scores(model, split, device))
-            row["train_time_s"] = train_time
-
+        def record(index: int, row: dict[str, Any]) -> None:
             writer.writerow(row)
-            handle.flush()
-            print(
-                f"    f1={row['avg_reconstruction_f1']:.4f} "
-                f"A_z_edges={row['avg_num_latent_edges']:.2f}/6 "
-                f"complete={row['frac_jets_complete_a_z']:.2f} "
-                f"kl_share={row['loss_share_kl']:.4f} "
-                f"logreg={row['logreg_accuracy_mean']:.4f}"
-                f"±{row['logreg_accuracy_std']:.4f} "
-                f"mlp={row['mlp_accuracy_mean']:.4f} "
-                f"({train_time:.0f}s)",
-                flush=True,
-            )
+            handle.flush()  # a killed run still leaves readable partial results
+            print(f"[{index}/{len(grid)}] {_format_row(row)}", flush=True)
 
-    print(f"\nwrote {RESULT_PATH}", flush=True)
+        if workers == 1:
+            for i, point in enumerate(grid, start=1):
+                record(i, run_config(point, args.epochs))
+        else:
+            # imap_unordered (not starmap/map) so each config's row is written
+            # and printed the moment it finishes, rather than all of them after
+            # the slowest worker returns -- this run is long enough that live
+            # progress and a readable partial CSV both matter.
+            # maxtasksperchild=1 keeps each config in a fresh process, so a
+            # config that leaks or wedges cannot affect the ones after it.
+            with mp.get_context("spawn").Pool(workers, maxtasksperchild=1) as pool:
+                jobs = [(point, args.epochs) for point in grid]
+                for i, row in enumerate(pool.imap_unordered(_run_job, jobs), start=1):
+                    record(i, row)
+
+    print(
+        f"\nwrote {args.out} ({len(grid)} configs in {(time.time() - started) / 60:.1f} min)",
+        flush=True,
+    )
 
 
 if __name__ == "__main__":

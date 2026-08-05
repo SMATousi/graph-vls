@@ -17,28 +17,51 @@
 # (see experiments/gvls_prior_sweep.py's module docstring for why the
 # classical baseline, not the QGNN, is the right downstream signal here).
 #
-# Runtime: ~2 hours total on a CPU machine (~280s/config, measured locally at
-# ~0.8 ms per jet-step). No GPU needed -- jets are tiny and the loop is
-# per-jet, so this is dominated by Python/dense-op overhead, not matmul size.
-# Nothing here touches the QGNN or any quantum simulation.
+# PERFORMANCE -- read this before changing OMP/thread settings.
+# The first version of this sweep ran ~9x slower on a remote machine than
+# predicted (~40 min/config vs. a locally measured ~4 min). Cause: jets are
+# ~43 particles, so every tensor op is a ~43x43 matrix, and BLAS thread-pool
+# dispatch costs more than the arithmetic at that size. Wall-clock therefore
+# gets *worse* with more threads (measured 0.71 ms/jet-step at 1 thread vs.
+# 0.82 at 8 on a 10-core box) and the penalty grows with core count, so a
+# server defaulting torch to 32-128 threads pays it hardest.
+#
+# The fix is two multiplicative changes, both handled inside the Python:
+#   1. every worker pins itself to a single thread (BLAS env vars are exported
+#      below too, since several backends only read them at import time);
+#   2. the 24 independent configs run as parallel processes, which then
+#      scales ~linearly in core count.
+# Measured after both: 24 configs in 4.4 min at 5 epochs / 8 workers, vs. the
+# original serial run's ~40 min for a single config. Expect roughly 15-25 min
+# for the full 30-epoch grid on an 8-16 core machine.
+#
+# Do NOT "optimize" this by raising thread counts -- that is the bug, not the
+# cure. Add workers instead.
 #
 # Writes results/compression/qg_jets_prior_sweep.csv (one row per config,
-# flushed after each config, so a partial run is still readable if it dies).
+# flushed as each config finishes, so a partial run is still readable).
 #
 # Usage:
-#   ./scripts/run_gvls_prior_sweep.sh
+#   ./scripts/run_gvls_prior_sweep.sh                    # all cores, 30 epochs
+#   ./scripts/run_gvls_prior_sweep.sh --workers 16
+#   ./scripts/run_gvls_prior_sweep.sh --epochs 5         # fast first pass
 #
-# Recommended for a long remote run (survives disconnect, streams progress):
+# For a long remote run (survives disconnect, streams progress):
 #   nohup ./scripts/run_gvls_prior_sweep.sh > gvls_prior_sweep.log 2>&1 &
 #   tail -f gvls_prior_sweep.log
-#
-# Takes no CLI arguments by design (matches run_qgnn_lorentz_comparability.sh)
-# -- the grid and the fixed production hyperparameters are declared as module
-# constants at the top of experiments/gvls_prior_sweep.py; edit them there.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=./_activate_env.sh
 source "${SCRIPT_DIR}/_activate_env.sh"
 
-python experiments/gvls_prior_sweep.py
+# Belt-and-braces: the Python sets these too, but several BLAS backends read
+# them only at library load time, which can precede any Python-level setting
+# depending on how torch was built. Harmless if redundant.
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+export VECLIB_MAXIMUM_THREADS=1
+
+python experiments/gvls_prior_sweep.py "$@"
