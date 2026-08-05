@@ -112,6 +112,15 @@ of a jet, regardless of how it compares to Phase 4's own history.
    change in this phase attributable to GVLS. A final QGNN run happens once,
    at the end (T5.7), on whichever GVLS configuration wins.
 
+   **Amended 2026-08-05 (T5.8, user-directed).** One exception is carved out:
+   the circuit's *input encoding*, so it can see the variance T5.2 found is
+   worth `+0.0296` to a classical model. This is a change to what the circuit
+   is shown, not to its depth, width, weights, or optimizer — the things
+   whose entanglement with GVLS changes the freeze exists to prevent. T5.8 is
+   still sequenced **after** the in-flight T5.1 comparability run finishes, so
+   there is a clean GVLS-only baseline to attribute against; it does not run
+   concurrently.
+
 4. **The classical baseline is the working metric, not the QGNN.** Phase 4
    established the QGNN sits below a plain logistic regression on identical
    frozen features (0.6688 vs 0.6907, V-11 Step 2). Until that is closed, the
@@ -210,8 +219,15 @@ of a jet, regardless of how it compares to Phase 4's own history.
 
 **Closing**
 
-- **T5.7** — One QGNN run on the winning GVLS configuration, plus a
-  `README.md` results section (Phase 4's own unfinished exit criterion).
+- **T5.8 (new, 2026-08-05, queued — not implemented)** — Let the QGNN circuit
+  see the pooled posterior's variance, by encoding `log_var` on a second
+  rotation axis (`RX`) alongside the existing `RY` data encoding. T5.2 showed
+  that variance is worth `+0.0296` accuracy to a classical model on the same
+  frozen features, but `encode_input` has no slot for it, so the quantum stage
+  currently cannot reach it at all.
+- **T5.7** — One QGNN run on the winning GVLS configuration (and T5.8's
+  outcome, if adopted), plus a `README.md` results section (Phase 4's own
+  unfinished exit criterion).
 
 ### Stretch / explicitly deferred
 
@@ -492,6 +508,80 @@ is no topology being learned at all.
 Tests: sampled `A_z` stays symmetric with a zero diagonal; temperature → 0
 approaches hard binary edges; gradients reach the edge-logit parameters;
 the edge-KL is non-negative; the deterministic path is unchanged.
+
+---
+
+### T5.8 — Encode `log_var` into the circuit on a second rotation axis (queued, not implemented)
+
+**Files:** `src/gvls/models/qgnn.py` (`build_qgnn_circuit`,
+`QGNNCircuitParams`, `QGNNClassifier.encode_input`/`encode_input_batch`),
+`src/gvls/qgnn_training.py` (`collate_jet_features`, `qgnn_batch_loss`),
+`configs/train/qgnn_classifier.yaml`
+
+**Why.** T5.2 measured the pooled posterior's `log_var` as worth `+0.0296`
+accuracy and `+0.025` AUC to a logistic regression on otherwise identical
+frozen features — the largest single gain of any Phase 4–5 intervention — and
+`log_var` alone beat the entire `(z̃, A_z)` feature set. The QGNN cannot
+benefit: `encode_input` (`qgnn.py:363`) builds the circuit's input vector as
+edge values followed by `z_tilde[i, layer % d]` per qubit per layer, with no
+slot for the variance anywhere. The information exists, is free (already
+computed in the forward pass), and is structurally unreachable.
+
+**The change.** Each layer of `build_qgnn_circuit` currently applies
+`RY(x_layer_i)` per qubit, then `RZZ(theta_layer · a_ij)` per pair, then
+`RZ(b_layer_i)` per qubit. `RY` uses one rotation axis; adding an
+`RX(v_layer_i)` beside it, carrying `log_var[i, layer % d]`, gives each qubit
+a two-angle encoding (a general Bloch-sphere state rather than a single-axis
+one).
+
+**The arithmetic lands exactly right at the current settings.** `z̃` is
+`(M=4, d=8) = 32` values and `num_layers=8` already covers all of them;
+`log_var` is also `(4, 8) = 32`. So one `RX` per layer hands the circuit
+precisely the 32 extra numbers that moved logreg from `0.7074` to `0.7370` —
+the full set, not a subset. This only holds while `num_layers == d`; if
+`num_layers` is ever reduced, coverage degrades the same way `z̃`'s did at
+the old `num_layers=1` default (`specs/phase4/validation.md` V-11 Step 2), and
+the task must say so rather than quietly encoding dimension 0 only.
+
+**Cost looks near zero, unlike every prior QGNN-side change.** No new
+trainable weights, so SPSA's per-step cost is unchanged (`2 ×
+spsa_batch_size`, independent of parameter count — V-9). `input_gradients=False`
+(T4.8), so additional *input* parameters are never differentiated. The circuit
+gains `m` single-qubit gates per layer on a 4-qubit statevector simulation.
+This is the first QGNN-side change in this project that adds neither depth
+(`num_layers`, measured 3–8.8× wall-clock) nor observables
+(`readout_mode=learned`, measured 31.6×). **Measure it anyway** — Design
+Decision 11's methodology, and the `readout_mode` "free" claim that turned out
+not to be, both say to count pubs directly rather than reason about them.
+
+**Honest priors against it.** Phase 4 tried three QGNN-side interventions and
+all three regressed or washed (`specs/phase4/plan.md` Design Decision 17). The
+distinguishing argument here is that those added *capacity the model had to
+learn to exploit*, whereas this adds *information the model currently cannot
+see* — but that was also a reasonable-sounding argument for full re-uploading,
+which failed. Treat a null result as a live outcome.
+
+**The specific risk that will decide it.** `log_var` values are fed as
+rotation angles, which wrap at `2π`. A linear model is indifferent to the
+scale of its inputs; a rotation encoding is not. If the pooled log-variances
+span a wide or badly-centred range, distinct values will alias onto nearby
+angles and the encoding will destroy the very signal it is meant to add.
+Measure the empirical range of `log_var` over real jets **before** running,
+and include a scaling/normalization parameter (learned or fixed) rather than
+feeding raw values and concluding the idea failed when the encoding did.
+
+**Sequencing.** Runs after the in-flight T5.1 comparability sweep completes,
+so there is a clean GVLS-only baseline to attribute against (Design Decision 3
+as amended). Compared against that baseline over the same 5-trial protocol.
+
+Tests: the circuit has `m` `RX` gates per layer on the expected qubits; the
+input vector's length and ordering match `QGNNCircuitParams` exactly (the
+existing ordering contract is positional and silent — a mis-ordered vector
+would train without error and be wrong); `encode_input_batch` stays consistent
+with per-jet `encode_input`; a zero-`log_var` input reproduces the pre-T5.8
+circuit's statevector exactly (`RX(0)` is the identity), which is the direct
+backward-compatibility check; measured pub-count per `.backward()` is
+unchanged versus the pre-T5.8 circuit.
 
 ---
 

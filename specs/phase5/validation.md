@@ -28,6 +28,10 @@ convention of recording negative results and surprises alongside successes.
       to whether a graph prior can help rather than merely survive
 - [ ] (T5.6, FR-6) Variational `A_z` with learned, jet-specific topology;
       deterministic path still selectable
+- [ ] (T5.8, FR-8) `log_var` encoded into the circuit on a second (`RX`)
+      rotation axis, with the angle-scaling risk measured before the first run
+      and the pub-count cost measured rather than argued — **queued, not
+      implemented**; runs after the in-flight T5.1 comparability sweep
 - [ ] (T5.7, FR-7) One QGNN run on the winning GVLS configuration
 - [ ] (T5.7, FR-7) `README.md` results section written — outstanding since
       Phase 4
@@ -314,5 +318,17 @@ on a different run from the correlation that motivated it.
 ## V-5: Graph-MRF `λ` sweep (T5.5) ⬜ Not started
 
 ## V-6: Variational latent graph `A_z` (T5.6) ⬜ Not started
+
+## V-8: `log_var` encoded into the QGNN circuit (T5.8) ⬜ Queued, not implemented
+
+Specced 2026-08-05 in response to V-2's finding. Nothing measured yet. The two
+numbers to establish before any training run, per FR-8:
+
+1. the empirical range of `log_var` over real jets (angles wrap at `2π`; a
+   badly-scaled encoding would alias distinct values together and look like
+   the idea failing rather than the encoding failing);
+2. pub count per `.backward()` versus the pre-T5.8 circuit — expected
+   unchanged, but the `readout_mode="learned"` "free" claim was measured false
+   under the same expectation (`specs/phase4/validation.md` V-11 Step 3c).
 
 ## V-7: Final QGNN run and `README.md` (T5.7) ⬜ Not started

@@ -139,6 +139,40 @@ rationale.
   (`specs/phase4/plan.md` Design Decision 2), which is vacuous while every
   jet's circuit is structurally identical
 
+### FR-8: `log_var` encoded into the QGNN circuit (T5.8, queued 2026-08-05)
+- `build_qgnn_circuit` must apply an `RX(v_layer_i)` rotation per qubit per
+  layer alongside the existing `RY(x_layer_i)`, carrying
+  `log_var[i, layer % d]`, so each qubit receives a two-angle encoding
+- `QGNNClassifier.encode_input`/`encode_input_batch` must extend the circuit's
+  input vector accordingly, and `collate_jet_features` must carry `log_var`
+  through to it (T5.2 already put it on `JetFeatures`)
+- Rationale: T5.2 measured `log_var` worth `+0.0296` accuracy to a classical
+  model on identical frozen features, and the circuit has no slot for it —
+  the information is already computed and structurally unreachable
+- **Coverage constraint:** the encoding covers all of `log_var` only while
+  `num_layers == d`. If `num_layers < d`, coverage degrades exactly as `z̃`'s
+  did at the pre-V-11 `num_layers=1` default; this must be documented and, if
+  possible, asserted rather than left implicit
+- **Angle-scaling:** `log_var` is fed as a rotation angle and rotations wrap at
+  `2π`, unlike a linear model's scale-indifferent inputs. The empirical range
+  of `log_var` over real jets must be measured **before** the first run, and a
+  scaling/normalization parameter provided — otherwise a failure of the
+  encoding is indistinguishable from a failure of the idea
+- **Cost must be measured, not argued.** The expectation is near-zero added
+  cost (no new trainable weights, so SPSA is unaffected;
+  `input_gradients=False`, so input parameters are never differentiated). Count
+  pubs per `.backward()` directly, per Design Decision 11's methodology and the
+  `readout_mode="learned"` "free" claim that was measured false (`specs/phase4/
+  validation.md` V-11 Step 3c)
+- **Backward compatibility:** a zero-`log_var` input must reproduce the
+  pre-T5.8 circuit's statevector exactly (`RX(0)` is the identity), and the
+  input-vector ordering must match `QGNNCircuitParams` — the ordering contract
+  is positional and silent, so a mis-ordered vector would train without error
+  and simply be wrong
+- Evaluated against the T5.1 comparability baseline over the same 5-trial
+  protocol; a null result is a live outcome (three prior QGNN-side
+  interventions regressed or washed, `specs/phase4/plan.md` Design Decision 17)
+
 ### FR-7: Final QGNN run and `README.md` (T5.7)
 - One QGNN run, in Phase 4's frozen configuration (`plan.md` Design
   Decision 3), on whichever GVLS configuration wins T5.1–T5.6
