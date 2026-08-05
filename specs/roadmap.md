@@ -1,8 +1,10 @@
 # Roadmap
 
-The project is organized into six phases. Each phase has a concrete deliverable that gates the next.
+The project is organized into seven phases. Each phase has a concrete deliverable that gates the next.
 
 **Renumbered 2026-07-14:** the original Phase 4 ("Ablations, Analysis, and Paper") is now Phase 5. The QGNN integration that Phase 3's compression work was always described as a prerequisite for (`mission.md`, `reports/midterm_report.md` §6) is now its own Phase 4, inserted ahead of ablations — see `specs/phase4/` for the full plan, requirements, and validation criteria.
+
+**Renumbered again 2026-08-05:** "Ablations, Analysis, and Paper" moves once more, from Phase 5 to Phase 6. A new Phase 5 ("Variational Performance") is inserted ahead of it, for the same reason as the 2026-07-14 renumbering: work that has to happen before ablations are worth running. A mission-conformance audit of `src/gvls/models/` (2026-08-04) found three of `mission.md`'s six claimed GVLS components effectively inert in the production configuration, a 24-config sweep confirmed no config-level fix recovers them, and a baseline measurement found the full GVLS→QGNN pipeline performing **worse than logistic regression on particle count alone** (0.6688 vs 0.7552). Ablating a model in that state would mostly measure the defects. See `specs/phase5/` for the full plan, requirements, and validation criteria.
 
 ---
 
@@ -114,7 +116,34 @@ This is the first phase to run GVLS **inductively** on many small graphs (jets: 
 
 ---
 
-## Phase 5 — Ablations, Analysis, and Paper (Weeks 17–22)
+## Phase 5 — Variational Performance (new 2026-08-05)
+
+**Goal:** Make GVLS's variational machinery do real work, and get the compressed representation past the bar a single scalar already clears. Phases 1–4 built every component `mission.md` claims; an audit of the running code found three of the six effectively inert, and a sweep confirmed no config-level fix recovers them. This phase changes the model and the objective, not the configuration. See `specs/phase5/` for the full plan, requirements, and validation criteria.
+
+**Evidence this phase exists (all measured 2026-08-04, `specs/phase5/validation.md` V-0):**
+- **Three of six mission components inert.** `β·KL` is 0.25% of the post-training loss (`assignment_link_loss` is 80.6%); `A_z` is the *complete* graph on 100% of jets at `M=4,k=3` and `graph_method="attention"` has zero learnable parameters; `prior: isotropic` means `kl_graph_mrf` is never called, so `A_z` never enters the prior.
+- **No config-level fix helps.** A 24-config `(k, β, prior)` sweep (`results/compression/qg_jets_prior_sweep.csv`) found the best point only `+0.4` points (≈1 std) above production. `β` is strictly monotonic *downward*. The prior is an exact wash in the usable range — but at `β=1.0` graph_mrf beats isotropic by **+10.3 points** and avoids collapse entirely, the one piece of positive evidence for a graph prior anywhere in this project.
+- **The pipeline is beaten by counting particles.** Logistic regression on particle count `N` alone scores **0.7552**; GVLS's own `(z̃, A_z)` scores 0.7034 and the QGNN 0.6688 (base rate 0.5144). Multiplicity is the classic quark/gluon discriminant and fixed-`M` pooling destroys it by construction. **0.7552 is this phase's acceptance bar**, not Phase 4's 0.6688.
+- **The objective's KL weight is class-correlated.** Reconstruction is mean-reduced over `N²` pairs while the KL divides by `M`, so `β_eff = β·N²/M`; mean `N²` is 3,092 vs 1,315 across the two classes, making regularization 2.35× stronger on one class than the other.
+
+### Tier 1 — defects and the multiplicity path
+- [ ] T5.1 — Consistent per-jet ELBO normalization, so `β_eff` no longer depends on `N` (and therefore on the label); re-point checkpoint selection away from reconstruction F1, which correlates only `+0.245` with downstream accuracy in the usable range
+- [ ] T5.2 — Surface the variational output downstream: `extract_latent_features` discards `mu`/`log_var`, so no classifier in this project has ever seen a variance
+- [ ] T5.3 — Occupancy-aware pooled posterior: scale pooled precision by un-normalized cluster mass `n_m`, putting multiplicity into `log_var_p` as a variational quantity rather than a concatenated scalar (the concatenation control, 0.7683, is measured alongside)
+
+### Tier 2 — making the variational term an asset
+- [ ] T5.4 — Learned mixture prior (VampPrior/VaDE-style) replacing `N(0,I)`, with free bits and `β` warm-up as prerequisites
+- [ ] T5.5 — Graph-MRF `λ` sweep jointly with `β`; `lambda_` has been hardcoded at 1.0 in every run this project has ever done
+- [ ] T5.6 — Variational latent graph `A_z`: Concrete/Bernoulli edges with a sparsity prior and their own KL — the mission's defining claim, currently unimplemented, and what would make the QGNN's topology-equivariant ansatz non-vacuous
+
+### Closing
+- [ ] T5.7 — One QGNN run on the winning GVLS configuration (the quantum stage is frozen for the phase so GVLS changes stay attributable), plus the `README.md` results section outstanding since Phase 4
+
+**Exit criterion:** downstream accuracy from frozen GVLS features, measured with Phase 4's exact protocol, reported against **both** the `N`-only bar (0.7552) and the current GVLS baseline (0.7034), with negative results recorded. See `specs/phase5/validation.md`.
+
+---
+
+## Phase 6 — Ablations, Analysis, and Paper (was Phase 5; renumbered 2026-08-05)
 
 **Goal:** Produce results suitable for a research submission.
 
@@ -126,6 +155,9 @@ This is the first phase to run GVLS **inductively** on many small graphs (jets: 
 - [ ] Input topology vs. learned latent topology (overlap analysis)
 - [ ] Pooled node count `M` vs. fidelity/downstream performance (extends T3.6's compression-focused sweep to link prediction and node classification)
 - [ ] Soft (DiffPool-style) vs. hard (top-k / Gumbel-softmax) node assignment for pooling
+- **(Added 2026-08-05, conditional on Phase 5)** Isotropic vs. graph-MRF vs. learned mixture prior (T5.4/T5.5 add the third arm; the first two are already listed above, but Phase 5 sweeps `λ` for the first time, so this ablation should use whatever operating point it establishes rather than `λ=1.0`)
+- **(Added 2026-08-05, conditional on Phase 5)** Deterministic top-k vs. variational (Concrete) `A_z` (T5.6) — and whether a stochastic, jet-specific latent topology changes the QGNN's behavior, since Phase 4's topology-equivariant ansatz is vacuous while every jet's circuit is structurally identical
+- **(Added 2026-08-05)** Multiplicity encoded in the pooled posterior (T5.3) vs. concatenated as a scalar vs. discarded (today) — the compression claim rests on this distinction
 
 ### Baselines to Compare Against
 | Model | What it tests |

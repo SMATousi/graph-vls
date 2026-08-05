@@ -79,7 +79,7 @@ Four architectural questions were put to the user directly (`AskUserQuestion`) g
 ### Stretch / explicitly deferred
 - **T4.7 (stretch)** — Joint end-to-end fine-tuning of GVLS + QGNN together (Design Decision 8), compared against the frozen-feature baseline
 - ~~Classical baselines (uncompressed classical GNN on the full jet graph; classical head on frozen z̃ with no quantum circuit) — deferred per Design Decision 4, pick up only if the literature comparison is inconclusive~~ **Done (T4.13, 2026-08-02–03, Design Decision 16)** — a classical head on frozen z̃ (`LogisticRegression`/`MLPClassifier`) was trained and found to beat the QGNN by 2.2–2.6 accuracy points on identical features; not an uncompressed classical GNN on the raw jet graph, which remains untried
-- Real quantum hardware execution or noise-model simulation — Qiskit Aer noiseless statevector simulation only this phase; hardware/noise is Phase 5+ ablation material
+- Real quantum hardware execution or noise-model simulation — Qiskit Aer noiseless statevector simulation only this phase; hardware/noise is Phase 6+ ablation material (was "Phase 5+" when written; renumbered 2026-08-05)
 - Any new latent-graph-inference method beyond Phase 1's existing attention/FGP/NRI — reuse whichever method Phase 2/3 already validated as a starting point
 - Multi-class or full-detector jet tagging — this dataset and task are binary quark-vs-gluon only
 - **Electron-Photon dataset (new, 2026-07-30)** — `sota-table.png`'s Table III reports the same literature methods on an Electron-Photon jet dataset; user explicitly deferred pursuing it (`AskUserQuestion`, 2026-07-30) until Quark-Gluon results land. No data source is confirmed for it.
@@ -166,7 +166,7 @@ Tests: covered by `test_jet_sweep.py` (T4.3) — a smoke test that confirms grad
 **File:** `src/gvls/compression/jet_sweep.py`, `experiments/pretrain_gvls_jets.py`
 
 - Mirrors `src/gvls/compression/sweep.py`'s structure (T3.3) but iterates jets: for each `M ∈ {4, 6, 8}`, pretrain `PooledGVLS` unsupervised (ELBO only) over the pretraining split (T4.2's per-jet loop), then compute **per-jet** `reconstruction_f1` and `bits_per_edge`, averaged over a held-out subset of jets
-- `(hidden_dim, latent_dim d, k, graph_method, prior, mp_rounds, lr, beta, lambda_)` start from whichever config Phase 2/3 already validated as a reasonable default (not re-run through NAS for jets in this phase — that's Phase 5 ablation material if jet performance demands it)
+- `(hidden_dim, latent_dim d, k, graph_method, prior, mp_rounds, lr, beta, lambda_)` start from whichever config Phase 2/3 already validated as a reasonable default (not re-run through NAS for jets in this phase — that's Phase 6 ablation material if jet performance demands it (was "Phase 5" when written; renumbered 2026-08-05))
 - Select the compression-optimal `M`: smallest `M` whose average per-jet F1 is within a small tolerance of the largest tested `M`'s F1 (mirrors T3.3's rate-distortion logic, adapted since there's no single fixed 0.90 floor precedent yet for jets)
 - Write one row per `M` to `results/compression/qg_jets_pooling.csv` (same schema convention as `results/compression/{dataset}_pooling.csv`, plus a `dataset=qg_jets` column)
 - Log each `M` value's run to W&B under group tag `jet-compression-sweep`
