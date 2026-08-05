@@ -1,0 +1,1 @@
+train QGNN:   1%|          | 1/150 [00:49<2:01:44, 49.03s/it, train_loss=0.694, val_acc=0.516]

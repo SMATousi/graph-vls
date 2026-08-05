@@ -17,3 +17,8 @@ config: {'m': 4, 'd': 8, 'data': {'name': 'qg_jets', 'protocol': 'lorentz', 'k_g
 2026-08-05 15:20:49,061 INFO    MainThread:446679 [wandb_run.py:_redirect():2540] Wrapping output streams.
 2026-08-05 15:20:49,062 INFO    MainThread:446679 [wandb_run.py:_redirect():2563] Redirects installed.
 2026-08-05 15:20:49,064 INFO    MainThread:446679 [wandb_init.py:init():1016] run started, returning control to user process
+2026-08-05 17:24:02,659 INFO    MainThread:446679 [wandb_run.py:_finish():2383] finishing run tousi-team/graph-vls/hr0utmji
+2026-08-05 17:24:02,659 INFO    MainThread:446679 [wandb_run.py:_atexit_cleanup():2588] got exitcode: 0
+2026-08-05 17:24:02,659 INFO    MainThread:446679 [wandb_run.py:_restore():2570] restore
+2026-08-05 17:24:02,659 INFO    MainThread:446679 [wandb_run.py:_restore():2576] restore done
+2026-08-05 17:24:05,219 INFO    MainThread:446679 [wandb_run.py:_footer_sync_info():3993] logging synced files
