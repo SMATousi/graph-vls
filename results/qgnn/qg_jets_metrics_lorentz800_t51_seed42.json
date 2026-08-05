@@ -1,0 +1,28 @@
+{
+  "m": 4,
+  "num_layers": 8,
+  "optimizer": "adamw",
+  "num_test_jets": 1250,
+  "train_accuracy": 0.69,
+  "test_accuracy": 0.6768,
+  "test_accuracy_fixed_threshold_0.5": 0.6872,
+  "threshold": 0.501028221513775,
+  "training_time_s": 7491.007247932022,
+  "inference_time_s": 3.4384376029483974,
+  "accuracy": 0.6768,
+  "auc": 0.7210947448251478,
+  "ap": 0.724829062107261,
+  "macro_f1": 0.6747181964573269,
+  "precision": 0.7357001972386588,
+  "recall": 0.5800933125972006,
+  "confusion_matrix": [
+    [
+      473,
+      134
+    ],
+    [
+      270,
+      373
+    ]
+  ]
+}
