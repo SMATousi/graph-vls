@@ -2,32 +2,55 @@
 
 ## Functional Requirements
 
-### FR-1: Consistent per-jet ELBO normalization (T5.1)
-- `elbo()`'s reconstruction and KL terms must be normalized on a consistent
-  basis, so that the effective KL weight a jet is trained under does **not**
-  depend on that jet's particle count `N`
-- Current defect: reconstruction is mean-reduced over `N²` node pairs while
-  `kl_isotropic`/`kl_graph_mrf` divide by node count `M`, giving
-  `β_eff = β · N²/M`. Measured, `N²` spans 100–19,321 (193×) and averages
-  3,092 vs 1,315 across the two classes — the regularization is **2.35×
-  stronger on one class than the other**, and `corr(N, label) = −0.556`
-- Acceptance: for a fixed `β`, the KL-to-reconstruction ratio is invariant to
-  `N` within floating-point tolerance across synthetic jets of very different
-  size
-- The chosen convention must be documented in `elbo()`'s docstring alongside
-  (and explicitly superseding) the T3.6/`specs/phase3/validation.md` V-8
-  node-count normalization history
-- Phases 0–3's citation-network behavior operates at a single fixed `N`; the
-  change must not silently alter their loss *ranking* (`plan.md` T5.1)
+### FR-1: Checkpoint-selection criterion, and an ELBO normalization switch (T5.1)
+
+**Rewritten 2026-08-05, mid-implementation.** The original FR-1 required
+making the effective KL weight `N`-invariant, on the grounds that
+`β_eff = β·N²/M` made regularization **2.35× stronger on one class than the
+other**. That was inferred from the per-class ratio of mean `N²` and
+**measured false**: `legacy`'s KL term is `N`-independent by construction
+(it divides by `M`, fixed at 4), so the real per-class difference is 2%, and
+the class asymmetry that does exist lives in the reconstruction term. See
+`validation.md` V-1 for the measurements and `plan.md` T5.1 for the revised
+rationale.
+
+**Selection criterion (the load-bearing half):**
 - `train_pooled_gvls_on_jets` must expose a checkpoint-selection criterion
   other than validation reconstruction F1, which correlates only `+0.245`
   with downstream accuracy in the usable `β` range (`plan.md` Design
-  Decision 2); whichever criterion a run uses must be recorded with its
-  results
-- Because this changes the loss landscape for every jet run, the `(k, β)`
-  operating point must be re-established afterwards — the motivating sweep's
-  `β` conclusions were drawn under the old convention and do not
-  automatically carry over
+  Decision 2). Required options: `"reconstruction_f1"` (the pre-T5.1
+  behaviour), `"val_loss"`, `"probe_accuracy"`
+- `"probe_accuracy"` must fit and score its probe **within the validation
+  split**; the test split must never be touched during selection
+- Whichever criterion a run uses must be recoverable from that run's own
+  per-epoch metrics
+- `"val_loss"` is the one criterion where smaller is better; selection must
+  respect per-metric direction rather than assuming higher-is-better
+- **`"probe_accuracy"` is the production default**
+
+**Normalization (a documented option, not a default):**
+- `elbo()` must accept `normalization` ∈ `{"legacy", "per_jet"}`, where
+  `per_jet` divides both terms by the same `N²` so `β_eff = β` for every jet
+  — giving `β` its standard β-VAE meaning
+- **`"legacy"` remains the default.** Measured, `per_jet` makes the raw
+  KL:recon ratio strongly `N`-dependent (corr −0.45 vs `legacy`'s −0.28),
+  leaving the variational term ~35× weaker on the largest jets. That is
+  correct likelihood behaviour but the wrong direction for this phase, so
+  `per_jet` is not adopted without evidence from a run
+- Both conventions must be documented in `elbo()`'s docstring, alongside the
+  T3.6/`specs/phase3/validation.md` V-8 node-count normalization history, with
+  the tradeoff stated rather than one presented as correct
+- Acceptance: `per_jet`'s `β_eff` equals `β` for every `N`; `legacy`'s equals
+  `β·N²/M`; the two agree exactly at `β=0`; omitting the argument reproduces
+  `legacy` byte-identically
+- Phases 0–3 operate at a single fixed `N`, where `legacy` is merely a
+  reparameterization of `β`; their behaviour must not change
+
+**Attribution:**
+- The sweep must expose both knobs as independent flags, each defaulting to
+  the pre-Phase-5 behaviour, so the `(k, β)` operating point can be
+  re-established **one flag at a time**. Changing both at once would make any
+  difference in the results unattributable
 
 ### FR-2: Variational output reaches the downstream task (T5.2)
 - `extract_latent_features` must be able to carry the pooled posterior's

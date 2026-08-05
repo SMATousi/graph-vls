@@ -389,3 +389,155 @@ def test_jet_compression_sweep_clamps_k_to_m_minus_one() -> None:
         base_cfg=_base_cfg(), epochs=1, seed=42, device=torch.device("cpu"), batch_size=2,
     )
     assert rows[0]["k"] == 3
+
+
+# ── T5.1: checkpoint-selection criterion (specs/phase5/) ─────────────────────
+
+
+def _selection_jets(n_jets: int = 8):
+    """Synthetic jets with both labels present, so probe_accuracy can fit."""
+    return [_synthetic_jet(12 + (i % 5), seed=i) for i in range(n_jets)]
+
+
+def test_selection_metric_defaults_to_reconstruction_f1() -> None:
+    """Backward compatibility (NFR-4): the pre-T5.1 criterion stays the
+    default, so existing callers keep selecting the same checkpoint."""
+    import inspect
+
+    sig = inspect.signature(train_pooled_gvls_on_jets)
+    assert sig.parameters["selection_metric"].default == "reconstruction_f1"
+
+
+def test_invalid_selection_metric_raises() -> None:
+    with pytest.raises(ValueError, match="selection_metric must be one of"):
+        train_pooled_gvls_on_jets(
+            _selection_jets(4),
+            in_channels=IN_CHANNELS,
+            latent_dim=LATENT_DIM,
+            k=K,
+            num_clusters=M,
+            base_cfg=_base_cfg(),
+            epochs=1,
+            seed=0,
+            device=torch.device("cpu"),
+            batch_size=2,
+            show_progress=False,
+            selection_metric="nonsense",
+        )
+
+
+@pytest.mark.parametrize("metric", ["reconstruction_f1", "val_loss", "probe_accuracy"])
+def test_every_selection_metric_trains_and_logs_its_own_key(metric: str) -> None:
+    """Each criterion must run end-to-end and surface the value it selected
+    on in the per-epoch metrics, so a run's own logs record which signal
+    chose its checkpoint (FR-1)."""
+    jets = _selection_jets(8)
+    seen: list[dict] = []
+    model = train_pooled_gvls_on_jets(
+        jets,
+        in_channels=IN_CHANNELS,
+        latent_dim=LATENT_DIM,
+        k=K,
+        num_clusters=M,
+        base_cfg=_base_cfg(),
+        epochs=2,
+        seed=0,
+        device=torch.device("cpu"),
+        batch_size=4,
+        show_progress=False,
+        eval_jets=jets,
+        on_epoch_end=lambda epoch, metrics: seen.append(metrics),
+        selection_metric=metric,
+    )
+    assert model is not None
+    assert len(seen) == 2
+    expected_key = {
+        "reconstruction_f1": "val_avg_reconstruction_f1",
+        "val_loss": "val_loss",
+        "probe_accuracy": "val_probe_accuracy",
+    }[metric]
+    assert expected_key in seen[-1]
+
+
+def test_val_loss_selection_picks_the_lowest_not_the_highest() -> None:
+    """`val_loss` is the one criterion where smaller is better; a
+    direction-agnostic selection loop would silently keep the worst epoch."""
+    from gvls.compression import jet_sweep
+
+    jets = _selection_jets(6)
+    losses = iter([5.0, 1.0, 9.0])  # best is epoch 1
+    captured: dict = {}
+
+    def fake_val_loss(model, *args, **kwargs):
+        value = next(losses)
+        captured.setdefault("order", []).append(value)
+        # tag the model so we can tell which epoch's weights come back
+        captured[value] = {k: v.clone() for k, v in model.state_dict().items()}
+        return value
+
+    with patch.object(jet_sweep, "validation_loss", side_effect=fake_val_loss):
+        model = jet_sweep.train_pooled_gvls_on_jets(
+            jets,
+            in_channels=IN_CHANNELS,
+            latent_dim=LATENT_DIM,
+            k=K,
+            num_clusters=M,
+            base_cfg=_base_cfg(),
+            epochs=3,
+            seed=0,
+            device=torch.device("cpu"),
+            batch_size=3,
+            show_progress=False,
+            eval_jets=jets,
+            selection_metric="val_loss",
+        )
+
+    assert captured["order"] == [5.0, 1.0, 9.0]
+    best = captured[1.0]
+    for name, tensor in model.state_dict().items():
+        assert torch.allclose(tensor, best[name]), f"{name} is not the epoch-1 snapshot"
+
+
+def test_probe_accuracy_is_bounded_and_finite() -> None:
+    from gvls.compression.jet_sweep import probe_accuracy
+
+    jets = _selection_jets(10)
+    model = build_pooled_gvls(IN_CHANNELS, LATENT_DIM, K, M, _base_cfg())
+    score = probe_accuracy(model, jets, torch.device("cpu"), seed=0)
+    assert 0.0 <= score <= 1.0
+
+
+def test_probe_features_have_expected_width() -> None:
+    """Feature layout must match jet_features_to_array's (flattened z_tilde,
+    then A_z's strict upper triangle) -- this is a local reimplementation
+    kept deliberately in sync (see its docstring)."""
+    from gvls.compression.jet_sweep import jet_probe_features
+
+    jets = _selection_jets(4)
+    model = build_pooled_gvls(IN_CHANNELS, LATENT_DIM, K, M, _base_cfg())
+    x, y = jet_probe_features(model, jets, torch.device("cpu"))
+    assert x.shape == (len(jets), M * LATENT_DIM + M * (M - 1) // 2)
+    assert y.shape == (len(jets),)
+
+
+def test_jet_loss_respects_normalization_from_base_cfg() -> None:
+    """jet_loss must thread `normalization` through to elbo(), and default to
+    legacy when a pre-Phase-5 config omits it."""
+    jet = _synthetic_jet(14, seed=1)
+    device = torch.device("cpu")
+    model = build_pooled_gvls(IN_CHANNELS, LATENT_DIM, K, M, _base_cfg())
+
+    cfg_legacy = _base_cfg()
+    cfg_default = _base_cfg()
+    cfg_per_jet = {**_base_cfg(), "normalization": "per_jet"}
+    cfg_legacy["normalization"] = "legacy"
+
+    torch.manual_seed(0)
+    legacy = jet_loss(model, jet, cfg_legacy, device, 0.1, 5.0).item()
+    torch.manual_seed(0)
+    default = jet_loss(model, jet, cfg_default, device, 0.1, 5.0).item()
+    torch.manual_seed(0)
+    per_jet = jet_loss(model, jet, cfg_per_jet, device, 0.1, 5.0).item()
+
+    assert default == pytest.approx(legacy, rel=1e-7)
+    assert per_jet != pytest.approx(legacy, rel=1e-9)

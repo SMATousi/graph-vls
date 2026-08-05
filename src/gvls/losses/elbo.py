@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch import Tensor
 
 _PRIORS = {"isotropic", "graph_mrf"}
+_NORMALIZATIONS = {"legacy", "per_jet"}
 
 
 def kl_isotropic(mu: Tensor, log_var: Tensor) -> Tensor:
@@ -81,6 +82,7 @@ def elbo(
     lambda_: float = 1.0,
     prior: str = "isotropic",
     pos_weight: float | None = None,
+    normalization: str = "legacy",
 ) -> Tensor:
     """VAE training loss: recon_loss + β·KL  (minimise this).
 
@@ -90,11 +92,72 @@ def elbo(
     pos_weight   : optional scalar upweight for positive edges in BCE; pass
                    (N*N - n_edges) / n_edges to balance class imbalance in
                    sparse graphs (VGAE convention)
+    normalization: 'legacy' or 'per_jet' -- see below. Defaults to 'legacy'
+                   so no existing caller changes behaviour implicitly.
+
+    Normalization (T5.1, specs/phase5/). The reconstruction term is
+    mean-reduced over all N² node pairs, while `kl_isotropic`/`kl_graph_mrf`
+    divide by their own leading dimension (the number of latent nodes M --
+    see their docstrings and specs/phase3/validation.md V-8 for why that
+    per-node convention was introduced). Those two normalizers are different,
+    so under `'legacy'` the KL is weighted by N²/M relative to a true
+    per-graph ELBO:
+
+        legacy   = recon_sum/N²      + β·KL_sum/M
+        true ELBO ∝ recon_sum        + β·KL_sum
+        ⇒ β_eff  = β · N²/M
+
+    For Phases 0–3 that was harmless: those datasets are a single transductive
+    graph, so N is one fixed number and β_eff is just a reparameterization of
+    β. For jets (Phase 4 onward) every graph has its own N -- 10 to 139 over
+    the production pool, so N² spans 193× -- and β_eff varies with it.
+
+    `'per_jet'` divides both terms by the same normalizer (the node-pair
+    count N², i.e. `recon_logits.numel()`), which is the true per-graph ELBO
+    scaled to O(1):
+
+        per_jet = (recon_sum + β·KL_sum) / N²   ⇒  β_eff = β, for every N
+
+    Dividing (rather than summing both terms, the other way to fix the ratio)
+    keeps each jet's loss O(1), so every jet contributes comparably to a
+    minibatch's mean gradient; summing would make gradient magnitude scale
+    with N², which is class-correlated here.
+
+    **What this does and does not fix, measured rather than assumed** (600
+    real validation jets, production config -- an earlier version of this
+    docstring overstated the case and is corrected here):
+
+    * `'legacy'` holds the *raw* KL:recon ratio roughly constant across graph
+      sizes (its KL term is N-independent by construction; measured
+      corr(N, ratio) = −0.28, and the class means differ by only 2%). So
+      `'legacy'` is **not** applying systematically different regularization
+      pressure per class, which an earlier reading of this claimed.
+    * What `'legacy'` genuinely does is give β no per-graph-ELBO meaning: its
+      β_eff is β·N²/M rather than β.
+    * `'per_jet'` makes β_eff exactly β, but as a consequence the *raw*
+      KL:recon ratio becomes strongly N-dependent (measured corr −0.45), so
+      large jets end up with very little KL pressure (ratio ~1e-7 at N ≥ 80
+      versus ~3e-6 at N < 25). That is correct likelihood behaviour -- more
+      observed pairs outweigh the prior -- but it makes the variational term
+      *weaker*, not stronger, on exactly the jets that have the most
+      structure.
+    * The measured class asymmetry in the effective ratio (1.42×) comes from
+      the **reconstruction** side -- `pos_weight` = (N²−E)/E interacting with
+      k-NN edge density (mean recon 28.2 vs 22.1 by class) -- not from this
+      KL normalization at all. Neither mode addresses that.
+
+    Pick deliberately: `'per_jet'` if β should mean what it means in the
+    β-VAE literature, `'legacy'` if uniform per-graph latent regularization
+    is wanted.
 
     Raises RuntimeError if the computed loss is NaN.
     """
     if prior not in _PRIORS:
         raise ValueError(f"prior must be one of {_PRIORS}, got '{prior}'")
+    if normalization not in _NORMALIZATIONS:
+        raise ValueError(
+            f"normalization must be one of {_NORMALIZATIONS}, got '{normalization}'"
+        )
 
     pw = (
         torch.tensor(pos_weight, dtype=recon_logits.dtype, device=recon_logits.device)
@@ -110,6 +173,11 @@ def elbo(
         if prior == "isotropic"
         else kl_graph_mrf(mu, log_var, A_z, lambda_)
     )
+
+    if normalization == "per_jet":
+        # kl_* return KL_sum/M; recover the sum, then divide by the same N²
+        # the reconstruction term is already averaged over.
+        kl = kl * mu.size(0) / recon_logits.numel()
 
     loss = recon_loss + beta * kl
 

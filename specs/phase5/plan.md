@@ -145,11 +145,22 @@ of a jet, regardless of how it compares to Phase 4's own history.
    that improves on 0.7034 but not 0.7552 is recorded as such explicitly.
 
 8. **Tasks are ordered so that defects are fixed before enhancements are
-   evaluated.** T5.1 (ELBO normalization) is a class-correlated confound in
-   the objective; T5.2 (variational output discarded downstream) severs the
-   variational machinery from the metric. Evaluating a mixture prior or a
-   variational `A_z` on top of either of those would produce results that
-   have to be re-run afterwards.
+   evaluated.** T5.1 re-points checkpoint selection off a signal that barely
+   correlates with the phase's objective; T5.2 (variational output discarded
+   downstream) severs the variational machinery from the metric. Evaluating a
+   mixture prior or a variational `A_z` on top of either of those would
+   produce results that have to be re-run afterwards.
+
+9. **A measured correction outranks a plausible derivation (added
+   2026-08-05).** T5.1 was specced around a class-correlated-`β` confound
+   inferred from the 2.35× per-class ratio of mean `N²`. Implementing it
+   surfaced that the inference was wrong — `legacy`'s KL term is
+   `N`-independent by construction, so the real per-class difference is 2%.
+   The task was rewritten mid-implementation rather than shipped on its
+   original premise. Two process points carry forward: quantities that look
+   like they must propagate (a 2.35× input ratio) need measuring at the
+   output before a task is built on them, and this phase's remaining
+   evidence should be re-checked the same way before each task starts.
 
 ---
 
@@ -159,13 +170,15 @@ of a jet, regardless of how it compares to Phase 4's own history.
 
 **Tier 1 — defects and the multiplicity path**
 
-- **T5.1** — Consistent per-jet ELBO normalization. The reconstruction term
-  is mean-reduced over `N²` pairs while the KL is divided by `M`, so
-  `β_eff = β · N²/M`. `N²` spans 100–19,321 across jets and averages 3,092
-  for one class vs 1,315 for the other — the KL regularization is
-  systematically **2.35× stronger on one class than the other**, a
-  label-correlated confound inside the objective. Also re-points checkpoint
-  selection away from reconstruction F1 (Design Decision 2).
+- **T5.1** — Checkpoint-selection criterion, and an ELBO normalization
+  switch. **Rewritten 2026-08-05 mid-implementation**: the original framing
+  (an `N`-dependent `β_eff = β·N²/M` amounting to a label-correlated
+  confound) was measured false — see the task section below and
+  `validation.md` V-1. What survives is (a) re-pointing checkpoint selection
+  away from reconstruction F1, which correlates only `+0.245` with this
+  phase's objective (Design Decision 2), and (b) a documented,
+  **default-off** `per_jet` normalization under which `β` has its standard
+  β-VAE meaning.
 - **T5.2** — Surface the variational output to the downstream task.
   `extract_latent_features` returns only `(z̃, A_z)`; `mu` and `log_var` are
   discarded, and at eval `z̃` is the deterministic `mu` path — the classifier
@@ -209,6 +222,14 @@ of a jet, regardless of how it compares to Phase 4's own history.
   T5.1–T5.6 can express itself strongly while the ELBO is 0.3% of the
   gradient. Worth doing, but the user scoped this phase to Tier 1 + Tier 2;
   revisit if T5.1–T5.6 underdeliver.
+- **`pos_weight`'s `N`-dependence (added 2026-08-05, surfaced by T5.1)** — the
+  actual measured `N`- and class-dependence in the objective sits in the
+  reconstruction term, not the KL: `pos_weight = (N²−E)/E` interacting with
+  k-NN edge density gives mean reconstruction 28.2 vs 22.1 across the two
+  classes (1.28×), which is what drives the 1.42× asymmetry in the effective
+  KL:recon ratio. Changing it is a different edit from T5.1's, with its own
+  risk to Phases 0–4's reproduced numbers, so it is recorded here rather than
+  folded in silently. Worth doing if T5.2/T5.3 leave the gap open.
 - **QGNN-side work of any kind** — frozen for the phase (Design Decision 3).
 - **Re-running Phase 2's NAS under the corrected KL convention** — the
   standing open question in `specs/roadmap.md`; T5.1 changes the KL
@@ -260,37 +281,72 @@ once already.
 
 ## Tasks
 
-### T5.1 — Consistent per-jet ELBO normalization
+### T5.1 — Checkpoint-selection criterion, and an ELBO normalization switch
 
-**Files:** `src/gvls/losses/elbo.py`, `src/gvls/compression/jet_sweep.py`
+**Files:** `src/gvls/losses/elbo.py`, `src/gvls/compression/jet_sweep.py`,
+`configs/train/jet_pretrain{,_final}.yaml`, `experiments/gvls_prior_sweep.py`
 
-The defect: `elbo()` mean-reduces reconstruction over all `N²` node pairs
-while `kl_isotropic`/`kl_graph_mrf` divide by node count `M`. The KL-to-recon
-ratio is therefore scaled by `N²/M`, so the effective `β` a jet is trained
-under is `β · N²/M ≈ 551β` at the mean, and varies by **193×** across the
-dataset. Because particle count is strongly class-correlated
-(`corr(N, label) = −0.556`), this makes the regularization strength itself a
-function of the label.
+**Rewritten 2026-08-05, mid-implementation.** This task was originally
+specced around a claim that turned out to be false, and the correction
+changed what it should deliver. Both versions are recorded here because the
+false version is what the surrounding evidence sections were written against.
 
-- Normalize both terms consistently so `β_eff` is constant across jets.
-  Preferred: express the objective as a true per-jet ELBO (reconstruction
-  summed over pairs as a log-likelihood, KL summed over `M` nodes), with `β`
-  then meaning what it does in the β-VAE literature. Whatever convention is
-  chosen, it must be documented in `elbo()`'s docstring alongside the
-  existing T3.6/V-8 normalization history, which this supersedes.
-- Re-point checkpoint selection: `train_pooled_gvls_on_jets` selects on
-  best validation reconstruction F1, which correlates `+0.245` with the
-  metric this phase cares about. Add a selection-criterion argument
-  (validation ELBO, or downstream probe accuracy) and record which is used.
-- Because this changes the loss landscape for every jet run, **re-establish
-  the `(k, β)` operating point afterwards** — the sweep's conclusions about
-  `β` were drawn under the old, `N`-dependent convention and do not
-  automatically survive.
+**What was claimed, and why it was wrong.** `elbo()` mean-reduces
+reconstruction over `N²` node pairs while `kl_isotropic`/`kl_graph_mrf`
+divide by node count `M`, so `β_eff = β·N²/M`. Mean `N²` is 3,092 vs 1,315
+across the two classes, and the original spec inferred from that ratio that
+`legacy` applies **2.35× stronger regularization to one class than the
+other** — a label-correlated confound. Measured directly on 600 real
+validation jets, that inference does not hold: `legacy`'s KL term is
+**N-independent by construction** (it divides by `M`, fixed at 4), so its
+per-class means differ by 2% (0.004389 vs 0.004291), not 2.35×, and
+`corr(N, KL:recon ratio) = −0.28`. See `validation.md` V-1.
 
-Tests: `β_eff` is invariant to `N` for a fixed `β` (two synthetic jets of
-very different size produce the same KL-to-recon ratio); the reported loss is
-unchanged in *ranking* on a fixed-`N` graph so Phases 0–3's citation-network
-behavior is not silently altered; NaN guard still fires.
+**What is actually true.** (a) `legacy` gives `β` no per-graph-ELBO meaning —
+a real interpretability defect, but not a confound. (b) The measured 1.42×
+class asymmetry in the effective ratio comes from the **reconstruction**
+side — `pos_weight = (N²−E)/E` interacting with k-NN edge density (mean
+recon 28.2 vs 22.1 by class) — which no KL normalization addresses. (c)
+`per_jet` makes `β_eff = β` for every jet, but as a consequence the *raw*
+KL:recon ratio becomes strongly `N`-dependent (corr −0.45): measured ratio
+`3.5e-6` at `N < 25` versus `1.0e-7` at `N ≥ 80`. That is correct likelihood
+behaviour, but it makes the variational term roughly **35× weaker on large
+jets** — the opposite of this phase's goal.
+
+**Revised deliverable.** The load-bearing half of this task is the
+checkpoint-selection criterion; the normalization becomes a documented,
+default-off option rather than a fix.
+
+- **`selection_metric` on `train_pooled_gvls_on_jets`** — `"reconstruction_f1"`
+  (the pre-T5.1 behaviour), `"val_loss"`, or `"probe_accuracy"` (a logistic
+  probe fit and scored within the validation split; the test split is never
+  touched). Selecting on reconstruction F1 when it correlates `+0.245` with
+  the phase's actual objective is straightforwardly wrong, and this stands on
+  its own evidence regardless of the normalization question.
+  **`probe_accuracy` becomes the production default.**
+- **`normalization` on `elbo()`** — `"legacy"` (default, unchanged) or
+  `"per_jet"` (a true per-graph ELBO scaled to O(1)). Kept because `β`
+  having a standard meaning is worth something and the two modes may behave
+  differently once `β` matters at all (T5.4/T5.5), but **not adopted as a
+  default**, since (c) above suggests it weakens the variational term exactly
+  where this phase wants it stronger.
+- **Both default to current behaviour**, and the sweep exposes them as
+  independent flags, so the `(k, β)` operating point can be re-established
+  **one flag at a time**. Changing both at once would make any difference
+  unattributable.
+
+**Moved out of this task.** The `pos_weight` interaction in (b) is the actual
+`N`-dependence in the objective and is a different change from the one specced
+here; it is recorded under deferred scope rather than silently folded in.
+
+Tests: `per_jet`'s `β_eff` equals `β` for every `N`; `legacy`'s equals
+`β·N²/M`, so the two conventions are characterized against each other rather
+than the new one asserted in isolation; the two modes agree exactly at `β=0`,
+pinning the change to where it is claimed to be; omitting `normalization`
+reproduces `legacy` byte-identically; each `selection_metric` runs end-to-end
+and logs the value it selected on; `val_loss` selection picks the lowest
+rather than the highest (a direction-agnostic loop would silently keep the
+worst epoch); NaN guard still fires.
 
 ---
 

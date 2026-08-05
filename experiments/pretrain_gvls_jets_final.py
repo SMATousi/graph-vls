@@ -71,6 +71,9 @@ def main(cfg: DictConfig) -> None:
         progress_desc=f"pretrain GVLS (production, M={m})",
         eval_jets=split.val,
         on_epoch_end=_on_epoch_end,
+        # T5.1: falls back to the pre-Phase-5 criterion if a config predating
+        # specs/phase5/ is used, rather than silently changing its behaviour.
+        selection_metric=str(base_cfg.get("selection_metric", "reconstruction_f1")),
     )
 
     config = {

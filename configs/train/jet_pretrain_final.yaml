@@ -18,3 +18,23 @@ lambda_: 1.0
 epochs: 100
 batch_size: 32
 seed: 42
+
+# T5.1 (specs/phase5/). "legacy" mean-reduces reconstruction over N^2 node
+# pairs while dividing the KL by the latent node count M, so the effective
+# beta is beta*N^2/M -- a constant reparameterization for Phases 0-3's single
+# fixed-N graph, but N-dependent for jets (N spans 10-139 here). "per_jet"
+# divides both terms by the same N^2, so beta means what it does in the
+# beta-VAE literature (beta_eff = beta for every jet).
+#
+# Read gvls.losses.elbo.elbo's docstring before changing this: the two modes
+# trade off against each other rather than one being strictly correct.
+# "per_jet" makes the *raw* KL:recon ratio strongly N-dependent (measured
+# corr -0.45), leaving large jets with very little KL pressure; "legacy"
+# holds that ratio roughly constant but gives beta no per-graph-ELBO meaning.
+normalization: legacy  # legacy (pre-Phase-5) | per_jet (T5.1)
+
+# T5.1: which validation signal the best-epoch checkpoint is selected on.
+# reconstruction_f1 was the pre-Phase-5 behaviour but correlates only +0.245
+# with downstream accuracy across the usable beta range (V-0 Part B).
+# Options: reconstruction_f1 | val_loss | probe_accuracy
+selection_metric: probe_accuracy

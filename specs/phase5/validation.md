@@ -9,9 +9,13 @@ convention of recording negative results and surprises alongside successes.
 
 ## Exit Criteria
 
-- [ ] (T5.1, FR-1) Per-jet ELBO normalization is `N`-invariant; the `(k, β)`
-      operating point re-established afterwards; checkpoint-selection
-      criterion no longer reconstruction F1 alone
+- [x] (T5.1, FR-1) Checkpoint-selection criterion selectable, defaulting to
+      `probe_accuracy` in production; `normalization` switch implemented and
+      documented, `legacy` retained as default on measured grounds — see V-1
+      for the correction to this task's original premise
+- [ ] (T5.1, FR-1) `(k, β)` operating point re-established under whichever
+      flags are adopted — not yet run; both default to prior behaviour, so a
+      bare re-run reproduces the original grid
 - [ ] (T5.2, FR-2) `log_var` reaches the downstream classifier; the
       `(z̃, A_z)` vs `(z̃, A_z, log_var)` ablation measured and reported
 - [ ] (T5.3, FR-3) Occupancy-aware pooled posterior implemented and measured
@@ -100,7 +104,8 @@ Marginal mean logistic-regression accuracy, restricted to the usable range
 Test-set base rate 0.5144, so every row is meaningful. Class statistics:
 mean `N` = 53.3 vs 33.7, `corr(N, label) = −0.556`, `N` range 10–139
 (`N²` range 100–19,321, **193×**), mean `N²` 3,092 vs 1,315 by class
-(**2.35×**).
+(**2.35×** — but see V-1: this ratio does **not** propagate to the KL term,
+contrary to what the first version of this section claimed).
 
 **Interpretation.** Particle multiplicity is the classic quark/gluon
 discriminant, and fixed-`M` pooling destroys it by construction — every jet
@@ -110,16 +115,104 @@ Some leaks back through the degree-normalized GCN
 (`max |corr(z̃ dim, N)| = 0.67`, mean 0.385) but not enough. **The full
 GVLS→QGNN pipeline currently performs worse than counting particles.**
 
-The same `N`-dependence appears inside the objective: reconstruction is
+An `N`-dependence also appears inside the objective: reconstruction is
 mean-reduced over `N²` pairs while the KL is divided by `M`, so
-`β_eff = β · N²/M ≈ 551β` at the mean — which also explains Part B's
-collapse at `β=1.0` (`β_eff ≈ 551`) and why `β=0.001` (`β_eff ≈ 0.55`) sits
-near a proper ELBO. Because `N` is strongly class-correlated, the
-regularization strength is itself a function of the label. This is FR-1.
+`β_eff = β · N²/M ≈ 551β` at the mean — which explains Part B's collapse at
+`β=1.0` (`β_eff ≈ 551`) and why `β=0.001` (`β_eff ≈ 0.55`) sits near a proper
+ELBO.
+
+**Corrected 2026-08-05 (see V-1).** An earlier version of this paragraph went
+further and claimed that, since `N` is class-correlated, the regularization
+*strength* is therefore a function of the label (2.35×). That inference was
+measured false while implementing T5.1: `legacy`'s KL term is `N`-independent
+by construction, so the real per-class difference is 2%. The measured class
+asymmetry that does exist comes from the reconstruction side, not the KL.
 
 ---
 
-## V-1: Consistent per-jet ELBO normalization (T5.1) ⬜ Not started
+## V-1: Checkpoint-selection criterion and ELBO normalization switch (T5.1) ✅ Implemented 2026-08-05 — original premise measured false, task rewritten
+
+**Files:** `src/gvls/losses/elbo.py` (`normalization` argument),
+`src/gvls/compression/jet_sweep.py` (`SELECTION_METRICS`,
+`selection_metric`, `probe_accuracy`, `validation_loss`,
+`jet_probe_features`), `configs/train/jet_pretrain{,_final}.yaml`,
+`experiments/gvls_prior_sweep.py` (`--normalization`,
+`--selection-metric`), `experiments/pretrain_gvls_jets_final.py`.
+Tests: 9 new (7 in `tests/test_elbo.py`, 7 in `tests/test_jet_sweep.py`);
+suite 270 → 279.
+
+### The premise this task was specced on, and its correction
+
+T5.1 was written around the claim that `legacy` normalization
+(`β_eff = β·N²/M`) makes KL regularization **2.35× stronger on one class than
+the other**, inferred from the per-class ratio of mean `N²` (3,092 vs 1,315)
+combined with `corr(N, label) = −0.556`. **Measured on 600 real validation
+jets, that inference is false.**
+
+| Quantity | quark | gluon | ratio |
+|---|---|---|---|
+| `legacy` KL term | 0.004389 | 0.004291 | **1.02×** |
+| reconstruction term | 28.24 | 22.08 | 1.28× |
+| effective KL:recon ratio | 0.000156 | 0.000222 | 1.42× |
+
+`legacy` divides the KL by `M`, which is fixed at 4, so its KL term is
+`N`-independent by construction and cannot carry an `N`-derived class
+asymmetry: `corr(N, legacy KL:recon ratio) = −0.28`, and what asymmetry
+exists traces to the **reconstruction** side (`pos_weight = (N²−E)/E` ×
+k-NN edge density), which no KL normalization touches.
+
+A second measured finding argues against adopting `per_jet` at all:
+
+| Mode | corr(`N`, raw KL:recon ratio) | ratio at `N < 25` | ratio at `N ≥ 80` |
+|---|---|---|---|
+| `legacy` | −0.28 | 3.5e-6 | 1.7e-6 |
+| `per_jet` | **−0.45** | 3.5e-6 | **1.0e-7** |
+
+`per_jet` gives `β` its standard β-VAE meaning, but as a direct consequence
+the variational term becomes ~35× weaker on the largest jets (correct
+likelihood behaviour — more observed pairs outweigh the prior). For a phase
+whose goal is making the variational term matter, that is the wrong
+direction, so `per_jet` ships as a documented option and **not** as a
+default.
+
+### What was delivered
+
+| Check | Pass condition | Result |
+|---|---|---|
+| `selection_metric` implemented | `reconstruction_f1` / `val_loss` / `probe_accuracy` selectable on `train_pooled_gvls_on_jets` | ✅ `probe_accuracy` is the production default (`jet_pretrain_final.yaml`); fits a logistic probe within the validation split, test split never touched |
+| Selection direction handled | `val_loss` picks the lowest, not the highest | ✅ `test_val_loss_selection_picks_the_lowest_not_the_highest` — mocks a non-monotonic sequence (5.0, 1.0, 9.0) and asserts the epoch-1 weights come back |
+| Criterion recorded in the run's own logs | The selected value appears in per-epoch metrics | ✅ `val_loss` / `val_probe_accuracy` keys; parametrized test over all three |
+| `normalization` implemented | `legacy` / `per_jet` selectable on `elbo()` | ✅ default `legacy` |
+| `per_jet` is a true per-graph ELBO | `β_eff == β` for every `N` | ✅ `test_per_jet_effective_beta_is_invariant_to_graph_size` (`N ∈ {10, 40, 139}`) |
+| `legacy` characterized, not just contrasted | `β_eff == β·N²/M` | ✅ `test_legacy_effective_beta_scales_with_n_squared_over_m` |
+| Change is confined to the KL term | The two modes agree exactly at `β=0` | ✅ `test_normalizations_agree_when_kl_weight_is_zero` |
+| Backward compatibility (NFR-4) | Omitting `normalization` reproduces `legacy` byte-identically; `selection_metric` defaults to the pre-T5.1 criterion | ✅ two tests; production configs changed only where intended |
+| Attribution preserved | Sweep exposes both as independent flags, both defaulting to pre-Phase-5 behaviour | ✅ `--normalization` / `--selection-metric`; changing one at a time is documented as required |
+| Full suite / lint | `pytest tests/`, `ruff check src/` | ✅ 279/279; `src/` clean. Two pre-existing `E501`s in `tests/test_jet_sweep.py` (lines 74–75) confirmed present on `HEAD` before this work and left alone, per Phase 4 V-7's precedent |
+
+### Notes and follow-ups
+
+- **Test-construction bug found and fixed during this work:** the first
+  version of the `β_eff` tests derived the KL contribution by subtracting two
+  nearly-equal `elbo()` calls in float32. Under `per_jet` at `N=139` that
+  difference is ~1e-5 against a ~0.69 reconstruction term, and the
+  cancellation destroyed nearly every significant digit — the tests were
+  failing on their own arithmetic. They now run in float64.
+- **Wrong config edited first:** `configs/train/jet_pretrain.yaml` is T4.3's
+  M-grid sweep config; the production path
+  (`pretrain_gvls_jets_final.py` → `run_qgnn_lorentz_comparability.sh`) uses
+  `jet_pretrain_final.yaml`. Both now carry the knobs.
+- **`probe_accuracy` deliberately does not import
+  `extract_latent_features`/`jet_features_to_array`** — both live in modules
+  that import `gvls.models.qgnn`, hence qiskit, and pulling the quantum stack
+  into GVLS's classical pretraining path would make pretraining fail on a
+  machine without qiskit. `jet_probe_features` is a small local
+  reimplementation with a matching feature layout, tested for width.
+- **Not yet run:** the `(k, β)` re-establishment sweep. With both flags
+  defaulting to prior behaviour, a bare re-run reproduces the original grid;
+  the intended comparison is one flag at a time.
+- **Deferred out of this task:** `pos_weight`'s `N`-dependence, which is where
+  the measured class asymmetry actually lives. See `plan.md`'s deferred scope.
 
 ## V-2: Variational output reaches the downstream task (T5.2) ⬜ Not started
 

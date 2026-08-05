@@ -89,6 +89,7 @@ import torch  # noqa: E402
 import torch.nn.functional as F  # noqa: E402
 
 from gvls.compression.jet_sweep import (  # noqa: E402
+    SELECTION_METRICS,
     evaluate_pooled_gvls_on_jets,
     jet_adjacency,
     jet_pos_weight,
@@ -124,6 +125,22 @@ K_GRID = [1, 2, 3]
 # variational term does anything once it is not 0.25% of the loss.
 BETA_GRID = [0.001, 0.01, 0.1, 1.0]
 PRIOR_GRID = ["isotropic", "graph_mrf"]
+
+# T5.1 (specs/phase5/) knobs. Both default to the pre-Phase-5 behaviour, so
+# a bare re-run reproduces the original 2026-08-04 sweep exactly and each
+# change can be attributed to one flag at a time:
+#
+#   --normalization per_jet        beta_eff = beta for every jet (a true
+#                                  per-graph ELBO) instead of beta*N^2/M
+#   --selection-metric probe_accuracy
+#                                  select checkpoints on downstream
+#                                  separability instead of reconstruction F1,
+#                                  which correlates only +0.245 with it
+#
+# Vary one at a time. Changing both at once makes any difference in the
+# results unattributable, which is the mistake this grid exists to avoid.
+NORMALIZATION = "legacy"
+SELECTION_METRIC = "reconstruction_f1"
 
 # --- downstream (classical-baseline) protocol, matching the QGNN run ---
 NUM_TRIALS = 5
@@ -205,7 +222,9 @@ def data_config() -> dict[str, Any]:
     }
 
 
-def base_cfg(k: int, beta: float, prior: str) -> dict[str, Any]:
+def base_cfg(
+    k: int, beta: float, prior: str, normalization: str = NORMALIZATION
+) -> dict[str, Any]:
     return {
         "hidden_dim": HIDDEN_DIM,
         "latent_dim": LATENT_DIM,
@@ -216,6 +235,7 @@ def base_cfg(k: int, beta: float, prior: str) -> dict[str, Any]:
         "lr": LR,
         "beta": beta,
         "lambda_": LAMBDA_,
+        "normalization": normalization,
     }
 
 
@@ -263,7 +283,12 @@ def loss_decomposition(model, jets, cfg, device) -> dict[str, float]:
             else kl_graph_mrf(mu, log_var, a_z, float(cfg["lambda_"]))
         ).item()
         raw_kl += kl
-        totals["kl"] += beta * kl
+        # Mirror elbo()'s own normalization (T5.1), or this diagnostic reports
+        # the KL's share of a loss that was never actually optimized.
+        kl_contribution = kl
+        if cfg.get("normalization", "legacy") == "per_jet":
+            kl_contribution = kl * mu.size(0) / recon_logits.numel()
+        totals["kl"] += beta * kl_contribution
         totals["entropy"] += ENTROPY_WEIGHT * assignment_entropy(s).item()
         totals["link"] += AUX_LINK_WEIGHT * assignment_link_loss(s, adj, pos_weight).item()
         sigma += (0.5 * log_var).exp().mean().item()
@@ -321,12 +346,17 @@ def _get_split():
     return _SPLIT_CACHE
 
 
-def run_config(point: tuple[int, float, str], epochs: int = EPOCHS) -> dict[str, Any]:
+def run_config(
+    point: tuple[int, float, str],
+    epochs: int = EPOCHS,
+    normalization: str = NORMALIZATION,
+    selection_metric: str = SELECTION_METRIC,
+) -> dict[str, Any]:
     """Train and score one grid point. Self-contained so it can run in any process."""
     k, beta, prior = point
     _pin_threads()
     split = _get_split()
-    cfg = base_cfg(k, beta, prior)
+    cfg = base_cfg(k, beta, prior, normalization)
     device = torch.device("cpu")
 
     start = time.time()
@@ -347,6 +377,7 @@ def run_config(point: tuple[int, float, str], epochs: int = EPOCHS) -> dict[str,
         eval_jets=split.val,
         eval_every=5,
         f1_negative_ratio=F1_NEGATIVE_RATIO,
+        selection_metric=selection_metric,
     )
     train_time = time.time() - start
 
@@ -377,10 +408,10 @@ def run_config(point: tuple[int, float, str], epochs: int = EPOCHS) -> dict[str,
     return row
 
 
-def _run_job(job: tuple[tuple[int, float, str], int]) -> dict[str, Any]:
+def _run_job(job: tuple[tuple[int, float, str], int, str, str]) -> dict[str, Any]:
     """Single-argument adapter so `run_config` can go through `imap_unordered`."""
-    point, epochs = job
-    return run_config(point, epochs)
+    point, epochs, normalization, selection_metric = job
+    return run_config(point, epochs, normalization, selection_metric)
 
 
 def _format_row(row: dict[str, Any]) -> str:
@@ -407,6 +438,20 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--epochs", type=int, default=EPOCHS, help="epochs per config")
     parser.add_argument("--out", type=Path, default=RESULT_PATH, help="output CSV path")
+    parser.add_argument(
+        "--normalization",
+        choices=["per_jet", "legacy"],
+        default=NORMALIZATION,
+        help="ELBO normalization (T5.1). 'legacy' reproduces the original "
+        "2026-08-04 sweep, whose beta conclusions were drawn under an "
+        "N-dependent effective beta.",
+    )
+    parser.add_argument(
+        "--selection-metric",
+        choices=sorted(SELECTION_METRICS),
+        default=SELECTION_METRIC,
+        help="validation signal the best-epoch checkpoint is selected on (T5.1)",
+    )
     return parser.parse_args()
 
 
@@ -419,7 +464,8 @@ def main() -> None:
     workers = max(1, min(workers, len(grid)))
     print(
         f"{len(grid)} configs, {workers} parallel workers (1 thread each), "
-        f"{args.epochs} epochs/config",
+        f"{args.epochs} epochs/config, normalization={args.normalization}, "
+        f"selection_metric={args.selection_metric}",
         flush=True,
     )
 
@@ -436,7 +482,12 @@ def main() -> None:
 
         if workers == 1:
             for i, point in enumerate(grid, start=1):
-                record(i, run_config(point, args.epochs))
+                record(
+                    i,
+                    run_config(
+                        point, args.epochs, args.normalization, args.selection_metric
+                    ),
+                )
         else:
             # imap_unordered (not starmap/map) so each config's row is written
             # and printed the moment it finishes, rather than all of them after
@@ -445,7 +496,10 @@ def main() -> None:
             # maxtasksperchild=1 keeps each config in a fresh process, so a
             # config that leaks or wedges cannot affect the ones after it.
             with mp.get_context("spawn").Pool(workers, maxtasksperchild=1) as pool:
-                jobs = [(point, args.epochs) for point in grid]
+                jobs = [
+                    (point, args.epochs, args.normalization, args.selection_metric)
+                    for point in grid
+                ]
                 for i, row in enumerate(pool.imap_unordered(_run_job, jobs), start=1):
                     record(i, row)
 

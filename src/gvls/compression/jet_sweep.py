@@ -129,6 +129,10 @@ def jet_loss(
         lambda_=float(base_cfg["lambda_"]),
         prior=str(base_cfg["prior"]),
         pos_weight=pos_weight,
+        # T5.1: defaults to "legacy" so configs written before Phase 5 keep
+        # their exact behaviour; configs/train/jet_pretrain.yaml opts into
+        # "per_jet". See gvls.losses.elbo.elbo's docstring.
+        normalization=str(base_cfg.get("normalization", "legacy")),
     )
     loss = loss + entropy_weight * assignment_entropy(s)
     loss = loss + aux_link_weight * assignment_link_loss(s, adj_true, pos_weight)
@@ -140,6 +144,104 @@ def jet_loss(
 # wandb.init) -- excluded from per-epoch logging so val_* only reports
 # quantities that actually evolve during training.
 _STATIC_EVAL_KEYS = {"num_clusters", "latent_dim", "k", "num_features", "dim_compression_ratio"}
+
+# T5.1 (specs/phase5/): selectable checkpoint criteria for
+# train_pooled_gvls_on_jets. Maps each name to whether larger is better, so
+# the selection loop itself stays metric-agnostic.
+#
+# Why this exists: the pre-T5.1 behaviour (always "reconstruction_f1") was
+# selecting on a signal measured to correlate only +0.245 with downstream
+# classification accuracy across the usable beta range -- the +0.922
+# correlation over the full (k, beta, prior) grid turned out to be an
+# artifact of the collapsed high-beta rows, and the single best-F1
+# configuration in that grid was *not* the best-downstream one. See
+# specs/phase5/validation.md V-0 Part B.
+SELECTION_METRICS = {
+    "reconstruction_f1": True,  # pre-T5.1 behaviour, still the default
+    "val_loss": False,
+    "probe_accuracy": True,
+}
+
+
+@torch.no_grad()
+def jet_probe_features(
+    model: PooledGVLS, jets: list[JetGraph], device: torch.device
+) -> tuple[Tensor, Tensor]:
+    """Frozen `(z_tilde, A_z)` per jet, flattened to one feature vector each.
+
+    Deliberately a small local implementation rather than an import of
+    `gvls.qgnn_training.extract_latent_features` /
+    `gvls.eval.classical_baseline.jet_features_to_array`: both of those
+    modules import `gvls.models.qgnn`, which imports qiskit. Pulling the
+    entire quantum stack into GVLS's own classical pretraining path just to
+    score a logistic regression would be a heavy and surprising dependency,
+    and would make GVLS pretraining fail on a machine without qiskit
+    installed. The feature layout matches `jet_features_to_array`'s
+    (flattened `z_tilde`, then `A_z`'s strict upper triangle).
+    """
+    model.eval()
+    rows: list[Tensor] = []
+    labels: list[float] = []
+    for jet in jets:
+        _mu, _lv, _z, a_z, z_tilde, _s, _rl = model(jet.x.to(device), jet.edge_index.to(device))
+        m = a_z.size(0)
+        iu, ju = torch.triu_indices(m, m, offset=1, device=a_z.device)
+        rows.append(torch.cat([z_tilde.reshape(-1), a_z[iu, ju]]).cpu())
+        labels.append(float(jet.y.item()))
+    return torch.stack(rows), torch.tensor(labels)
+
+
+def probe_accuracy(
+    model: PooledGVLS, jets: list[JetGraph], device: torch.device, seed: int
+) -> float:
+    """Downstream separability of the frozen features, as a selection signal.
+
+    Fits a logistic regression on half of `jets` and scores it on the other
+    half, both drawn from the *validation* split -- the test split is never
+    touched here. This is a cheap proxy for the metric Phase 5 actually
+    optimizes (`plan.md` Design Decision 2), not a reported result; the
+    reported downstream numbers still come from
+    `gvls.eval.classical_baseline` under the full 5-trial protocol.
+
+    Returns 0.5 (chance) if either half ends up single-class, rather than
+    letting sklearn raise mid-training.
+    """
+    from sklearn.linear_model import LogisticRegression  # local: keeps import cost off callers
+
+    x, y = jet_probe_features(model, jets, device)
+    generator = torch.Generator().manual_seed(seed)
+    perm = torch.randperm(len(jets), generator=generator)
+    half = len(jets) // 2
+    tr, te = perm[:half], perm[half:]
+    y_tr, y_te = y[tr].numpy(), y[te].numpy()
+    if len(set(y_tr.tolist())) < 2 or len(set(y_te.tolist())) < 2:
+        return 0.5
+    clf = LogisticRegression(max_iter=2000, random_state=seed)
+    clf.fit(x[tr].numpy(), y_tr)
+    return float(clf.score(x[te].numpy(), y_te))
+
+
+@torch.no_grad()
+def validation_loss(
+    model: PooledGVLS,
+    jets: list[JetGraph],
+    base_cfg: dict[str, Any],
+    device: torch.device,
+    entropy_weight: float,
+    aux_link_weight: float,
+) -> float:
+    """Mean per-jet training loss over held-out jets (lower is better).
+
+    Uses the same `jet_loss` the training loop optimizes, so the selection
+    criterion and the objective agree. Runs in eval mode, so the pooled
+    Gaussian is taken at its mean rather than resampled -- this is a
+    lower-variance estimate of the same quantity, not a different one.
+    """
+    model.eval()
+    total = 0.0
+    for jet in jets:
+        total += jet_loss(model, jet, base_cfg, device, entropy_weight, aux_link_weight).item()
+    return total / max(len(jets), 1)
 
 
 def train_pooled_gvls_on_jets(
@@ -161,6 +263,7 @@ def train_pooled_gvls_on_jets(
     eval_every: int = 1,
     f1_negative_ratio: float = 1.0,
     on_epoch_end: Callable[[int, dict[str, Any]], None] | None = None,
+    selection_metric: str = "reconstruction_f1",
 ) -> PooledGVLS:
     """Train one PooledGVLS unsupervised (ELBO only) over many jets (T4.2/T4.3).
 
@@ -191,9 +294,21 @@ def train_pooled_gvls_on_jets(
     live per-epoch logging (e.g. `wandb.log`) without coupling this reusable
     training function to any specific logging backend.
 
+    `selection_metric` (T5.1, specs/phase5/) chooses which validation signal
+    the best-epoch snapshot is selected on: `"reconstruction_f1"` (default,
+    the pre-T5.1 behaviour), `"val_loss"` (mean held-out `jet_loss`), or
+    `"probe_accuracy"` (a logistic regression on the frozen features, fit and
+    scored within the validation split). The default is kept for backward
+    compatibility, but it selects on a signal measured to correlate only
+    +0.245 with downstream accuracy in the usable beta range -- see
+    `SELECTION_METRICS` above and specs/phase5/validation.md V-0 Part B.
+    Whichever criterion a run uses is reported in the returned model's
+    per-epoch metrics (`val_loss` / `val_probe_accuracy` keys) so it is
+    recoverable from the run's own logs.
+
     Whenever `eval_jets` is given, the returned model's weights are the
-    best-val-`avg_reconstruction_f1` snapshot seen across eval epochs, not
-    necessarily the final epoch's -- mirrors `train_qgnn_classifier`'s
+    best-validation snapshot (by `selection_metric`) seen across eval epochs,
+    not necessarily the final epoch's -- mirrors `train_qgnn_classifier`'s
     best-val-accuracy checkpointing (`src/gvls/qgnn_training.py`), which this
     function lacked until now (specs/phase4/validation.md V-10: GVLS
     pretraining was returning the last-epoch model unconditionally, even
@@ -204,12 +319,18 @@ def train_pooled_gvls_on_jets(
     best weights are loaded into `model` in place before returning) so every
     existing caller works unmodified.
     """
+    if selection_metric not in SELECTION_METRICS:
+        raise ValueError(
+            f"selection_metric must be one of {set(SELECTION_METRICS)}, got '{selection_metric}'"
+        )
+    higher_is_better = SELECTION_METRICS[selection_metric]
+
     torch.manual_seed(seed)
     model = build_pooled_gvls(in_channels, latent_dim, k, num_clusters, base_cfg).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=float(base_cfg["lr"]))
     shuffle_generator = torch.Generator().manual_seed(seed)
 
-    best_val_f1 = -1.0
+    best_score = float("-inf") if higher_is_better else float("inf")
     best_epoch = -1
     best_state_dict: dict[str, Tensor] | None = None
 
@@ -257,8 +378,33 @@ def train_pooled_gvls_on_jets(
             )
             val_f1 = eval_metrics["avg_reconstruction_f1"]
             postfix["val_f1"] = val_f1
-            if val_f1 > best_val_f1:
-                best_val_f1 = val_f1
+
+            if selection_metric == "reconstruction_f1":
+                score = val_f1
+            elif selection_metric == "val_loss":
+                score = validation_loss(
+                    model,
+                    eval_jets,  # type: ignore[arg-type]
+                    base_cfg,
+                    device,
+                    entropy_weight,
+                    aux_link_weight,
+                )
+                epoch_metrics["val_loss"] = score
+                postfix["val_loss"] = score
+            else:  # probe_accuracy
+                score = probe_accuracy(
+                    model,
+                    eval_jets,  # type: ignore[arg-type]
+                    device,
+                    seed,
+                )
+                epoch_metrics["val_probe_accuracy"] = score
+                postfix["probe"] = score
+
+            improved = score > best_score if higher_is_better else score < best_score
+            if improved:
+                best_score = score
                 best_epoch = epoch
                 best_state_dict = {name: t.clone() for name, t in model.state_dict().items()}
         epoch_iter.set_postfix(**postfix)
@@ -270,8 +416,8 @@ def train_pooled_gvls_on_jets(
         model.load_state_dict(best_state_dict)
         if show_progress:
             tqdm.write(
-                f"{progress_desc}: restoring best-val-F1 checkpoint "
-                f"(epoch={best_epoch}, val_f1={best_val_f1:.4f})"
+                f"{progress_desc}: restoring best-validation checkpoint "
+                f"(epoch={best_epoch}, {selection_metric}={best_score:.4f})"
             )
     model.eval()
     return model
