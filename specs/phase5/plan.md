@@ -117,9 +117,12 @@ of a jet, regardless of how it compares to Phase 4's own history.
    worth `+0.0296` to a classical model. This is a change to what the circuit
    is shown, not to its depth, width, weights, or optimizer — the things
    whose entanglement with GVLS changes the freeze exists to prevent. T5.8 is
-   still sequenced **after** the in-flight T5.1 comparability run finishes, so
+   still sequenced **after** a clean `M=4` T5.1 comparability run finishes, so
    there is a clean GVLS-only baseline to attribute against; it does not run
-   concurrently.
+   concurrently. **Note (2026-08-06):** the first comparability run attempt
+   ran at `M=5`, not `M=4`, by mistake (`GVLS_M` was edited on the remote
+   machine between runs; see V-1's incident note) — that baseline does not
+   yet exist and must be produced before T5.8 starts.
 
 4. **The classical baseline is the working metric, not the QGNN.** Phase 4
    established the QGNN sits below a plain logistic regression on identical
@@ -570,9 +573,11 @@ Measure the empirical range of `log_var` over real jets **before** running,
 and include a scaling/normalization parameter (learned or fixed) rather than
 feeding raw values and concluding the idea failed when the encoding did.
 
-**Sequencing.** Runs after the in-flight T5.1 comparability sweep completes,
-so there is a clean GVLS-only baseline to attribute against (Design Decision 3
-as amended). Compared against that baseline over the same 5-trial protocol.
+**Sequencing.** Runs after a clean `M=4` T5.1 comparability result exists, so
+there is a clean GVLS-only baseline to attribute against (Design Decision 3 as
+amended). Compared against that baseline over the same 5-trial protocol. The
+first comparability attempt does not qualify — it ran at `M=5` by mistake, see
+Design Decision 3's amendment and `validation.md` V-1.
 
 Tests: the circuit has `m` `RX` gates per layer on the expected qubits; the
 input vector's length and ordering match `QGNNCircuitParams` exactly (the

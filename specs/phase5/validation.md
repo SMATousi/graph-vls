@@ -29,7 +29,9 @@ per NFR-5.
       for the correction to this task's original premise
 - [ ] (T5.1, FR-1) `(k, β)` operating point re-established under whichever
       flags are adopted — not yet run; both default to prior behaviour, so a
-      bare re-run reproduces the original grid
+      bare re-run reproduces the original grid. A QGNN-level comparability
+      attempt exists but is invalid (ran at `M=5`, not `M=4` — see V-1's
+      incident note)
 - [x] (T5.2, FR-2) `log_var` reaches the downstream classifier; ablation
       measured and reported — **+0.0296 accuracy** (0.7074 → 0.7370), and
       `logvar_only` alone beats the entire pre-T5.2 feature set. See V-2
@@ -47,7 +49,8 @@ per NFR-5.
 - [ ] (T5.8, FR-8) `log_var` encoded into the circuit on a second (`RX`)
       rotation axis, with the angle-scaling risk measured before the first run
       and the pub-count cost measured rather than argued — **queued, not
-      implemented**; runs after the in-flight T5.1 comparability sweep
+      implemented**; runs after a clean `M=4` T5.1 comparability result exists
+      (the first attempt ran at `M=5` by mistake — see V-1's incident note)
 - [ ] (T5.7, FR-7) One QGNN run on the winning GVLS configuration
 - [ ] (T5.7, FR-7) `README.md` results section written — outstanding since
       Phase 4
@@ -234,6 +237,32 @@ default.
   the intended comparison is one flag at a time.
 - **Deferred out of this task:** `pos_weight`'s `N`-dependence, which is where
   the measured class asymmetry actually lives. See `plan.md`'s deferred scope.
+
+**Incident (2026-08-06): the QGNN-level comparability run (`scripts/
+run_qgnn_lorentz_comparability.sh`, `RUN_TAG=_t51`) does not have a valid
+`M=4` result.** `GVLS_M` was edited from `4` to `5` on the remote machine
+between the run's first and second attempts (commit `01c1cd7`, "M5 training
+finished"). `GVLS_CHECKPOINT_PATH` includes `${GVLS_M}` and so did not
+collide, but `RESULTS_PATH`/`RESULTS_PATTERN`/`SUMMARY_PATH` are suffixed by
+`RUN_TAG` only, not by `GVLS_M` — so the `M=5` run's stage-3 outputs
+overwrote the `M=4` run's `qg_jets_metrics_lorentz800_t51_seed*.json` and
+`..._summary.json` files in place. Confirmed directly: `seed42.json`'s `"m"`
+field changed `4 → 5` between commits `47275ff` and `01c1cd7`.
+
+What exists in the repo now (`qg_jets_metrics_lorentz800_t51_summary.json`,
+`test_accuracy_mean = 0.6741 ± 0.0125`) is therefore an **`M=5`** result — a
+different qubit count than Lorentz-EQGNN's 4, which breaks the comparability
+claim `plan.md` Design Decision 12/T4.10 exists to make. It is **not** a valid
+answer to this task's "re-establish the `(k, β)` operating point" step, and
+must not be read as one. Whether a clean `M=5` checkpoint from that run
+still exists on the remote (`checkpoints/gvls_jets_m5_lorentz800_t51.pt`,
+which was not overwritten, only the results JSONs were) has not been checked.
+
+The underlying defect — checkpoint/results paths that key on `RUN_TAG` but
+not on every hyperparameter that makes two runs non-comparable (`GVLS_M`
+here; the same class of gap could recur for `GVLS_K`, `QGNN_NUM_LAYERS`,
+etc.) — has not been fixed, by explicit user decision (2026-08-06): re-running
+this script again without addressing it risks the same silent overwrite.
 
 ## V-2: Variational output reaches the downstream task (T5.2) ✅ Complete 2026-08-05 — +3.0 accuracy points from a tensor that was being discarded
 
