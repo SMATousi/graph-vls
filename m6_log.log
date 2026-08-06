@@ -1,0 +1,58 @@
+=== [1/3] Pretraining production GVLS checkpoint (M=5, train_subset=null i.e. full 800-jet pool) -- once, reused across all 5 QGNN repeats ===
+Device: cuda
+Loading qg_jets (protocol=lorentz, seed=42)...
+Downloading QG_jets.npz from https://zenodo.org/record/3164691/files/QG_jets.npz?download=1 to /root/.energyflow/datasets
+Traceback (most recent call last):
+  File "/root/home/graph-vls/experiments/pretrain_gvls_jets_final.py", line 106, in <module>
+    main()
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+    _run_hydra(
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+    _run_app(
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+    run_and_report(
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+           ^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+    lambda: hydra.run(
+            ^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 119, in run
+    ret = run_job(
+          ^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+    ret.return_value = task_function(task_cfg)
+                       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/home/graph-vls/experiments/pretrain_gvls_jets_final.py", line 33, in main
+    split = load_split_from_config(data_cfg)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/home/graph-vls/src/gvls/data/jets.py", line 355, in load_split_from_config
+    split = load_qg_jets_lorentz_protocol(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/home/graph-vls/src/gvls/data/jets.py", line 244, in load_qg_jets_lorentz_protocol
+    graphs = load_qg_jets_fixed_pool(
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/home/graph-vls/src/gvls/data/jets.py", line 203, in load_qg_jets_fixed_pool
+    raw_x, raw_y = ef.qg_jets.load(**load_kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/energyflow/datasets/qg_jets.py", line 528, in load
+    fpath = _get_filepath(filename, url, cache_dir, file_hash=hashes['sha256'][i])
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/site-packages/energyflow/utils/data_utils.py", line 367, in _get_filepath
+    urlretrieve(url, fpath)
+  File "/opt/conda/envs/graph-vls/lib/python3.11/urllib/request.py", line 270, in urlretrieve
+    block = fp.read(bs)
+            ^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/http/client.py", line 478, in read
+    s = self.fp.read(amt)
+        ^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/socket.py", line 718, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/ssl.py", line 1314, in recv_into
+    return self.read(nbytes, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/graph-vls/lib/python3.11/ssl.py", line 1166, in read
+    return self._sslobj.read(len, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

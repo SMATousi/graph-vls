@@ -1,0 +1,66 @@
+_wandb:
+    value:
+        cli_version: 0.28.1
+        e:
+            kfgn7eqmlkvoj7opyj010nzjl6armice:
+                args:
+                    - results/qgnn/qg_jets_metrics_lorentz800_t51_seed*.json
+                    - --output
+                    - results/qgnn/qg_jets_metrics_lorentz800_t51_summary.json
+                    - --wandb-mode
+                    - online
+                    - --wandb-group
+                    - qgnn-jet-classification-lorentz800_t51
+                    - --wandb-name
+                    - qgnn-M5-lorentz800_t51-summary
+                codePath: experiments/aggregate_qgnn_repeats.py
+                codePathLocal: experiments/aggregate_qgnn_repeats.py
+                cpu_count: 64
+                cpu_count_logical: 128
+                cudaVersion: "13.2"
+                disk:
+                    /:
+                        total: "8001029144576"
+                        used: "3624091504640"
+                email: stmmc@umsystem.edu
+                executable: /opt/conda/envs/graph-vls/bin/python
+                git:
+                    commit: 749369d1f432283bfeb8a9303a1260d09fb70e16
+                    remote: git@github.com:SMATousi/graph-vls.git
+                gpu: NVIDIA A10
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ampere
+                      cudaCores: 9216
+                      memoryTotal: "24146608128"
+                      name: NVIDIA A10
+                      uuid: GPU-1999f913-8252-4b3c-6bef-f0e09b3f90fd
+                host: ali-dep-a10-557db5c97f-m7mb5
+                memory:
+                    total: "540851961856"
+                os: Linux-6.8.0-136-generic-x86_64-with-glibc2.35
+                program: /root/home/graph-vls/experiments/aggregate_qgnn_repeats.py
+                python: CPython 3.11.15
+                root: /root/home/graph-vls
+                startedAt: "2026-08-06T16:36:05.278325Z"
+                writerId: kfgn7eqmlkvoj7opyj010nzjl6armice
+        m: []
+        python_version: 3.11.15
+        t:
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.11.15
+            "5": 0.28.1
+            "12": 0.28.1
+            "13": linux-x86_64
+num_runs:
+    value: 5
+source_files:
+    value:
+        - results/qgnn/qg_jets_metrics_lorentz800_t51_seed42.json
+        - results/qgnn/qg_jets_metrics_lorentz800_t51_seed43.json
+        - results/qgnn/qg_jets_metrics_lorentz800_t51_seed44.json
+        - results/qgnn/qg_jets_metrics_lorentz800_t51_seed45.json
+        - results/qgnn/qg_jets_metrics_lorentz800_t51_seed46.json

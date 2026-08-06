@@ -1,0 +1,51 @@
+{
+  "os":  "Linux-6.8.0-136-generic-x86_64-with-glibc2.35",
+  "python":  "CPython 3.11.15",
+  "startedAt":  "2026-08-06T16:36:05.278325Z",
+  "args":  [
+    "results/qgnn/qg_jets_metrics_lorentz800_t51_seed*.json",
+    "--output",
+    "results/qgnn/qg_jets_metrics_lorentz800_t51_summary.json",
+    "--wandb-mode",
+    "online",
+    "--wandb-group",
+    "qgnn-jet-classification-lorentz800_t51",
+    "--wandb-name",
+    "qgnn-M5-lorentz800_t51-summary"
+  ],
+  "program":  "/root/home/graph-vls/experiments/aggregate_qgnn_repeats.py",
+  "codePath":  "experiments/aggregate_qgnn_repeats.py",
+  "codePathLocal":  "experiments/aggregate_qgnn_repeats.py",
+  "git":  {
+    "remote":  "git@github.com:SMATousi/graph-vls.git",
+    "commit":  "749369d1f432283bfeb8a9303a1260d09fb70e16"
+  },
+  "email":  "stmmc@umsystem.edu",
+  "root":  "/root/home/graph-vls",
+  "host":  "ali-dep-a10-557db5c97f-m7mb5",
+  "executable":  "/opt/conda/envs/graph-vls/bin/python",
+  "cpu_count":  64,
+  "cpu_count_logical":  128,
+  "gpu":  "NVIDIA A10",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "8001029144576",
+      "used":  "3624091504640"
+    }
+  },
+  "memory":  {
+    "total":  "540851961856"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA A10",
+      "memoryTotal":  "24146608128",
+      "cudaCores":  9216,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-1999f913-8252-4b3c-6bef-f0e09b3f90fd"
+    }
+  ],
+  "cudaVersion":  "13.2",
+  "writerId":  "kfgn7eqmlkvoj7opyj010nzjl6armice"
+}

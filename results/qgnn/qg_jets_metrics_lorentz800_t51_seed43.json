@@ -1,28 +1,28 @@
 {
-  "m": 4,
+  "m": 5,
   "num_layers": 8,
   "optimizer": "adamw",
   "num_test_jets": 1250,
-  "train_accuracy": 0.68875,
-  "test_accuracy": 0.6512,
-  "test_accuracy_fixed_threshold_0.5": 0.6504,
-  "threshold": 0.5096158504445998,
-  "training_time_s": 7623.707305651042,
-  "inference_time_s": 3.347685161046684,
-  "accuracy": 0.6512,
-  "auc": 0.6921504172420772,
-  "ap": 0.7343959558799404,
-  "macro_f1": 0.6470216398403112,
-  "precision": 0.7197452229299363,
-  "recall": 0.5272161741835147,
+  "train_accuracy": 0.67,
+  "test_accuracy": 0.6632,
+  "test_accuracy_fixed_threshold_0.5": 0.664,
+  "threshold": 0.5013091236240691,
+  "training_time_s": 14278.346171249003,
+  "inference_time_s": 7.212541542001418,
+  "accuracy": 0.6632,
+  "auc": 0.7254939136717559,
+  "ap": 0.7488876014888137,
+  "macro_f1": 0.6622868235709358,
+  "precision": 0.7047970479704797,
+  "recall": 0.5940902021772939,
   "confusion_matrix": [
     [
-      475,
-      132
+      447,
+      160
     ],
     [
-      304,
-      339
+      261,
+      382
     ]
   ]
 }

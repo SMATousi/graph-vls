@@ -119,7 +119,7 @@ WANDB_TAGS="[lorentz-comparability,qg-jets-800]"
 GVLS_HIDDEN_DIM=32
 GVLS_LATENT_DIM=8
 GVLS_K=3
-GVLS_M=4                       # pooled latent node count; T4.3 selected 4,
+GVLS_M=5                       # pooled latent node count; T4.3 selected 4,
                                 # and it happens to match Lorentz-EQGNN's 4 qubits
 GVLS_GRAPH_METHOD=attention    # attention | fgp | nri
 GVLS_PRIOR=isotropic           # isotropic | graph_mrf
@@ -145,7 +145,7 @@ GVLS_CHECKPOINT_PATH="checkpoints/gvls_jets_m${GVLS_M}_lorentz800${RUN_TAG}.pt"
 # reconstruction F1 sat flat at 0.740-0.748 for every epoch (V-2). Leaving
 # this true would skip stage 1 against an existing checkpoint and spend ~13
 # hours reproducing the old number while measuring nothing.
-SKIP_GVLS_PRETRAIN_IF_CHECKPOINT_EXISTS=false
+SKIP_GVLS_PRETRAIN_IF_CHECKPOINT_EXISTS=true
 
 # --- Stage 2/3: QGNN training + evaluation, repeated per seed --
 #     configs/train/qgnn_classifier.yaml ---

@@ -1,0 +1,4 @@
+pretrain GVLS (production, M=5): 100%|██████████| 200/200 [50:31<00:00, 15.16s/it, loss=4.68, probe=0.717, val_f1=0.74] 
+pretrain GVLS (production, M=5): restoring best-validation checkpoint (epoch=38, probe_accuracy=0.7344)
+
+Saved production GVLS checkpoint (M=5) to checkpoints/gvls_jets_m5_lorentz800_t51.pt

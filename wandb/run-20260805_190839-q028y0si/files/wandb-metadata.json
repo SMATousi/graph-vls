@@ -1,0 +1,68 @@
+{
+  "os":  "Linux-6.8.0-136-generic-x86_64-with-glibc2.35",
+  "python":  "CPython 3.11.15",
+  "startedAt":  "2026-08-05T19:08:39.311593Z",
+  "args":  [
+    "data=qg_jets_lorentz",
+    "data.k_graph_cap=8",
+    "data.num_train=800",
+    "data.num_val=1250",
+    "data.num_test=1250",
+    "data.min_particles=10",
+    "data.seed=42",
+    "data.train_subset=null",
+    "wandb.mode=online",
+    "train.hidden_dim=32",
+    "train.latent_dim=8",
+    "train.k=3",
+    "train.m=5",
+    "train.graph_method=attention",
+    "train.prior=isotropic",
+    "train.mp_rounds=1",
+    "train.lr=0.01",
+    "train.beta=0.001",
+    "train.lambda_=1.0",
+    "train.epochs=200",
+    "train.batch_size=32",
+    "train.seed=42",
+    "checkpoint_path=checkpoints/gvls_jets_m5_lorentz800_t51.pt",
+    "wandb.name=gvls-jets-M5-lorentz800_t51",
+    "wandb.group=qgnn-jet-classification-lorentz800_t51",
+    "wandb.tags=[lorentz-comparability,qg-jets-800]"
+  ],
+  "program":  "/root/home/graph-vls/experiments/pretrain_gvls_jets_final.py",
+  "codePath":  "experiments/pretrain_gvls_jets_final.py",
+  "codePathLocal":  "experiments/pretrain_gvls_jets_final.py",
+  "git":  {
+    "remote":  "git@github.com:SMATousi/graph-vls.git",
+    "commit":  "749369d1f432283bfeb8a9303a1260d09fb70e16"
+  },
+  "email":  "stmmc@umsystem.edu",
+  "root":  "/root/home/graph-vls",
+  "host":  "ali-dep-a10-557db5c97f-m7mb5",
+  "executable":  "/opt/conda/envs/graph-vls/bin/python",
+  "cpu_count":  64,
+  "cpu_count_logical":  128,
+  "gpu":  "NVIDIA A10",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "8001029144576",
+      "used":  "3513128796160"
+    }
+  },
+  "memory":  {
+    "total":  "540851961856"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA A10",
+      "memoryTotal":  "24146608128",
+      "cudaCores":  9216,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-1999f913-8252-4b3c-6bef-f0e09b3f90fd"
+    }
+  ],
+  "cudaVersion":  "13.2",
+  "writerId":  "nz5l9vuuxoc3aniytdot9jyqtf3uk3vd"
+}

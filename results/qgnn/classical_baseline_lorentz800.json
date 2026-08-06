@@ -7,16 +7,16 @@
     45,
     46
   ],
-  "logreg_accuracy_mean": 0.69072,
-  "logreg_accuracy_std": 0.008189749690924631,
-  "logreg_auc_mean": 0.758122064765399,
-  "logreg_auc_std": 0.009836099880574722,
-  "logreg_macro_f1_mean": 0.6893758128657214,
-  "logreg_macro_f1_std": 0.008647416379304579,
-  "mlp_accuracy_mean": 0.6948799999999999,
-  "mlp_accuracy_std": 0.010860570887388944,
-  "mlp_auc_mean": 0.7611889285448922,
-  "mlp_auc_std": 0.006944747424798461,
-  "mlp_macro_f1_mean": 0.6944001982129974,
-  "mlp_macro_f1_std": 0.011179172444816133
+  "logreg_accuracy_mean": 0.71392,
+  "logreg_accuracy_std": 0.007830197954074997,
+  "logreg_auc_mean": 0.7872744369089497,
+  "logreg_auc_std": 0.007413678295645747,
+  "logreg_macro_f1_mean": 0.7133491602196601,
+  "logreg_macro_f1_std": 0.007986378729716585,
+  "mlp_accuracy_mean": 0.72208,
+  "mlp_accuracy_std": 0.010065386232033029,
+  "mlp_auc_mean": 0.7926548996799906,
+  "mlp_auc_std": 0.0066436225726155184,
+  "mlp_macro_f1_mean": 0.7219048238405898,
+  "mlp_macro_f1_std": 0.010041681125950988
 }
