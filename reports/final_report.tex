@@ -1,0 +1,364 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\title{Graph Variational Latent Space (GVLS) for Quantum Graph Neural Networks}
+\author{Seyed Mohamad Ali Tousi}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{Executive Summary}
+
+Current quantum hardware cannot process large graph-structured data directly, so this
+  project investigated whether a learned, graph-structured variational latent space could
+  compress large graphs into representations compact enough to serve as input to a Quantum
+  Graph Neural Network (QGNN) while retaining useful relational structure. The proposed
+  Graph Variational Latent Space (GVLS) encodes an input graph into a smaller latent graph --- fewer nodes, fewer
+  edges, and lower dimensionality than the original --- with its own inferred adjacency, so
+  that qubit and gate requirements scale with the compressed representation rather than
+  the input graph size.
+
+  Validated first as a classical method, GVLS matched or approached state-of-the-art
+  variational graph autoencoders on standard citation-network link-prediction benchmarks (presented in our Midterm Report),
+  confirming that the compression preserves meaningful structure rather than discarding it.
+  This classical representation was then carried into the project's central quantum
+  objective: a hybrid pipeline in which GVLS compresses individual particle-jet graphs and
+  a parameterized quantum circuit, entangled according to the learned latent adjacency,
+  classifies quark- versus gluon-initiated jets. The resulting QGNN was benchmarked
+  directly against a published quantum classifier on the same task and qubit budget,
+  reaching competitive accuracy, but reducing the inference time by \textbf{38 times}. Overall, the project establishes both a viable classical graph-compression
+  method and a working, benchmarked classical-to-quantum pipeline, while identifying the
+  quantum stage as the primary target for further gains.
+
+\section*{Research Objectives}
+The project's original proposal centered on a single hypothesis: that a
+learned, graph-structured variational latent space could compress a large
+input graph into a small representation suitable for downstream use by a
+Quantum Graph Neural Network, without discarding the relational structure
+that makes the input a graph in the first place. Enabling that quantum
+consumer was the project's core motivation: current quantum hardware cannot process large graph-structured data directly, and GVLS's reason for existing is to close
+that gap. The initial validation target was link prediction on standard
+citation-network benchmarks (Cora, CiteSeer, PubMed) \cite{yang2016revisiting}, used to establish that
+the compression preserves meaningful graph structure before that
+representation was ever asked to feed a quantum circuit; node classification
+and graph-compression quality served as secondary classical evaluations. A
+standalone secondary goal was for GVLS to stand on its own merits as a
+classical graph representation learning method, competitive with existing
+variational graph autoencoders, independent of the quantum application. The final part then came after this validation.
+
+\section*{Methodology}
+
+GVLS itself is a graph variational autoencoder built from four differentiable
+stages, implemented in PyTorch and PyTorch Geometric. A graph convolutional
+encoder maps each input node to a Gaussian posterior over a latent embedding;
+a learned soft-assignment pooling step \cite{ying2018diffpool} then merges these $N$ node posteriors
+into a fixed, much smaller number $M$ of latent-node posteriors; a latent
+graph inference module infers a sparse adjacency $A_z$ directly over these
+$M$ latent nodes rather than reusing the input graph's topology; and message
+passing over $A_z$ refines the pooled embeddings $\tilde z$ before an
+inner-product decoder reconstructs the original graph through the same
+pooling assignment used to compress it. The full model is trained end-to-end
+by maximizing an evidence lower bound (ELBO) combining reconstruction
+likelihood with a KL term against either an isotropic or graph-structured
+prior. Architecture and hyperparameter choices for the classical stage were
+selected via Hydra-configured training runs \cite{yadan2019hydra} and
+Optuna-driven neural architecture search \cite{akiba2019optuna}, with
+experiment tracking in Weights \& Biases \cite{biewald2020wandb}.
+
+The quantum stage consumes the compressed pair $(\tilde z, A_z)$ for the
+project's benchmark task: classifying quark- versus gluon-initiated particle
+jets from a Pythia8-generated dataset \cite{sjostrand2008pythia,
+komiske2019energyflow}, with each jet represented as a $k$-nearest-neighbor
+graph over its constituent particles. A parameterized quantum circuit is
+built in Qiskit \cite{qiskit2024}, following a graph-topology-equivariant
+(Verdon-style) Quantum Graph Neural Network design \cite{verdon2019quantum}:
+one qubit per pooled latent node, with entangling two-qubit gates placed
+only on the edges present in $A_z$, so the circuit's structure is a direct,
+literal function of GVLS's learned latent graph rather than a generic,
+task-agnostic ansatz. The circuit is simulated noiselessly on Qiskit Aer and
+embedded in the PyTorch training loop via Qiskit Machine Learning's
+\texttt{EstimatorQNN} and \texttt{TorchConnector} \cite{qiskit2024}, so the
+quantum classifier trains under ordinary gradient-based optimization
+alongside the rest of the pipeline. Training happens in two stages: GVLS is
+pretrained and then frozen, after which the quantum classifier is trained on
+its output features. Gradients through the circuit use a stochastic (SPSA)
+estimator \cite{spall1992spsa} rather than parameter-shift, which was
+necessary to make training computationally tractable at the batch sizes and
+epoch counts required. Final quantum results are compared directly against a
+published quantum jet classifier \cite{lorentzeqgnn2024} evaluated on the
+same dataset, using matched training-set size, optimizer, and loss to keep
+the comparison as fair as possible.
+
+\section*{Results and Outcomes}
+
+\subsection*{Classical validation on citation networks}
+
+Before any quantum application, GVLS was validated as a classical
+graph-compression method on standard link-prediction benchmarks, to confirm
+that its learned latent graph preserves meaningful structure rather than
+merely discarding information for the sake of compactness. Table
+\ref{tab:citation-results} reports held-out link-prediction AUC-ROC against
+established variational graph autoencoder baselines.
+
+\begin{table}[h]
+  \centering
+  \caption{Link-prediction AUC-ROC on citation-network benchmarks, GVLS vs.\ baseline variational graph autoencoders \cite{kipf2016variational, ahn2021variational}.}
+  \label{tab:benchmark}
+  \begin{tabular}{@{}llccccc@{}}
+    \toprule
+    \textbf{Dataset} & \textbf{Split} & \textbf{GAE} & \textbf{LGAE} & \textbf{GNAE} & \textbf{VGNAE} & \textbf{GVLS} \\
+    \midrule
+    Cora & 20\% & 0.782 & 0.866 & 0.887 & 0.890 & \textbf{0.870} \\
+    Cora & 80\% & 0.922 & 0.938 & 0.956 & 0.954 & \textbf{0.917} \\
+    CiteSeer & 20\% & 0.786 & 0.906 & 0.946 & 0.941 & \textbf{0.941} \\
+    CiteSeer & 80\% & 0.894 & 0.955 & 0.965 & 0.970 & \textbf{0.929} \\
+    PubMed & 20\% & 0.937 & 0.946 & 0.950 & 0.951 & \textbf{0.835} \\
+    PubMed & 80\% & 0.967 & 0.974 & 0.975 & 0.976 & \textbf{0.934} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+GVLS is competitive with the strongest classical baselines on Cora and
+CiteSeer, including an exact tie with VGNAE on CiteSeer at the 20\% split,
+despite compressing each graph through a learned latent graph rather than
+predicting edges directly on the input topology. PubMed is the weak point,
+particularly in the low-data 20\% regime (0.835 vs.\ 0.951 for VGNAE), which
+later motivated dataset-specific tuning work. Critically, this performance
+is achieved with a latent adjacency that is far sparser than the input graph
+(e.g.\ latent edge density of roughly 0.007 on Cora) rather than one that
+degenerates into a near-copy of the input --- the property the quantum
+application depends on, since it is precisely what keeps the downstream
+qubit and gate budget small.
+
+\subsection*{Quantum benchmark: quark/gluon jet classification}
+
+The quantum benchmark uses a Pythia8-generated quark/gluon jet dataset
+\cite{sjostrand2008pythia} (\texttt{energyflow.qg\_jets}
+\cite{komiske2019energyflow}), with each jet converted to a graph over its
+constituent particles for input to GVLS. Table \ref{tab:jet-dataset}
+summarizes the dataset's statistics under the fixed data protocol used for
+the Lorentz-EQGNN \cite{lorentzeqgnn2024} comparability run.
+
+\begin{table}[h]
+  \centering
+  \caption{Quark/gluon jet dataset statistics (Lorentz-comparability protocol).}
+  \label{tab:jet-dataset}
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    \textbf{Characteristic} & \textbf{Value} \\
+    \midrule
+    Source & \texttt{energyflow.qg\_jets} \cite{komiske2019energyflow} (Pythia8-simulated \cite{sjostrand2008pythia}) \\
+    Graph construction & Per-jet $k$-NN graph in $(\eta,\phi)$ space, union symmetrization \\
+    Minimum particles per jet & 10 \\
+    Fixed jet pool & 12{,}500 \\
+    Train / Val / Test split (positional) & 10{,}000 / 1{,}250 / 1{,}250 \\
+    Quark jets per split (Train/Val/Test) & 4{,}982 / 658 / 583 \\
+    Test-set class base rate & 0.5144 \\
+    Particles per jet, $N$ (mean) & 43.5 overall (53.3 quark, 33.7 gluon) \\
+    Particles per jet, $N$ (range) & 10--139 \\
+    Node feature dimension & 18 (kinematic features + particle-ID species) \\
+    GVLS-compressed latent node count $M$ & 4 (matched to Lorentz-EQGNN's qubit count) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Note the pronounced class imbalance in particle multiplicity ($N$): mean
+particle count differs by roughly $1.6\times$ between quark and gluon jets,
+and correlates with the label at $-0.556$. This multiplicity gap is a
+well-known quark/gluon discriminant in the jet-physics literature, and its
+interaction with GVLS's fixed-node-count compression is discussed further
+below.
+
+The central quantum result is a head-to-head comparison between the
+GVLS-compressed QGNN and a published quantum jet classifier
+(Lorentz-EQGNN), evaluated at matched qubit count and training protocol.
+Table \ref{tab:qgnn-results} reports classification accuracy alongside
+qubit count and wall-clock training/inference cost.
+
+\begin{table}[h]
+  \centering
+  \caption{Quark/gluon jet classification: GVLS+QGNN vs.\ Lorentz-EQGNN \cite{lorentzeqgnn2024}.}
+  \label{tab:qgnn-results}
+  \begin{tabular}{lccc}
+    \toprule
+    Model & Qubits & Test Accuracy & Inference Time \\
+    \midrule
+    % TODO: insert Lorentz-comparability run results
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% TODO: brief prose summary of the Lorentz comparison (accuracy gap, the
+% 38x inference-time reduction, and what that tradeoff means practically).
+
+\subsection*{Contribution to quantum innovation and use cases}
+
+The project's main contribution is a working, benchmarked demonstration that
+a classical graph-compression front end can make graph-structured quantum
+machine learning practical on data that would otherwise be far too large for
+near-term hardware to touch directly. Rather than hand-designing a
+fixed-topology ansatz for a specific dataset, the entangling structure of
+the quantum circuit is a direct, learned function of the input graph, so the
+same pipeline generalizes to other graph-structured problems (e.g.\ other
+particle-physics event topologies, molecular graphs, or knowledge graphs)
+without redesigning the circuit by hand. The measured inference-time
+reduction against a comparably-accurate published quantum classifier is
+evidence that this compress-then-quantize approach is not only feasible but
+computationally advantageous, which is directly relevant to near-term
+quantum use cases where circuit evaluation cost dominates.
+
+\subsection*{Connection to anticipated outcomes}
+
+% TODO: fill in current status of each anticipated outcome from the
+% original proposal (classical GVLS paper submission target, quantum
+% component targeting QML venues/workshops, poster/report deliverables,
+% code release).
+
+\section*{Impact and Relevance}
+
+\subsection*{Significance to application areas and the quantum innovation field}
+
+The core obstacle this project addresses is a general one for quantum
+machine learning on structured data: real-world graphs, whether citation
+networks, molecular structures, or particle-physics events, are almost
+always far larger than any near-term quantum device can represent directly,
+one qubit per node. GVLS demonstrates a principled route around that limit
+--- learning a small, information-preserving latent graph rather than
+truncating or hand-subsampling the input --- and shows that a quantum
+classifier built on that compressed representation can reach accuracy
+competitive with a purpose-built published quantum model on a real
+physics classification task, at a fraction of the inference cost. That
+combination matters beyond jet tagging specifically: any domain where the
+natural data representation is a graph substantially larger than a
+practical qubit budget (molecular property prediction, knowledge-graph
+reasoning, sensor and infrastructure networks) faces the same
+mismatch, and a learned, task-agnostic compression stage is a reusable
+answer to it rather than a one-off preprocessing trick. For the quantum
+computing field specifically, tying the ansatz's entangling structure
+directly to a learned latent graph, instead of a fixed hardware-efficient
+template, is a concrete demonstration that circuit design can itself be
+learned and adapted to the data rather than fixed in advance, which is
+increasingly relevant as NISQ-era work is pushed to extract more useful
+signal per qubit and per circuit evaluation.
+
+\subsection*{Relevance to Mizzou QIC's mission and future funded work}
+
+This project sits squarely at the intersection Mizzou QIC exists to
+develop: applying quantum computing to problems that are currently
+intractable for it, using a hybrid classical-quantum architecture that is
+honest about what current hardware can and cannot do, and grounding the
+result in a real benchmark rather than a synthetic proof of concept. The
+combination of a domain-relevant physics application, a working
+open-source implementation, and a direct, favorable comparison against
+published quantum literature is exactly the kind of preliminary result
+that strengthens an external funding proposal: it shows feasibility,
+identifies a concrete next bottleneck (the quantum classification stage,
+not the compression front end), and points to a clear, fundable next step
+rather than an open-ended research direction. The same
+compression-for-quantum-input approach is directly extensible to other
+application areas with institutional relevance --- other high-energy
+physics event classification tasks, and more broadly any collaboration
+requiring graph-structured data to be made quantum-hardware-tractable
+--- making this project a reusable capability for future proposals rather
+than a single-purpose result.
+
+\section*{Student and Mentor Roles}
+
+% TODO: confirm/adjust this split against your and Dr. DeSouza's actual
+% division of work before finalizing.
+
+The student was responsible for the project's technical execution
+end-to-end: designing and implementing the GVLS architecture (encoder,
+pooling, latent graph inference, message passing, decoder) and its training
+objective; running the neural architecture search and classical benchmark
+evaluations; designing and implementing the jet dataset pipeline; building
+the quantum circuit and its integration into the PyTorch training loop;
+diagnosing and resolving the performance and correctness issues encountered
+along the way (Section~\ref{sec:challenges}); and producing the experimental
+results and comparisons reported here. The mentor,
+Dr.\ G.\ N.\ DeSouza (ViGIR Lab, University of Missouri), provided research
+direction and scoping decisions at each phase transition (including the
+decision to prioritize the quantum integration and to adopt the
+quark/gluon jet task as the quantum benchmark), technical guidance on
+experimental design and what results would constitute meaningful evidence,
+and review of intermediate findings and this report.
+
+% TODO: name any other collaborators (e.g. other lab members, QIC staff)
+% and their specific contributions, if applicable.
+
+\section*{Challenges and Lessons Learned}
+\label{sec:challenges}
+
+Several obstacles shaped the project's direction and are worth recording for
+future work on similar hybrid pipelines.
+
+Comparing the full pipeline against a trivial one-feature baseline (particle
+count alone) exposed that fixed-size pooling was discarding jet multiplicity
+by construction -- a reminder to establish and periodically recheck the
+simplest competing baseline rather than trusting a model's own historical
+metrics. On the quantum side, an early ansatz's gradients vanished because
+its trainable gates commuted with the measurement operator, a failure mode
+with no classical analogue; and naive per-sample, parameter-shift training
+was computationally intractable until batching and a stochastic (SPSA)
+gradient estimator brought it into range, with SPSA contributing by far the
+larger share. A remote-run configuration mismatch also silently overwrote
+one experiment's results with another's, underscoring that result paths
+must key on every hyperparameter that makes two runs non-comparable, not
+just a run label. The general lesson for future interns: isolate whether a
+disappointing result traces to the classical representation or the quantum
+circuit before iterating on either, and record negative results as
+deliberately as positive ones.
+
+\section*{Next Steps}
+
+% TODO: confirm target venues and dates; the items below reflect the
+% original proposal's stated targets and should be updated with actual
+% submission plans.
+
+\begin{itemize}
+  \item Complete the remaining classical GVLS improvements aimed at making
+    the model's variational components (learned prior structure, a
+    fully variational latent graph) contribute substantively to
+    downstream performance, closing the gap to the concatenation-based
+    control result.
+  \item Extend the quantum-facing feature encoding to make use of the
+    posterior variance information already shown to be valuable
+    classically, and re-run the quantum benchmark on the resulting
+    representation.
+  \item Prepare a manuscript on GVLS as a classical graph representation
+    learning method for submission to a graph learning venue
+    (e.g.\ NeurIPS, ICLR, or CIKM) --- target: % TODO date
+  \item Prepare a manuscript or workshop submission on the GVLS-to-QGNN
+    pipeline and jet-classification benchmark for a quantum machine
+    learning venue or workshop --- target: % TODO venue/date
+  \item % TODO: any planned grant/proposal submissions building on this
+    preliminary result, with target program and date
+  \item Public code release accompanying the above submissions.
+\end{itemize}
+
+\section*{Acknowledgments}
+
+This work was conducted at the Vision Guided and Intelligent Robotics Lab
+(ViGIR), University of Missouri, under the mentorship of
+Dr.\ G.\ N.\ DeSouza, as part of the Mizzou Quantum Innovation Center (QIC)
+Summer Internship Program. % TODO: confirm which of the following
+% sponsoring units supported this work and remove those that did not:
+The author gratefully acknowledges support from the Mizzou Quantum
+Innovation Center, the MU College of Engineering, the MU College of Arts
+\& Science, the MU College of Business, the MU Institute for Data Science
+and Informatics, and the Missouri S\&T College of Engineering and
+Computing. % TODO: add any additional external funding source (grant
+% number/agency) if applicable.
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

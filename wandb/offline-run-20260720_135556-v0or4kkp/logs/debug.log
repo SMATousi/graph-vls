@@ -1,0 +1,20 @@
+2026-07-20 13:55:56,564 INFO    MainThread:72809 [wandb_init.py:setup_run_log_directory():723] Logging user logs to /Users/alitousi-macmini/projects/graph-vls/wandb/offline-run-20260720_135556-v0or4kkp/logs/debug.log
+2026-07-20 13:55:56,564 INFO    MainThread:72809 [wandb_init.py:setup_run_log_directory():724] Logging internal logs to /Users/alitousi-macmini/projects/graph-vls/wandb/offline-run-20260720_135556-v0or4kkp/logs/debug-internal.log
+2026-07-20 13:55:56,564 INFO    MainThread:72809 [wandb_init.py:init():766] calling init triggers
+2026-07-20 13:55:56,564 INFO    MainThread:72809 [wandb_init.py:init():771] wandb.init called with sweep_config: {}
+config: {'num_clusters': 8, 'hidden_dim': 32, 'latent_dim': 8, 'k': 3, 'graph_method': 'attention', 'prior': 'isotropic', 'mp_rounds': 1, 'lr': 0.01, 'beta': 0.001, 'lambda_': 1.0, 'epochs': 30, 'batch_size': 32, 'seed': 42, 'num_jets': 10000, '_wandb': {}}
+2026-07-20 13:55:56,564 INFO    MainThread:72809 [wandb_init.py:init():814] starting backend
+2026-07-20 13:55:56,564 INFO    MainThread:72809 [wandb_init.py:init():829] sending inform_init request
+2026-07-20 13:55:56,670 INFO    MainThread:72809 [wandb_init.py:init():834] backend started and connected
+2026-07-20 13:55:56,671 INFO    MainThread:72809 [wandb_init.py:init():904] updated telemetry
+2026-07-20 13:55:56,689 INFO    MainThread:72809 [wandb_init.py:init():927] communicating run to backend with 90.0 second timeout
+2026-07-20 13:55:56,690 INFO    MainThread:72809 [wandb_init.py:init():972] starting run threads in backend
+2026-07-20 13:55:56,725 INFO    MainThread:72809 [wandb_run.py:_console_start():2523] atexit reg
+2026-07-20 13:55:56,725 INFO    MainThread:72809 [wandb_run.py:_redirect():2373] redirect: wrap_raw
+2026-07-20 13:55:56,725 INFO    MainThread:72809 [wandb_run.py:_redirect():2442] Wrapping output streams.
+2026-07-20 13:55:56,725 INFO    MainThread:72809 [wandb_run.py:_redirect():2465] Redirects installed.
+2026-07-20 13:55:56,726 INFO    MainThread:72809 [wandb_init.py:init():1010] run started, returning control to user process
+2026-07-20 13:58:37,033 INFO    MainThread:72809 [wandb_run.py:_finish():2285] finishing run graph-vls/v0or4kkp
+2026-07-20 13:58:37,034 INFO    MainThread:72809 [wandb_run.py:_atexit_cleanup():2490] got exitcode: 0
+2026-07-20 13:58:37,035 INFO    MainThread:72809 [wandb_run.py:_restore():2472] restore
+2026-07-20 13:58:37,035 INFO    MainThread:72809 [wandb_run.py:_restore():2478] restore done

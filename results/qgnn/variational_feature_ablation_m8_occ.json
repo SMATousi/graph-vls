@@ -1,0 +1,110 @@
+{
+  "num_trials": 5,
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "feature_sets": {
+    "z_a": {
+      "logreg_accuracy_mean": 0.6883199999999999,
+      "logreg_accuracy_std": 0.007033633484906634,
+      "logreg_auc_mean": 0.7512181623926149,
+      "logreg_auc_std": 0.007532089332900267,
+      "logreg_macro_f1_mean": 0.6882750305077244,
+      "logreg_macro_f1_std": 0.00699234132849538,
+      "mlp_accuracy_mean": 0.6816,
+      "mlp_accuracy_std": 0.007310266752998844,
+      "mlp_auc_mean": 0.7423357869951653,
+      "mlp_auc_std": 0.008160315161648992,
+      "mlp_macro_f1_mean": 0.6814943642807505,
+      "mlp_macro_f1_std": 0.007297642636241704
+    },
+    "z_a_logvar": {
+      "logreg_accuracy_mean": 0.75344,
+      "logreg_accuracy_std": 0.008146655755584615,
+      "logreg_auc_mean": 0.8296227783172474,
+      "logreg_auc_std": 0.005729616616109932,
+      "logreg_macro_f1_mean": 0.7534006665960714,
+      "logreg_macro_f1_std": 0.008184964488667365,
+      "mlp_accuracy_mean": 0.71808,
+      "mlp_accuracy_std": 0.012258548038001898,
+      "mlp_auc_mean": 0.7950981422030688,
+      "mlp_auc_std": 0.012496338389558628,
+      "mlp_macro_f1_mean": 0.7177305875396407,
+      "mlp_macro_f1_std": 0.012288822232479676
+    },
+    "z_a_mu_logvar": {
+      "logreg_accuracy_mean": 0.75232,
+      "logreg_accuracy_std": 0.008756254907207753,
+      "logreg_auc_mean": 0.8298636180793797,
+      "logreg_auc_std": 0.006359460532365107,
+      "logreg_macro_f1_mean": 0.7522886113283288,
+      "logreg_macro_f1_std": 0.008781679003850237,
+      "mlp_accuracy_mean": 0.72256,
+      "mlp_accuracy_std": 0.014281736589084668,
+      "mlp_auc_mean": 0.8018765004445287,
+      "mlp_auc_std": 0.008608073454629897,
+      "mlp_macro_f1_mean": 0.721805581982239,
+      "mlp_macro_f1_std": 0.01399712708689358
+    },
+    "logvar_only": {
+      "logreg_accuracy_mean": 0.75424,
+      "logreg_accuracy_std": 0.0028509647489928635,
+      "logreg_auc_mean": 0.8322381956489991,
+      "logreg_auc_std": 0.005302057371594866,
+      "logreg_macro_f1_mean": 0.7541932136966971,
+      "logreg_macro_f1_std": 0.002854714817625792,
+      "mlp_accuracy_mean": 0.71072,
+      "mlp_accuracy_std": 0.007602104971650919,
+      "mlp_auc_mean": 0.7899057394165017,
+      "mlp_auc_std": 0.0046983297459730015,
+      "mlp_macro_f1_mean": 0.7097131093868303,
+      "mlp_macro_f1_std": 0.008603512266831205
+    },
+    "z_a_n": {
+      "logreg_accuracy_mean": 0.75424,
+      "logreg_accuracy_std": 0.005525214927946254,
+      "logreg_auc_mean": 0.8314316386583689,
+      "logreg_auc_std": 0.005529510227141831,
+      "logreg_macro_f1_mean": 0.7541569784352156,
+      "logreg_macro_f1_std": 0.005506336665186362,
+      "mlp_accuracy_mean": 0.756,
+      "mlp_accuracy_std": 0.007735631842325476,
+      "mlp_auc_mean": 0.832477498136054,
+      "mlp_auc_std": 0.005119172300317937,
+      "mlp_macro_f1_mean": 0.7559226218079155,
+      "mlp_macro_f1_std": 0.007773955176542954
+    },
+    "z_a_logvar_n": {
+      "logreg_accuracy_mean": 0.75792,
+      "logreg_accuracy_std": 0.006108354934022752,
+      "logreg_auc_mean": 0.8380096387147355,
+      "logreg_auc_std": 0.005162551166218614,
+      "logreg_macro_f1_mean": 0.7578937071749108,
+      "logreg_macro_f1_std": 0.006117370118322676,
+      "mlp_accuracy_mean": 0.75504,
+      "mlp_accuracy_std": 0.00955656842177151,
+      "mlp_auc_mean": 0.8355320637149278,
+      "mlp_auc_std": 0.003954771062710666,
+      "mlp_macro_f1_mean": 0.7546803370813768,
+      "mlp_macro_f1_std": 0.009733862616172227
+    },
+    "n_only": {
+      "logreg_accuracy_mean": 0.75552,
+      "logreg_accuracy_std": 0.004546647116282477,
+      "logreg_auc_mean": 0.8376112282571657,
+      "logreg_auc_std": 0.0,
+      "logreg_macro_f1_mean": 0.7550116764337997,
+      "logreg_macro_f1_std": 0.004841410533762396,
+      "mlp_accuracy_mean": 0.76032,
+      "mlp_accuracy_std": 0.0031799371062962785,
+      "mlp_auc_mean": 0.8376112282571657,
+      "mlp_auc_std": 0.0,
+      "mlp_macro_f1_mean": 0.7600615752450937,
+      "mlp_macro_f1_std": 0.003365819984879224
+    }
+  }
+}
