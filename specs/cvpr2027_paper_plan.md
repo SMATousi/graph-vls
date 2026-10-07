@@ -1,107 +1,121 @@
-# CVPR 2027 paper preparation plan: classical GVLS
+# CVPR 2027 paper preparation plan: generative GVLS for visual graphs
 
-**Written:** 2026-10-07
+**Written:** 2026-10-07. **Revised:** 2026-10-07 after the decision to center graph generation.
 
-**Target:** CVPR 2027 main conference
+**Target:** CVPR 2027 main conference.
 
-**Scope:** classical Graph Variational Latent Space (GVLS) on image-derived graphs. The QGNN and jet experiments are outside this paper plan. This document is a proposed research plan, not a claim that the experiments have been run.
+**Scope:** classical Graph Variational Latent Space (GVLS). QGNN and jet classification are outside this plan. Proposed experiments below are unrun unless explicitly identified as existing results.
 
-## 1. Submission clock and paper decision
+## 1. Paper thesis and submission clock
 
-The [official CVPR 2027 call](https://cvpr.thecvf.com/Conferences/2027/CallForPapers) lists **paper registration on November 10, 2026**, **submission on November 16, 2026**, and **supplementary material on November 23, 2026**, all Anywhere on Earth. The dates are stated to be fixed. All authors need current OpenReview profiles. As of this document, the linked 2027 author-guidelines page is unavailable; check it when published for the final template, page limit, anonymity, supplementary, and code rules. The [2026 guidelines](https://cvpr.thecvf.com/Conferences/2026/AuthorGuidelines) used an eight-page main paper, but that is a planning assumption, not a verified 2027 rule.
+**Proposed question:** Can a smaller, learned *graph of latent distributions* model a useful distribution over visual relationships, rather than merely reconstruct one adjacency matrix? Given an image and a fixed object inventory (object boxes and labels), the model should sample plausible **directed, typed relationship graphs** and assign probabilities to annotated relations. The object inventory is conditioning information, not generated output. We should call this *conditional scene-graph generation* or *conditional relation-graph generation*, not unconditional graph or image generation.
 
-**Candidate claim:** an image region graph can be compressed into a smaller *learned relational latent graph* while preserving useful region-level visual information. The paper needs evidence on both sides: competitive region recognition at a stated storage/compute budget, and a causal gain from the learned latent graph beyond ordinary pooling. A compression result alone, or a good classifier that ignores `A_z`, does not establish the claim.
+The central claim requires three pieces of evidence: (1) valid test-time samples from a learned prior, with more than one plausible graph per image; (2) competitive relation prediction and calibrated probabilities on held-out images; and (3) a causal benefit from compressing into a **learned latent graph**, beyond a flat VAE or an ordinary pooled graph. Reconstruction F1 from the encoder's posterior alone cannot establish any of these.
 
-**Go/no-go by October 28:** submit this story only if at least one vision dataset shows a reproducible accuracy–rate advantage over a capacity-matched pooling baseline and a meaningful learned-graph ablation. If it does not, report the negative result internally and consider a narrower graph-learning venue or a later CVPR cycle. Do not turn the unrun JEPA proposal into a claimed contribution.
+The [official CVPR 2027 call](https://cvpr.thecvf.com/Conferences/2027/CallForPapers) lists paper registration on **November 10, 2026**, main submission on **November 16, 2026**, and supplementary material on **November 23, 2026**, all Anywhere on Earth and stated to be fixed. All authors need current OpenReview profiles. The linked 2027 author-guidelines page was unavailable when this plan was written; check the final template, length, anonymity, and code rules when published. The [2026 guidelines](https://cvpr.thecvf.com/Conferences/2026/AuthorGuidelines) used an eight-page main paper, which is only a working layout assumption.
 
-## 2. What the repository currently establishes
+**Go/no-go by October 28:** the generative model must beat a matched flat/pooled VAE on held-out conditional prediction or sample quality, and removing/shuffling `A_z` must measurably change the result. If prior samples fail while posterior reconstructions look good, do not submit a generative claim on that evidence. A narrower graph representation paper or later submission is the fallback decision, not a change to what was measured.
 
-- The [mission](mission.md) calls for node-count, edge-count, and dimensional compression with learned pooling, latent message passing, a graph-aware prior, and unpooling reconstruction.
-- [Phase 2 validation](phase2/validation.md) records citation-network link prediction on Cora, CiteSeer, and PubMed. These are useful supporting results, but are not vision evidence. The historical NAS choices may be affected by the later KL-normalization fix; compare against new runs under one declared loss convention before using them in a paper table.
-- [Phase 3 validation](phase3/validation.md) records a reconstruction F1 ceiling below 0.90 on all three citation graphs, a flat response to latent capacity, and `A_z` being inert or nearly inert under the CiteSeer/PubMed selected configurations. The graph-conditioned decoder experiment did not provide a reliable overall gain. The published paper must not imply that these issues are solved.
-- [Phase 5 validation](phase5/validation.md) found inert variational components in the jet configuration. Its occupancy-aware posterior improved frozen-feature classification, but that result is domain-specific and the QGNN is excluded here. The proposed mixture prior and stochastic `A_z` were not implemented at the last recorded validation point.
-- The current `PooledGVLS` returns pooled distributions, `A_z`, assignment `S`, and full-graph reconstruction. The current top-k `LatentGraphLearner` becomes complete when `k >= M-1`; the default attention score has no parameters of its own. For node prediction on image graphs, add a readout from the **pooled graph back to input regions**, and confirm that graph edges affect that readout.
+## 2. What must change from the current repository
 
-## 3. Datasets and tasks
+The [mission](mission.md) describes a variational encoder, learned pooling `S`, latent adjacency `A_z`, message passing, graph-aware KL, and unpooling. [Phase 3 validation](phase3/validation.md) shows reconstruction F1 below 0.90 on Cora/CiteSeer/PubMed; some selected configurations give `A_z` no meaningful route into the output. [Phase 5 validation](phase5/validation.md) found the variational loss weak and the jet latent graph complete under its production configuration. These are constraints to investigate, not paper results to hide.
 
-| Priority | Dataset | Task and metric | Reason / protocol |
+The current `PooledGVLS` is an **autoencoder for an observed graph**. At decoding it reuses `S`, which was computed from that graph's encoded nodes, and it returns an undirected binary adjacency reconstruction. It has no learned prior that can produce a new `S`, node count, node attributes, or relation types at test time. Its deterministic top-k adjacency also becomes complete whenever `k >= M-1`. In particular, sampling a standard Gaussian and calling the existing decoder is not yet a valid standalone graph generator.
+
+The smallest credible CVPR scope is therefore **conditional** generation: object count, boxes, labels, and image/ROI features are given at both training and test time. Derive `S` from that *shared conditioning information* so the decoder can use the same assignment at inference. Model the missing relationship graph; leave object creation and image synthesis for future work. State in the paper that the compressed representation excludes the given conditioning information, and measure its bit/parameter cost separately if claiming a storage advantage.
+
+## 3. Generative model specification
+
+Let `c` contain an image, a fixed set of `N` object boxes/classes, and fixed ROI image features. Let `R` be the annotated directed predicate graph, including a declared treatment of unannotated ordered pairs. Let `S(c) in [0,1]^(N x M)` be an assignment learned **only from c**, with `M < N` where feasible. The proposed conditional model is:
+
+```text
+p(Z, A_z, R | c) = p_psi(Z | c) p_omega(A_z | Z, c)
+                    product_(i != j) p_theta(R_ij | c, S(c), Z, A_z).
+q_phi(Z, A_z | c, R) approximates the posterior during training.
+```
+
+Here `Z` consists of `M` latent node variables; `A_z` is a symmetric or directed latent edge variable whose convention must be chosen and documented. The **output** relation graph is directed and typed regardless of that choice. The training objective is the conditional ELBO, evaluated on the *observed annotation set*:
+
+```text
+E_q [log p_theta(R_observed | c, S, Z, A_z)]
+    - KL(q_phi(Z, A_z | c, R) || p_psi(Z, A_z | c)).
+```
+
+If `A_z` is initially a deterministic function of sampled `Z`, its edge distribution is induced by `Z` and there is **no separate edge KL**; describe it that way. Only claim a variational edge posterior after implementing explicit `q(A_z | ...)`, `p(A_z | ...)`, and their KL. A conditional prior for `Z` is required even in the minimal version, because samples and test likelihood estimates must use a prior available without ground-truth `R`.
+
+### Architecture tasks
+
+1. **Data adapter:** represent each image's objects as nodes with class, box geometry, and frozen ROI visual features. Build a stable mapping between object indices, ordered pairs, and predicate labels. Keep ROI extraction/checkpoint fixed across all methods; cache features and report their provenance. Begin with ground-truth boxes/classes (the standard PredCls setting), then test robustness to detector predictions only if the first stage works.
+2. **Shared assignment:** make `S(c)` depend only on information available at generation time; do not use true relation edges, target predicates, or posterior-only node features to build it. Record `M/N`, cluster occupancy, and whether hardening `S` changes samples. A latent node count that is not smaller than `N` is a baseline setting, not compression.
+3. **Posterior and prior:** implement `q_phi(Z | c,R)` and `p_psi(Z | c)` with matched Gaussian shapes. At training time, sample from `q`; at test time, sample from `p`. Track posterior/prior divergence, active dimensions, variance, and posterior collapse. Start with a conditional diagonal Gaussian prior; add a mixture or graph-MRF prior only after the basic conditional VAE works and an ablation points to a limitation.
+4. **Latent graph:** infer sparse `A_z` from sampled `Z` with an edge scorer and edge budget that cannot silently yield a complete graph. Compare deterministic top-k, input-derived coarsening `S.T A_input S` where an input relation graph is actually observable, and a parameter-matched graph-free model. Add Bernoulli/Concrete edges with a sparsity prior if the stochastic extension improves a defined test metric or sample property; retain the deterministic path for attribution.
+5. **Typed generative decoder:** use `S(c)` to unpool latent context to object nodes, then score each ordered pair for relation categories. Define whether pairs may have multiple predicates; if yes, use a multilabel likelihood, and if no, include a documented background/no-annotation category. Pairwise scoring must condition on object/ROI features and *processed* latent graph features, not only raw `Z`; otherwise `A_z` can be decorative. Avoid claiming a normalized likelihood over true scene relations when the dataset supplies only partial annotations.
+6. **Generation and completion API:** implement `sample(c, seed, num_samples)` that never reads ground-truth `R`. A separate `complete(c, R_context, mask, seed)` may condition a prior on observed relations and sample missing ones. For completion, remove target relations from all context-encoder, assignment, and pair-feature paths; train and evaluate with masks defined before encoding. Do not substitute posterior reconstructions for either API.
+7. **Loss audit:** quantify relation likelihood, node KL, edge KL if present, and each auxiliary assignment term per image. Define reductions over object pairs so loss strength is comparable across graph sizes. Check positive/unknown pair weighting and calibrate using validation data. If using a weighted surrogate instead of the stated ELBO, name it and separate likelihood estimates from surrogate training loss.
+
+## 4. Datasets and protocols
+
+| Priority | Dataset | Use | Conditions |
 |---|---|---|---|
-| Required pilot | [PascalVOC-SP](https://github.com/vijaydwivedi75/lrgb) | Superpixel node classification; official macro F1 | Image-derived graphs, manageable pilot, official splits and evaluation. Use the benchmark's graph construction and supplied node features first. |
-| Required confirmation | [COCO-SP](https://github.com/vijaydwivedi75/lrgb) | Superpixel node classification; official macro F1 | Larger, more varied images and the same task family. Use official splits; do not tune on its test set. |
-| Supporting continuity | Cora, CiteSeer, PubMed | Link prediction AUC/AP and graph reconstruction | Re-run selected comparisons under a consistent modern implementation; place in supplementary unless the vision claim depends on them. |
+| Main | [Visual Genome](https://visualgenome.org/) with a documented VG150-style scene-graph split | Conditional relation-graph generation and masked relation completion | Freeze exact image IDs, object/predicate vocabulary, boxes, ROI feature extractor, and annotation preprocessing. Report standard PredCls results separately from generative results. |
+| Independent confirmation | [VRD](https://cs.stanford.edu/people/ranjaykrishna/vrd/) | Smaller second relation-graph dataset; generation/completion under its own vocabulary | Keep its official test split, carve validation only from training images, and disclose the smaller data budget. Retrain under a matched protocol; do not call it zero-shot transfer unless label mapping and image overlap are handled explicitly. |
+| Optional scale/stress test | [Open Images V6 visual relationships](https://storage.googleapis.com/openimages/web/download.html) | Larger, different annotation regime | Add only after the two required datasets work and its relationship-evaluation protocol is implemented correctly. |
+| Supplementary continuity | Cora, CiteSeer, PubMed | Classical binary link prediction/reconstruction diagnostic | Re-run under one declared KL convention. These graphs do not validate a visual relationship generator. |
 
-The [LRGB paper](https://proceedings.neurips.cc/paper_files/paper/2022/file/8c3c666820ea055a77726d66fc7d447f-Paper-Datasets_and_Benchmarks.pdf) defines PascalVOC-SP and COCO-SP as image-derived superpixel node-prediction tasks; its [official repository](https://github.com/vijaydwivedi75/lrgb) supplies loaders and baseline protocols. Reproduce the exact graph variant, split, metric aggregation, node/edge features, and preprocessing version used in each comparison. The [LRGB reassessment](https://openreview.net/forum?id=rIUjwxc5lj) warns that baseline protocol and tuning can materially change the ranking, so reproduce strong comparators rather than copying only the original table.
+The [Visual Genome source](https://link.springer.com/article/10.1007/s11263-016-0981-7) supplies image scene graphs. Standard [scene-graph evaluation modes](https://openaccess.thecvf.com/content_cvpr_2018/papers/Zellers_Neural_Motifs_Scene_CVPR_2018_paper.pdf) distinguish predicate classification with given boxes/classes from tasks that also predict objects. This paper's main setting is the former, with an additional **sampling** test. Do not compare its PredCls number directly with SGCls or SGDet. Visual Genome relationships are sparse/incomplete; [work on limited-label scene graphs](https://cs.stanford.edu/people/ranjaykrishna/limitedlabels/index.html) documents that issue. Treat unannotated pairs as unknown unless a specified benchmark protocol asks for background; include sensitivity analyses for negative sampling and avoid interpreting “unannotated” as “false.”
 
-**Optional only if the required pair succeeds early:** one image-level task on the same graphs, using a documented image label and a graph readout, to demonstrate a second downstream use. Do not add a new dataset solely to fill a table. Do not present ImageNet/COCO pixel-level performance claims without an image backbone and a fair pixel-based baseline; these experiments use supplied region-graph features.
+## 5. Evaluation: generation first
 
-## 4. Model and experiment gates
+**Primary table:** held-out VG and VRD relation prediction using standard `R@20/50/100` and `mR@20/50/100` (or each dataset's official equivalents), with the exact graph constraint and candidate-pair setting stated. Include a no-latent discriminative relation predictor so the VAE's cost is visible. Report per-predicate results or frequency strata, not only a head-class-dominated mean.
 
-### Gate A — make node prediction and compression well-defined
+**Generative evidence:** for each held-out image, draw multiple independent samples from `p(Z,A_z|c)` and decode relation graphs. Report (a) test annotation log score or an importance-weighted conditional log-likelihood bound where a valid likelihood is defined; (b) positive-relation coverage and precision under a fixed output budget; (c) diversity at matched quality, e.g. unique sampled triplet sets and pairwise set distance; and (d) graph statistic distributions (relation counts, predicate frequencies, object–predicate–object motifs, node degrees) versus held-out annotated graphs. Show several samples for the **same** image, including failure cases. A diverse collection of implausible or duplicate samples is not success.
 
-1. Add a region readout that maps pooled features back to the original `N` superpixels, e.g. `H_hat = S @ f(A_z, Z_p)` followed by a shared node classifier. Preserve the existing reconstruction interface. Compare against `S @ Z_p` with **no** latent message passing and against a matched graph pooling model whose pooled adjacency is `S.T @ A_input @ S`.
-2. Make `M` configurable as a fixed count and as a fraction of each image graph's `N`; record the actual `M/N` distribution. Avoid `k >= M-1` in the primary sparse setting. A separate full-graph arm is useful as an ablation.
-3. Select checkpoint and hyperparameters by **validation macro F1** for recognition experiments. Use validation reconstruction metrics only for the rate–distortion study. Train probes on training labels only; fit thresholds/calibration on validation data only.
-4. Keep node labels out of unsupervised pretraining. For supervised fine-tuning, report the exact label budget and distinguish it from frozen linear-probe results. The same image and its graph must remain in one official split.
+**Completion evidence:** mask a fixed fraction of *annotated* relations in each held-out graph, condition only on retained relations, and score the held-out ones. Compare masks that remove random edges versus connected subgraphs. Evaluate multiple mask fractions and record the exact candidate-pair/unknown-label policy. Use image-level train/val/test separation; the test graph must not be encoded in full when scoring hidden edges.
 
-### Gate B — show the latent graph is actually used
+**Calibration and compute:** on pairs with reliable labels, report negative log likelihood/Brier score and calibration; identify where sparse annotations make them uninterpretable. Measure parameters, training and inference time, peak memory, number of prior samples, and dependence on `N` and `M`. Use at least five seeds for headline rows, with frozen hyperparameters and mean ± standard deviation. Select model/checkpoints using validation **generative** metrics, not training reconstruction F1.
 
-5. At `M` and `k` used in the main table, log graph density, fraction of complete/empty graphs, edge-weight distribution, and variation across images. Report `||∂L_task/∂A_z||` and compare predictions after setting `A_z=0`, shuffling edges between images, replacing it with a fixed complete graph, and using `S.T @ A_input @ S`. An architectural claim requires a material change in held-out performance under these interventions.
-6. If `A_z` is inert, add an explicit graph-dependent route to the region readout and/or decoder and compare with a parameter-matched graph-free route. A learned symmetric pairwise edge scorer with a sparsity budget is the first candidate. Keep deterministic top-k as a baseline. Implement Concrete/Bernoulli edges or a graph prior only if the deterministic graph has established a gain and the added probabilistic component answers a specific remaining question.
-7. Audit the objective before large sweeps: positive-edge weighting, loss normalization across varying `N`, KL contribution, assignment-link-loss share, posterior standard deviation, effective cluster occupancy, and gradients to the encoder, assignment, edge scorer, and message-passing layers. Sweep a few plausible loss weights on validation data. Keep the chosen convention fixed across the main comparison.
+## 6. Necessary baselines and ablations
 
-### Gate C — measure the claimed compression
+| Comparison | Exact question |
+|---|---|
+| Frequency/geometry/ROI-only predictor and a strong supervised PredCls model such as [Neural Motifs](https://openaccess.thecvf.com/content_cvpr_2018/papers/Zellers_Neural_Motifs_Scene_CVPR_2018_paper.pdf) under the same boxes/features | Is GVLS competitive at the visual relation task? |
+| Conditional flat VGAE/CVAE with `N` object latents and a matched decoder; [GraphVAE](https://arxiv.org/abs/1802.03480) where its graph-size/output assumptions fit | Does the learned compressed graph add value over a conventional variational graph autoencoder? |
+| Learned pooling with no `A_z`, coarsened observed graph, random/fixed/complete latent graph, and full GVLS with matched parameters | Is the learned latent topology causal, or merely an unused visualization? |
+| [VarScene](https://proceedings.mlr.press/v162/verma22b.html) on a **matched** graph-synthesis setting | How does sample quality compare with an existing scene-graph VAE? Its unconditional generation numbers are not directly comparable with our image-conditioned PredCls numbers. |
+| `M`, latent dimension, edge budget, message-passing rounds, assignment loss, beta/normalization, isotropic vs conditional/graph prior, deterministic vs stochastic edges | What actually controls likelihood, sample quality, sparsity, and collapse? |
+| Posterior reconstruction versus prior sampling; single sample versus marginal prediction from several samples | Does the model genuinely generate at test time? |
 
-8. Plot **macro F1 versus total representation bits**, not just versus `d` or `M/N`. Count quantized pooled means and variances if transmitted, latent edges and weights, node-to-cluster assignment, `M`/shape metadata, and any other per-image data needed to decode or predict. State the quantization scheme and whether shared model weights are amortized. Report `M/N`, `|A_z|/|E_input|`, and `d/F` separately as diagnostic axes.
-9. Use the same rate budget and decoder/readout capacity for flat VGAE, input-graph coarsening, learned pooling with no latent edges, and full GVLS. Include a no-compression GNN ceiling. Report encoder latency, peak memory, parameter count, and decode/readout latency; compare on the same hardware and software environment.
-10. For adjacency fidelity, score held-out **images**, with positive and negative pairs defined consistently. Report AP/AUC and calibrated F1 plus bits per edge. A full-graph training reconstruction on the same graph is a memorization diagnostic, not generalization. A 0.5 threshold or a balanced sampled-pair metric alone can hide poor calibration on sparse adjacency.
+Run capacity/compute-matched comparisons on the same split and ROI features. Use the same candidate pairs, unknown-label treatment, and output triplet budget. For causal `A_z` tests, set it to zero, shuffle it between images, and replace it with a fixed graph **at inference**; also report `||∂L/∂A_z||`, graph density, complete/empty fraction, and cross-image variation. Repeat training without each component to separate test-time perturbation from adaptation during training. Report negative results. Do not claim to be the first variational scene-graph generator: [GraphVAE](https://arxiv.org/abs/1802.03480) and [VarScene](https://proceedings.mlr.press/v162/verma22b.html) are prior generative work.
 
-## 5. Required comparison matrix
+## 7. JEPA-style training as a generative-model extension
 
-| Group | Runs to include | Question answered |
+The primary paper objective remains a conditional likelihood/ELBO with a test-time prior. A JEPA loss can be an **auxiliary representation objective**; it is not itself a graph likelihood and does not make the model generative. [I-JEPA](https://openaccess.thecvf.com/content/CVPR2023/papers/Assran_Self-Supervised_Learning_From_Images_With_a_Joint-Embedding_Predictive_Architecture_CVPR_2023_paper.pdf) and [Graph-JEPA](https://arxiv.org/abs/2309.16014) already establish latent prediction from masked context, so any contribution here must come from improving the variational latent graph's prior samples or completion, not from adopting a familiar loss.
+
+**Suggested pilot:** mask a connected group of relationship edges before the online encoder. The online branch receives `c` plus visible relations, pools into `M` latents, and predicts teacher embeddings for masked object pairs or target subgraphs. An EMA teacher sees the full training graph; gradients stop at its targets. Keep target IDs aligned through the object inventory rather than matching permuted latent clusters. Prevent target predicates, edge features, or full-graph-derived `S` from leaking into the online path. At test time the teacher is absent; generate using the trained conditional prior/decoder.
+
+Compare four matched-step arms: VAE alone, JEPA-style prediction alone, VAE + JEPA, and VAE + an equal-cost masked-relation-reconstruction auxiliary loss. Also compare prediction with and without `A_z`. Monitor embedding effective rank, posterior/prior KL, active latent dimensions, relation log score, prior-sample diversity, and completion quality. If JEPA improves only posterior embeddings but harms prior samples or likelihood, keep it out of the main generative claim. If a distributional target is attempted (teacher `mu, log_var`), state and test its divergence separately; a point-target MSE does not calibrate the variational posterior.
+
+Run the pilot after the basic VAE generates nontrivial prior samples, by October 24 if feasible. Keep JEPA in the paper only if it improves a prespecified held-out **generative** metric across seeds under matched compute. Otherwise document the negative result in supplementary or defer it.
+
+## 8. Work plan and artifacts
+
+| Date (2026) | Tasks and deliverable | Gate |
 |---|---|---|
-| Strong vision-graph baselines | Official LRGB GatedGCN and a strong graph-transformer/GPS-style baseline, reproduced or carefully protocol-matched | Is the result relevant to the actual vision task? |
-| Compression controls | Same encoder + learned pooling without `A_z`; DiffPool-style `S.T A S`; flat VGAE at matched bit budget; simple graph coarsening | Which gain comes from pooling, graph learning, or extra capacity? |
-| GVLS components | `M`, `d`, edge budget `k`; no/one/two latent message-passing rounds; learned versus input-coarsened versus random/complete/empty `A_z`; isotropic versus graph-MRF prior | Is each claimed mechanism useful? |
-| Assignment and uncertainty | Soft versus hard assignment at inference; assignment auxiliary losses on/off; occupancy-aware posterior on/off; mean-only versus mean plus variance features | What information survives compression, and what is the storage cost? |
-| Robustness | At least 5 seeds for headline rows, per-dataset mean ± standard deviation; validation-selected settings; image-size and graph-density strata | Does the effect survive seed and graph variation? |
+| Oct 7–12 | Finalize VG/VRD split and annotation policy; literature matrix; frozen ROI features; minimal typed-graph loader | No image leakage; repeatable graph/feature mapping and relation labels |
+| Oct 13–19 | Implement shared `S(c)`, conditional posterior/prior, typed decoder, and prior-only sampler; tiny-graph checks | Prior sampler runs without ground-truth `R`; sample shapes, edge direction, KL, and log probability are correct |
+| Oct 20–26 | VG pilot, matched flat/pooled VAE, PredCls baseline, `A_z` causal audit, optional JEPA pilot | Nontrivial prior samples and fair first generative comparison |
+| Oct 27–Nov 2 | Decide claim on Oct 28; VRD confirmation, five-seed final runs, sampling/completion/compute sweeps | Primary claim passes; test protocols and configs frozen |
+| Nov 3–9 | Write method/ELBO derivation, results, sample figures, limitations, supplementary; internal review and anonymization | Every number maps to a run, seed, checkpoint, and evaluation protocol; register by Nov 10 |
+| Nov 10–16 | Final paper and submission | Submit by Nov 16 AoE under the actual 2027 author rules |
+| Nov 17–23 | Supplementary/code and reproducibility audit | Upload supplement by Nov 23 AoE |
 
-Implement baselines under matched splits, node features, training budget, and, where possible, parameter count. Label literature-only numbers separately. The original [VGAE](https://arxiv.org/abs/1611.07308) is a necessary flat-latent reference, but a task-specific supervised GNN and a matched pooling model are more direct competitors for image-region node prediction. Report negative ablations and the total search budget. Do not describe `A_z` as novel merely because it differs visually from the input graph; Graph-JEPA and other graph representation methods already study learned latent structure.
+Create `configs/paper_cvpr2027/`, `experiments/paper_cvpr2027/`, `results/paper_cvpr2027/`, and `reports/cvpr2027/`. Preserve per-run commit, dataset version and split hash, ROI extractor version, seed, conditioning fields, pair mask, loss convention, checkpoint criterion, hardware, runtime, generated sample seeds, and raw predictions. Keep a small fixed set of held-out images for qualitative panels chosen **before** seeing model outputs. The main paper needs a graphical-model diagram, a clear conditional-ELBO derivation, prediction and sample-quality tables, prior-vs-posterior samples, a latent-graph causal ablation, and failure cases. Supplementary should contain all dataset preprocessing, baselines, complete ablations, calibration details, and citation-network continuity.
 
-## 6. Proposed JEPA-style training track
+## 9. Claims that must be stated precisely
 
-This is an **experimental extension**, not a prerequisite to the baseline GVLS paper. [I-JEPA](https://openaccess.thecvf.com/content/CVPR2023/papers/Assran_Self-Supervised_Learning_From_Images_With_a_Joint-Embedding_Predictive_Architecture_CVPR_2023_paper.pdf) predicts target-block representations from a context view with a slowly updated target encoder. [Graph-JEPA](https://arxiv.org/abs/2309.16014) already applies masked-subgraph latent prediction to graph representation learning; [HP-JEPA](https://arxiv.org/abs/2608.00491) explores multiple graph-partition scales. The contribution here would have to be the interaction with a **variational, compressed, learned latent graph**, demonstrated by matched ablations, not “the first graph JEPA.”
-
-### Concrete design
-
-1. Sample one or more connected target **superpixel blocks** per image, at multiple sizes and boundary/interior locations. Build a context graph after removing target node appearance/features and incident edges that reveal the target. Give the predictor target positional/shape metadata only if the same metadata is available at inference; never pass target RGB statistics, labels, or hidden adjacency through `S` or another path. Random-node masks are an ablation, not the sole mask policy.
-2. Online context encoder: `GVLS` encoder → assignment `S_c` → pooled posterior `(mu_c, log_var_c)` → learned `A_z,c` → message passing. A predictor queries this compact graph with target position tokens to produce predicted target embeddings. The predictor must consume `A_z,c`; include its graph-free counterpart.
-3. EMA target encoder sees the **unmasked** image graph during training and emits per-target-node embeddings *before pooling*, so there is a stable target index and no cluster-permutation alignment problem. Stop gradients through the target branch. Predict normalized target means with smooth L1 or cosine loss. Do not treat squared-error regression to a single target mean as a calibrated uncertainty objective.
-4. Start with `L = L_GVLS + alpha * L_predict`. Compare GVLS only, JEPA only with the same encoder and capacity, and the joint objective at matched training steps. If the joint objective helps, test whether a distributional target (teacher posterior `mu, log_var` with a stop-gradient Gaussian divergence) improves calibration; retain the reconstruction/ELBO and report the KL separately so “variational” remains justified. If the predictive-only arm wins, describe it as a new representation learner rather than calling its objective an ELBO.
-5. Monitor representation variance/covariance, effective rank, posterior variance, cluster occupancy, and validation target-prediction error to catch collapsed constant embeddings. Compare EMA with a frozen target encoder and predictor/no-predictor controls. Test masking fractions and block scale on validation data; prohibit full-view shortcuts in the context path.
-
-### Decision rule
-
-Run a small PascalVOC-SP pilot by October 24. Keep JEPA in the main paper only if it improves held-out macro F1 or the accuracy–rate frontier across seeds, beyond equal-compute GVLS and a [GraphMAE](https://arxiv.org/abs/2205.10803) masked-pretraining control, while the learned-graph intervention remains material. Otherwise place a concise negative result in supplementary or defer it to a follow-up. This avoids claiming novelty from adding a fashionable loss to an otherwise unchanged model.
-
-## 7. Execution schedule and artifacts
-
-| Date (2026) | Deliverable | Acceptance check |
-|---|---|---|
-| Oct 7–12 | Freeze research question, literature map, LRGB loader/protocol, and baseline config manifest | Data hashes/splits and metric implementation documented; original and reassessed LRGB comparators identified |
-| Oct 13–19 | Node readout, graph-influence audit, PascalVOC-SP pilot, matched pooling/VGAE controls | `A_z` has a causal path; at least one non-degenerate sparse setting; pilot includes a fair accuracy–rate point |
-| Oct 20–26 | COCO-SP confirmation, main ablations, optional JEPA pilot | Both vision datasets have preliminary tables; JEPA decision recorded |
-| Oct 27–Nov 2 | Freeze model and hyperparameters; five-seed final runs and rate/compute sweeps | Primary claim passes October 28 gate; every headline number traced to config, seed, checkpoint, and CSV |
-| Nov 3–9 | Main paper, supplementary, figures, internal review, anonymity pass | Paper registration by Nov 10; claims match measured results; all authors' OpenReview profiles ready |
-| Nov 10–16 | Final edits and submission | Submit by Nov 16 AoE using the current 2027 template and policies |
-| Nov 17–23 | Supplementary/code package and reproducibility audit | Upload supplement by Nov 23 AoE; check final anonymization rules |
-
-Create `experiments/paper_cvpr2027/` for immutable run manifests, `configs/paper_cvpr2027/` for frozen configs, `results/paper_cvpr2027/` for per-seed raw metrics and aggregation, and `reports/cvpr2027/` for manuscript/figures. Save dataset version/hash, split identifier, commit, seed, hardware, runtime, training budget, checkpoint-selection rule, and feature/bit accounting with each run. The main paper should contain the method diagram, vision-task table, F1-versus-bits plot, graph-causality ablation, and examples of assignments/latent edges; supplementary should hold full grids, citation-network continuity, failure cases, and reproducibility details.
-
-## 8. Paper integrity checklist
-
-- State the actual likelihood and loss normalization; do not call a weighted BCE objective an exact graph ELBO without deriving the implied model.
-- State whether `A_z` is deterministic or stochastic in each experiment. A deterministic top-k graph is **not** a variational edge posterior.
-- Compare image-derived graph methods with image-derived graph methods; do not claim pixel-level vision performance from superpixel features alone.
-- Keep test images unseen until the final frozen protocol; use validation for all model, threshold, and operating-point choices.
-- Present failure cases, zero-effect components, and compute costs alongside positive results. If the paper claim fails its gate, revise the claim before submission rather than selecting a favorable seed.
-- Recheck the official [CVPR 2027 call](https://cvpr.thecvf.com/Conferences/2027/CallForPapers) and author guidelines before registration and submission; policy details may change after this plan was written.
+- Given boxes/classes and ROI features means **conditional relation-graph generation**, not object, box, or image generation. Do not compare directly with full SGDet without a shared detector and an explicit end-to-end protocol.
+- The current weighted adjacency BCE is not automatically a normalized likelihood or valid ELBO. Derive the observation model for the new typed decoder; disclose any surrogate weighting and the treatment of unknown pairs.
+- A deterministic graph computed from random `Z` may vary across samples, but it is not a separately learned variational edge posterior. Claim the latter only if its posterior/prior and KL are implemented and tested.
+- Posterior reconstruction, masked-edge prediction, prior sampling, and unconditional graph synthesis answer different questions. Give each its own table and do not use one as evidence for another.
+- Scene-graph annotations are incomplete. Generated extra relations can be plausible despite being unannotated; qualitative examples and calibrated scores need that caveat. Report prior-sample quality and diversity together.
+- Recheck the [CVPR 2027 call](https://cvpr.thecvf.com/Conferences/2027/CallForPapers) and eventual author guidelines before registration and submission.
