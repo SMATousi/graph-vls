@@ -4,6 +4,8 @@
 
 **Target:** CVPR 2027 main conference, with an explicit fallback (section 8) if the early gates fail.
 
+**Implementation and experiment tasks:** see [`cvpr2027_implementation_tasks.md`](cvpr2027_implementation_tasks.md).
+
 **Scope:** classical Graph Variational Latent Space (GVLS) applied to **one** visual task on **one** dataset. QGNN, jet classification, citation-network results, JEPA training, a second dataset and scene-graph completion are *not* part of the core plan; they are listed as stretch items in section 7 and are cut first. Proposed experiments below are unrun unless explicitly identified as existing results.
 
 ## 1. Thesis, minimum paper, and submission clock
